@@ -19,6 +19,7 @@ from sgd.build_database import (clip_search_tool, frame_graph_query_tool,
 from sgd.func_call_shema import as_json_schema
 from sgd.func_call_shema import doc as D
 from sgd.scene_graph.global_event_index import build_global_event_index_from_path
+from sgd.trace_logger import TraceLogger
 from sgd.utils import call_openai_model_with_tools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -300,7 +301,17 @@ Question: QUESTION_PLACEHOLDER"""
         )
 
     def _build_trace_logger(self, question, trace_id=None):
-        return None
+        if not config.TRACE_ENABLED:
+            return None
+        effective_trace_id = trace_id or f"trace_{uuid.uuid4().hex[:12]}"
+        logger = TraceLogger(
+            trace_id=effective_trace_id,
+            log_dir=config.TRACE_LOG_DIR,
+            max_field_chars=config.TRACE_MAX_FIELD_CHARS,
+        )
+        logger.log_trace_start(question=question, max_iterations=self.max_iterations)
+        print(f"[TRACE] trace_id={effective_trace_id} file={logger.path}")
+        return logger
 
     def _normalized_tool_calls(self, response) -> list[dict]:
         tool_calls = response.get("tool_calls")

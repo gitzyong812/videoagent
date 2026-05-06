@@ -1,0 +1,425 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{50}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{} and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showURL}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showURL #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Amizadeh et~al\mbox{.}(2020)]%
+        {neuro2020}
+\bibfield{author}{\bibinfo{person}{Saeed Amizadeh}, \bibinfo{person}{Hamid Palangi}, \bibinfo{person}{Oleksandr Polozov}, \bibinfo{person}{Yichen Huang}, {and} \bibinfo{person}{Kazuhito Koishida}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Neuro-Symbolic Visual Reasoning: Disentangling "Visual" from "Reasoning"}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning}}. \bibinfo{pages}{279--290}.
+\newblock
+
+
+\bibitem[Bai et~al\mbox{.}(2025a)]%
+        {bai2025qwen3vl}
+\bibfield{author}{\bibinfo{person}{Shuai Bai}, \bibinfo{person}{Yuxuan Cai}, \bibinfo{person}{Ruizhe Chen}, \bibinfo{person}{Keqin Chen}, \bibinfo{person}{Xionghui Chen}, \bibinfo{person}{Zesen Cheng}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{a}.
+\newblock \showarticletitle{Qwen3-vl technical report}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2511.21631}} (\bibinfo{year}{2025}).
+\newblock
+
+
+\bibitem[Bai et~al\mbox{.}(2025b)]%
+        {qwen}
+\bibfield{author}{\bibinfo{person}{Shuai Bai}, \bibinfo{person}{Keqin Chen}, \bibinfo{person}{Xuejing Liu}, \bibinfo{person}{Jialin Wang}, \bibinfo{person}{Wenbin Ge}, \bibinfo{person}{Sibo Song}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{b}.
+\newblock \bibinfo{title}{Qwen2.5-VL Technical Report}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2502.13923}.
+\newblock
+
+
+\bibitem[Caba~Heilbron et~al\mbox{.}(2015)]%
+        {caba2015activitynet}
+\bibfield{author}{\bibinfo{person}{Fabian Caba~Heilbron}, \bibinfo{person}{Victor Escorcia}, \bibinfo{person}{Bernard Ghanem}, {and} \bibinfo{person}{Juan Carlos~Niebles}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Activitynet: A large-scale video benchmark for human activity understanding}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{961--970}.
+\newblock
+
+
+\bibitem[Cai et~al\mbox{.}(2025)]%
+        {cai2025naver}
+\bibfield{author}{\bibinfo{person}{Zhixi Cai}, \bibinfo{person}{Fucai Ke}, \bibinfo{person}{Simindokht Jahangard}, \bibinfo{person}{Maria~Garcia de~la Banda}, \bibinfo{person}{Reza Haffari}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Naver: A neuro-symbolic compositional automaton for visual grounding with explicit logic reasoning}. In \bibinfo{booktitle}{\emph{International Conference on Computer Vision}}. \bibinfo{pages}{24078--24089}.
+\newblock
+
+
+\bibitem[Chen et~al\mbox{.}(2024)]%
+        {internvl}
+\bibfield{author}{\bibinfo{person}{Zhe Chen}, \bibinfo{person}{Weiyun Wang}, \bibinfo{person}{Yue Cao}, \bibinfo{person}{Yangzhou Liu}, \bibinfo{person}{Zhangwei Gao}, \bibinfo{person}{Erfei Cui}, {et~al\mbox{.}}} \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{Expanding Performance Boundaries of Open-Source Multimodal Models with Model, Data, and Test-Time Scaling}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2412.05271}.
+\newblock
+
+
+\bibitem[Fei et~al\mbox{.}(2024)]%
+        {fei2024videoofthought}
+\bibfield{author}{\bibinfo{person}{Hao Fei}, \bibinfo{person}{Shengqiong Wu}, \bibinfo{person}{Wei Ji}, \bibinfo{person}{Hanwang Zhang}, \bibinfo{person}{Meishan Zhang}, \bibinfo{person}{Mong-Li Lee}, {and} \bibinfo{person}{Wynne Hsu}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Video-of-Thought: Step-by-Step Video Reasoning from Perception to Cognition}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning}}. \bibinfo{pages}{13109--13125}.
+\newblock
+
+
+\bibitem[Fu et~al\mbox{.}(2025)]%
+        {videomme2024}
+\bibfield{author}{\bibinfo{person}{Chaoyou Fu}, \bibinfo{person}{Yuhan Dai}, \bibinfo{person}{Yongdong Luo}, \bibinfo{person}{Lei Li}, \bibinfo{person}{Shuhuai Ren}, \bibinfo{person}{Renrui Zhang}, \bibinfo{person}{Zihan Wang}, \bibinfo{person}{Chenyu Zhou}, \bibinfo{person}{Yunhang Shen}, \bibinfo{person}{Mengdan Zhang}, \bibinfo{person}{Peixian Chen}, \bibinfo{person}{Yanwei Li}, \bibinfo{person}{Shaohui Lin}, \bibinfo{person}{Sirui Zhao}, \bibinfo{person}{Ke Li}, \bibinfo{person}{Tong Xu}, \bibinfo{person}{Xiawu Zheng}, \bibinfo{person}{Enhong Chen}, \bibinfo{person}{Caifeng Shan}, \bibinfo{person}{Ran He}, {and} \bibinfo{person}{Xing Sun}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Video-MME: The First-Ever Comprehensive Evaluation Benchmark of Multi-modal LLMs in Video Analysis}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{24108--24118}.
+\newblock
+
+
+\bibitem[Georgiev et~al\mbox{.}(2024)]%
+        {gemini15}
+\bibfield{author}{\bibinfo{person}{Petko Georgiev}, \bibinfo{person}{Ving~Ian Lei}, \bibinfo{person}{Ryan Burnell}, \bibinfo{person}{Libin Bai}, \bibinfo{person}{Anmol Gulati}, {et~al\mbox{.}}} \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{Gemini 1.5: Unlocking Multimodal Understanding Across Millions of Tokens of Context}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2403.05530}.
+\newblock
+\href{https://doi.org/10.48550/arXiv.2403.05530}{doi:\nolinkurl{10.48550/arXiv.2403.05530}}
+
+
+\bibitem[Guo et~al\mbox{.}(2025)]%
+        {seed}
+\bibfield{author}{\bibinfo{person}{Dong Guo}, \bibinfo{person}{Faming Wu}, \bibinfo{person}{Feida Zhu}, \bibinfo{person}{Fuxing Leng}, \bibinfo{person}{Guang Shi}, \bibinfo{person}{Haobin Chen}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Seed1.5-VL Technical Report}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2505.07062}.
+\newblock
+\href{https://doi.org/10.48550/arXiv.2505.07062}{doi:\nolinkurl{10.48550/arXiv.2505.07062}}
+
+
+\bibitem[Johnson et~al\mbox{.}(2015)]%
+        {scenegraph1}
+\bibfield{author}{\bibinfo{person}{Justin Johnson}, \bibinfo{person}{Ranjay Krishna}, \bibinfo{person}{Michael Stark}, \bibinfo{person}{Li-Jia Li}, \bibinfo{person}{David Shamma}, \bibinfo{person}{Michael Bernstein}, {and} \bibinfo{person}{Li Fei-Fei}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Image Retrieval Using Scene Graphs}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{3668--3678}.
+\newblock
+
+
+\bibitem[Kavukcuoglu(2025)]%
+        {gemini25}
+\bibfield{author}{\bibinfo{person}{Koray Kavukcuoglu}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Gemini 2.5: Our Most Intelligent {AI} Model}.
+\newblock
+\urldef\tempurl%
+\url{https://blog.google/innovation-and-ai/models-and-research/google-deepmind/gemini-model-thinking-updates-march-2025/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Google Blog. Accessed 2026-04-01}.
+
+
+\bibitem[Kugo et~al\mbox{.}(2025)]%
+        {videomultiagents2025}
+\bibfield{author}{\bibinfo{person}{Noriyuki Kugo}, \bibinfo{person}{Xiang Li}, \bibinfo{person}{Zixin Li}, \bibinfo{person}{Ashish Gupta}, \bibinfo{person}{Arpandeep Khatua}, \bibinfo{person}{Nidhish Jain}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Videomultiagents: A multi-agent framework for video question answering}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2504.20091}} (\bibinfo{year}{2025}).
+\newblock
+
+
+\bibitem[Li et~al\mbox{.}(2025)]%
+        {videochat2025}
+\bibfield{author}{\bibinfo{person}{KunChang Li}, \bibinfo{person}{Yinan He}, \bibinfo{person}{Yi Wang}, \bibinfo{person}{Yizhuo Li}, \bibinfo{person}{Wenhai Wang}, \bibinfo{person}{Ping Luo}, \bibinfo{person}{Yali Wang}, \bibinfo{person}{Limin Wang}, {and} \bibinfo{person}{Yu Qiao}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Videochat: Chat-centric video understanding}.
+\newblock \bibinfo{journal}{\emph{Science China Information Sciences}} \bibinfo{volume}{68}, \bibinfo{number}{10} (\bibinfo{year}{2025}), \bibinfo{pages}{200102}.
+\newblock
+
+
+\bibitem[Li et~al\mbox{.}(2022)]%
+        {li2022GLIP}
+\bibfield{author}{\bibinfo{person}{Liunian~Harold Li}, \bibinfo{person}{Pengchuan Zhang}, \bibinfo{person}{Haotian Zhang}, \bibinfo{person}{Jianwei Yang}, \bibinfo{person}{Chunyuan Li}, {et~al\mbox{.}}} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Grounded language-image pre-training}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{10965--10975}.
+\newblock
+
+
+\bibitem[Li et~al\mbox{.}(2024)]%
+        {frompixel2024}
+\bibfield{author}{\bibinfo{person}{Rongjie Li}, \bibinfo{person}{Songyang Zhang}, \bibinfo{person}{Dahua Lin}, \bibinfo{person}{Kai Chen}, {and} \bibinfo{person}{Xuming He}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{From pixels to graphs: Open-vocabulary scene graph generation with vision-language models}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{28076--28086}.
+\newblock
+
+
+\bibitem[Lin et~al\mbox{.}(2024)]%
+        {video-llava2024}
+\bibfield{author}{\bibinfo{person}{Bin Lin}, \bibinfo{person}{Yang Ye}, \bibinfo{person}{Bin Zhu}, \bibinfo{person}{Jiaxi Cui}, \bibinfo{person}{Munan Ning}, \bibinfo{person}{Peng Jin}, {and} \bibinfo{person}{Li Yuan}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Video-llava: Learning united visual representation by alignment before projection}. In \bibinfo{booktitle}{\emph{Empirical Methods in Natural Language Processing}}. \bibinfo{pages}{5971--5984}.
+\newblock
+
+
+\bibitem[Lin et~al\mbox{.}(2026)]%
+        {videoseek}
+\bibfield{author}{\bibinfo{person}{Jingyang Lin}, \bibinfo{person}{Jialian Wu}, \bibinfo{person}{Jiang Liu}, \bibinfo{person}{Ximeng Sun}, \bibinfo{person}{Ze Wang}, \bibinfo{person}{Xiaodong Yu}, \bibinfo{person}{Jiebo Luo}, \bibinfo{person}{Zicheng Liu}, {and} \bibinfo{person}{Emad Barsoum}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{VideoSeek: Long-Horizon Video Agent with Tool-Guided Seeking}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2603.20185}.
+\newblock
+
+
+\bibitem[Liu et~al\mbox{.}(2023)]%
+        {llava2023}
+\bibfield{author}{\bibinfo{person}{Haotian Liu}, \bibinfo{person}{Chunyuan Li}, \bibinfo{person}{Qingyang Wu}, {and} \bibinfo{person}{Yong~Jae Lee}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Visual instruction tuning}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems}}, Vol.~\bibinfo{volume}{36}. \bibinfo{pages}{34892--34916}.
+\newblock
+
+
+\bibitem[Liu et~al\mbox{.}(2026)]%
+        {videomind}
+\bibfield{author}{\bibinfo{person}{Ye Liu}, \bibinfo{person}{Kevin~Qinghong Lin}, \bibinfo{person}{Chang~Wen Chen}, {and} \bibinfo{person}{Mike~Zheng Shou}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{VideoMind: A Chain-of-LoRA Agent for Temporal-Grounded Video Reasoning}. In \bibinfo{booktitle}{\emph{Proceedings of the International Conference on Learning Representations (ICLR)}}. \bibinfo{publisher}{OpenReview.net}.
+\newblock
+
+
+\bibitem[Ma et~al\mbox{.}(2025)]%
+        {drvideo2025}
+\bibfield{author}{\bibinfo{person}{Jinghang Ma}, \bibinfo{person}{Qinghao Ye}, \bibinfo{person}{Zhihao Xu}, \bibinfo{person}{Yifei Hu}, \bibinfo{person}{Min Yan}, \bibinfo{person}{Tao Xiang}, {and} \bibinfo{person}{Sheng Wang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{DrVideo: Document Retrieval Based Long Video Understanding}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{28153--28163}.
+\newblock
+
+
+\bibitem[Mangalam et~al\mbox{.}(2023)]%
+        {egoschema2023}
+\bibfield{author}{\bibinfo{person}{Karttikeya Mangalam}, \bibinfo{person}{Raiymbek Akshulakov}, {and} \bibinfo{person}{Jitendra Malik}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \bibinfo{title}{EgoSchema: A Diagnostic Benchmark for Very Long-form Video Language Understanding}.
+\newblock \bibinfo{howpublished}{arXiv preprint arXiv:2308.09126}.
+\newblock
+\href{https://doi.org/10.48550/arXiv.2308.09126}{doi:\nolinkurl{10.48550/arXiv.2308.09126}}
+
+
+\bibitem[Nguyen et~al\mbox{.}(2025)]%
+        {hyperglm2025}
+\bibfield{author}{\bibinfo{person}{Trong-Thuan Nguyen}, \bibinfo{person}{Pha Nguyen}, \bibinfo{person}{Jackson Cothren}, \bibinfo{person}{Alper Yilmaz}, {and} \bibinfo{person}{Khoa Luu}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Hyperglm: Hypergraph for video scene graph generation and anticipation}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{29150--29160}.
+\newblock
+
+
+\bibitem[{OpenAI}(2024)]%
+        {gpt4o}
+\bibfield{author}{\bibinfo{person}{{OpenAI}}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{{GPT-4o} System Card}.
+\newblock
+\urldef\tempurl%
+\url{https://openai.com/index/gpt-4o-system-card/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Accessed 2026-04-01}.
+
+
+\bibitem[{OpenAI}(2025)]%
+        {o3}
+\bibfield{author}{\bibinfo{person}{{OpenAI}}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{{OpenAI o3 and o4-mini System Card}}.
+\newblock
+\urldef\tempurl%
+\url{https://openai.com/index/o3-o4-mini-system-card/}
+\showURL{%
+\tempurl}
+\newblock
+\shownote{Accessed 2026-04-01}.
+
+
+\bibitem[Pang and Wang(2025)]%
+        {mrvideo}
+\bibfield{author}{\bibinfo{person}{Ziqi Pang} {and} \bibinfo{person}{Yu-Xiong Wang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{MR.} Video: {MapReduce} as an Effective Principle for Long Video Understanding}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems}}.
+\newblock
+
+
+\bibitem[Qiu et~al\mbox{.}(2025)]%
+        {qiu2025step}
+\bibfield{author}{\bibinfo{person}{Haiyi Qiu}, \bibinfo{person}{Minghe Gao}, \bibinfo{person}{Long Qian}, \bibinfo{person}{Kaihang Pan}, \bibinfo{person}{Qifan Yu}, \bibinfo{person}{Juncheng Li}, \bibinfo{person}{Wenjie Wang}, \bibinfo{person}{Siliang Tang}, \bibinfo{person}{Yueting Zhuang}, {and} \bibinfo{person}{Tat-Seng Chua}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{STEP: Enhancing Video-LLMs' Compositional Reasoning by Spatio-Temporal Graph-guided Self-Training}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{3284--3294}.
+\newblock
+
+
+\bibitem[Radford et~al\mbox{.}(2021)]%
+        {radford2021CLIP}
+\bibfield{author}{\bibinfo{person}{Alec Radford}, \bibinfo{person}{Jong~Wook Kim}, \bibinfo{person}{Chris Hallacy}, \bibinfo{person}{Aditya Ramesh}, \bibinfo{person}{Gabriel Goh}, \bibinfo{person}{Sandhini Agarwal}, {et~al\mbox{.}}} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Learning transferable visual models from natural language supervision}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning}}. \bibinfo{pages}{8748--8763}.
+\newblock
+
+
+\bibitem[Ren et~al\mbox{.}(2025)]%
+        {videorag2025}
+\bibfield{author}{\bibinfo{person}{Xubin Ren}, \bibinfo{person}{Lingrui Xu}, \bibinfo{person}{Long Xia}, \bibinfo{person}{Shuaiqiang Wang}, \bibinfo{person}{Dawei Yin}, {and} \bibinfo{person}{Chao Huang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Videorag: Retrieval-augmented generation with extreme long-context videos}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2502.01549}} (\bibinfo{year}{2025}).
+\newblock
+
+
+\bibitem[Shen et~al\mbox{.}(2025a)]%
+        {longvu2025}
+\bibfield{author}{\bibinfo{person}{Xiaoqian Shen}, \bibinfo{person}{Yunyang Xiong}, \bibinfo{person}{Changsheng Zhao}, \bibinfo{person}{Lemeng Wu}, \bibinfo{person}{Chenchen Zhu}, \bibinfo{person}{Florian Bordes}, \bibinfo{person}{Balakrishnan Varadarajan}, \bibinfo{person}{Shanghua Xie}, \bibinfo{person}{Stan Sclaroff}, {and} \bibinfo{person}{Mohamed Elhoseiny}.} \bibinfo{year}{2025}\natexlab{a}.
+\newblock \showarticletitle{LongVU: Spatiotemporal Adaptive Compression for Long Video-Language Understanding}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning}}, Vol.~\bibinfo{volume}{267}. \bibinfo{pages}{24325--24340}.
+\newblock
+
+
+\bibitem[Shen et~al\mbox{.}(2025b)]%
+        {vagent2025}
+\bibfield{author}{\bibinfo{person}{Xiaoqian Shen}, \bibinfo{person}{Wenxuan Zhang}, \bibinfo{person}{Jun Chen}, {and} \bibinfo{person}{Mohamed Elhoseiny}.} \bibinfo{year}{2025}\natexlab{b}.
+\newblock \showarticletitle{Vgent: Graph-based Retrieval-Reasoning-Augmented Generation For Long Video Understanding}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems}}.
+\newblock
+
+
+\bibitem[Shu et~al\mbox{.}(2025)]%
+        {shu2025video}
+\bibfield{author}{\bibinfo{person}{Yan Shu}, \bibinfo{person}{Zheng Liu}, \bibinfo{person}{Peitian Zhang}, \bibinfo{person}{Minghao Qin}, \bibinfo{person}{Junjie Zhou}, \bibinfo{person}{Zhengyang Liang}, \bibinfo{person}{Tiejun Huang}, {and} \bibinfo{person}{Bo Zhao}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Video-xl: Extra-long vision language model for hour-scale video understanding}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{26160--26169}.
+\newblock
+
+
+\bibitem[Team et~al\mbox{.}(2026)]%
+        {team2026kimi}
+\bibfield{author}{\bibinfo{person}{Kimi Team}, \bibinfo{person}{Tongtong Bai}, \bibinfo{person}{Yifan Bai}, \bibinfo{person}{Yiping Bao}, \bibinfo{person}{SH Cai}, \bibinfo{person}{Yuan Cao}, \bibinfo{person}{Y Charles}, \bibinfo{person}{HS Che}, \bibinfo{person}{Cheng Chen}, \bibinfo{person}{Guanduo Chen}, {et~al\mbox{.}}} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{Kimi K2. 5: Visual Agentic Intelligence}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2602.02276}} (\bibinfo{year}{2026}).
+\newblock
+
+
+\bibitem[Wang et~al\mbox{.}(2025a)]%
+        {lvbench}
+\bibfield{author}{\bibinfo{person}{Weihan Wang}, \bibinfo{person}{Zehai He}, \bibinfo{person}{Wenyi Hong}, \bibinfo{person}{Yean Cheng}, \bibinfo{person}{Xiaohan Zhang}, \bibinfo{person}{Ji Qi}, \bibinfo{person}{Ming Ding}, \bibinfo{person}{Xiaotao Gu}, \bibinfo{person}{Shiyu Huang}, \bibinfo{person}{Bin Xu}, \bibinfo{person}{Yuxiao Dong}, {and} \bibinfo{person}{Jie Tang}.} \bibinfo{year}{2025}\natexlab{a}.
+\newblock \showarticletitle{LVBench: An Extreme Long Video Understanding Benchmark}. In \bibinfo{booktitle}{\emph{International Conference on Computer Vision}}. \bibinfo{publisher}{IEEE/CVF}, \bibinfo{address}{Honolulu, HI, USA}, \bibinfo{pages}{22958--22967}.
+\newblock
+
+
+\bibitem[Wang et~al\mbox{.}(2025b)]%
+        {wang2025adaretake}
+\bibfield{author}{\bibinfo{person}{Xiao Wang}, \bibinfo{person}{Qingyi Si}, \bibinfo{person}{Shiyu Zhu}, \bibinfo{person}{Jianlong Wu}, \bibinfo{person}{Li Cao}, {and} \bibinfo{person}{Liqiang Nie}.} \bibinfo{year}{2025}\natexlab{b}.
+\newblock \showarticletitle{AdaReTaKe: Adaptive redundancy reduction to perceive longer for video-language understanding}. In \bibinfo{booktitle}{\emph{Findings of the Association for Computational Linguistics}}. \bibinfo{pages}{5417--5432}.
+\newblock
+
+
+\bibitem[Wang et~al\mbox{.}(2025c)]%
+        {videotree2025}
+\bibfield{author}{\bibinfo{person}{Xiaohan Wang}, \bibinfo{person}{Shoubin Yu}, \bibinfo{person}{Elias Stengel-Eskin}, \bibinfo{person}{Jaehong Yoon}, \bibinfo{person}{Feng Cheng}, \bibinfo{person}{Gedas Bertasius}, {and} \bibinfo{person}{Mohit Bansal}.} \bibinfo{year}{2025}\natexlab{c}.
+\newblock \showarticletitle{VideoTree: Adaptive Tree-based Video Representation for LLM Reasoning on Long Videos}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{28964--28974}.
+\newblock
+
+
+\bibitem[Wang et~al\mbox{.}(2024)]%
+        {videoagent}
+\bibfield{author}{\bibinfo{person}{Xiaohan Wang}, \bibinfo{person}{Yuhui Zhang}, \bibinfo{person}{Orr Zohar}, {and} \bibinfo{person}{Serena Yeung-Levy}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{VideoAgent: Long-Form Video Understanding with Large Language Model as Agent}. In \bibinfo{booktitle}{\emph{Proceedings of the European Conference on Computer Vision (ECCV)}}. \bibinfo{pages}{58--76}.
+\newblock
+\href{https://doi.org/10.1007/978-3-031-72989-8_4}{doi:\nolinkurl{10.1007/978-3-031-72989-8_4}}
+
+
+\bibitem[Wu et~al\mbox{.}(2024)]%
+        {longvideobench2024}
+\bibfield{author}{\bibinfo{person}{Haoning Wu}, \bibinfo{person}{Dongxu Li}, \bibinfo{person}{Bei Chen}, {and} \bibinfo{person}{Junnan Li}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Longvideobench: A benchmark for long-context interleaved video-language understanding}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems}}, Vol.~\bibinfo{volume}{37}. \bibinfo{pages}{28828--28857}.
+\newblock
+
+
+\bibitem[Xu et~al\mbox{.}(2017)]%
+        {xu2017scene}
+\bibfield{author}{\bibinfo{person}{Danfei Xu}, \bibinfo{person}{Yuke Zhu}, \bibinfo{person}{Christopher~B Choy}, {and} \bibinfo{person}{Li Fei-Fei}.} \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{Scene graph generation by iterative message passing}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{5410--5419}.
+\newblock
+
+
+\bibitem[Yang et~al\mbox{.}(2025)]%
+        {yang2025vca}
+\bibfield{author}{\bibinfo{person}{Zeyuan Yang}, \bibinfo{person}{Delin Chen}, \bibinfo{person}{Xueyang Yu}, \bibinfo{person}{Maohao Shen}, {and} \bibinfo{person}{Chuang Gan}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Vca: Video curious agent for long video understanding}. In \bibinfo{booktitle}{\emph{International Conference on Computer Vision}}. \bibinfo{pages}{20168--20179}.
+\newblock
+
+
+\bibitem[Yao et~al\mbox{.}(2023)]%
+        {react2022}
+\bibfield{author}{\bibinfo{person}{Shunyu Yao}, \bibinfo{person}{Jeffrey Zhao}, \bibinfo{person}{Dian Yu}, \bibinfo{person}{Nan Du}, \bibinfo{person}{Izhak Shafran}, \bibinfo{person}{Karthik~R Narasimhan}, {and} \bibinfo{person}{Yuan Cao}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{ReAct: Synergizing Reasoning and Acting in Language Models}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations}}.
+\newblock
+
+
+\bibitem[Yoon et~al\mbox{.}(2021)]%
+        {scenegraph2}
+\bibfield{author}{\bibinfo{person}{Sangwoong Yoon}, \bibinfo{person}{Woo~Young Kang}, \bibinfo{person}{Sungwook Jeon}, \bibinfo{person}{Seong~Eun Lee}, \bibinfo{person}{Changjin Han}, \bibinfo{person}{Jonghun Park}, {and} \bibinfo{person}{Eun~Sol Kim}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Image-to-Image Retrieval by Learning Similarity between Scene Graphs}. In \bibinfo{booktitle}{\emph{AAAI Conference on Artificial Intelligence}}. \bibinfo{pages}{10718--10726}.
+\newblock
+
+
+\bibitem[Zellers et~al\mbox{.}(2018)]%
+        {motifs2018}
+\bibfield{author}{\bibinfo{person}{Rowan Zellers}, \bibinfo{person}{Mark Yatskar}, \bibinfo{person}{Sam Thomson}, {and} \bibinfo{person}{Yejin Choi}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Neural motifs: Scene graph parsing with global context}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{5831--5840}.
+\newblock
+
+
+\bibitem[Zeng et~al\mbox{.}(2026)]%
+        {zeng2026glm}
+\bibfield{author}{\bibinfo{person}{Aohan Zeng}, \bibinfo{person}{Xin Lv}, \bibinfo{person}{Zhenyu Hou}, \bibinfo{person}{Zhengxiao Du}, \bibinfo{person}{Qinkai Zheng}, \bibinfo{person}{Bin Chen}, {et~al\mbox{.}}} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{GLM-5: from Vibe Coding to Agentic Engineering}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2602.15763}} (\bibinfo{year}{2026}).
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2024a)]%
+        {zhang2024simplellm}
+\bibfield{author}{\bibinfo{person}{Ce Zhang}, \bibinfo{person}{Taixi Lu}, \bibinfo{person}{Md~Mohaiminul Islam}, \bibinfo{person}{Ziyang Wang}, \bibinfo{person}{Shoubin Yu}, \bibinfo{person}{Mohit Bansal}, {and} \bibinfo{person}{Gedas Bertasius}.} \bibinfo{year}{2024}\natexlab{a}.
+\newblock \showarticletitle{A simple llm framework for long-range video question-answering}. In \bibinfo{booktitle}{\emph{Empirical Methods in Natural Language Processing}}. \bibinfo{pages}{21715--21737}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2024c)]%
+        {omagent2024}
+\bibfield{author}{\bibinfo{person}{Lu Zhang}, \bibinfo{person}{Tiancheng Zhao}, \bibinfo{person}{Heting Ying}, \bibinfo{person}{Yibo Ma}, {and} \bibinfo{person}{Kyusong Lee}.} \bibinfo{year}{2024}\natexlab{c}.
+\newblock \showarticletitle{Omagent: A multi-modal agent framework for complex video understanding with task divide-and-conquer}. In \bibinfo{booktitle}{\emph{Empirical Methods in Natural Language Processing}}. \bibinfo{pages}{10031--10045}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2025)]%
+        {deepvideo2025}
+\bibfield{author}{\bibinfo{person}{Xiaoyi Zhang}, \bibinfo{person}{Zhaoyang Jia}, \bibinfo{person}{Zongyu Guo}, \bibinfo{person}{Jiahao Li}, \bibinfo{person}{Bin Li}, \bibinfo{person}{Houqiang Li}, {and} \bibinfo{person}{Yan Lu}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Deep Video Discovery: Agentic Search with Tool Use for Long-form Video Understanding}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems}}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2023)]%
+        {vs32023}
+\bibfield{author}{\bibinfo{person}{Yong Zhang}, \bibinfo{person}{Yingwei Pan}, \bibinfo{person}{Ting Yao}, \bibinfo{person}{Rui Huang}, \bibinfo{person}{Tao Mei}, {and} \bibinfo{person}{Chang-Wen Chen}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Learning to generate language-supervised and open-vocabulary scene graph using pre-trained visual-semantic space}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{2915--2924}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2024b)]%
+        {tpt2023}
+\bibfield{author}{\bibinfo{person}{Yong Zhang}, \bibinfo{person}{Yingwei Pan}, \bibinfo{person}{Ting Yao}, \bibinfo{person}{Rui Huang}, \bibinfo{person}{Tao Mei}, {and} \bibinfo{person}{Chang-Wen Chen}.} \bibinfo{year}{2024}\natexlab{b}.
+\newblock \showarticletitle{End-to-end video scene graph generation with temporal propagation transformer}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Multimedia}}  \bibinfo{volume}{26} (\bibinfo{year}{2024}), \bibinfo{pages}{1613--1625}.
+\newblock
+\href{https://doi.org/10.1109/TMM.2023.3283879}{doi:\nolinkurl{10.1109/TMM.2023.3283879}}
+
+
+\bibitem[Zohar et~al\mbox{.}(2025)]%
+        {apollo2025}
+\bibfield{author}{\bibinfo{person}{Orr Zohar}, \bibinfo{person}{Xiaohan Wang}, \bibinfo{person}{Yann Dubois}, \bibinfo{person}{Nikhil Mehta}, \bibinfo{person}{Tong Xiao}, \bibinfo{person}{Philippe Hansen-Estruch}, \bibinfo{person}{Licheng Yu}, \bibinfo{person}{Xiaofang Wang}, \bibinfo{person}{Felix Juefei-Xu}, \bibinfo{person}{Ning Zhang}, \bibinfo{person}{Jeffrey Cai}, \bibinfo{person}{Jack Hessel}, \bibinfo{person}{Shiori Sagawa}, \bibinfo{person}{Kai Yang}, \bibinfo{person}{Yijuan Liu}, \bibinfo{person}{Dhruv Batra}, \bibinfo{person}{Daniel Khashabi}, \bibinfo{person}{Devi Parikh}, \bibinfo{person}{Ali Farhadi}, {and} \bibinfo{person}{Yejin Choi}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Apollo: An Exploration of Video Understanding in Large Multimodal Models}. In \bibinfo{booktitle}{\emph{Computer Vision and Pattern Recognition}}. \bibinfo{pages}{18338--18348}.
+\newblock
+
+
+\end{thebibliography}

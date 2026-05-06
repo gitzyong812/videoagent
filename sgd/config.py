@@ -1,5 +1,7 @@
 import os
 
+from sgd.path_config import logs_root
+
 # ------------------ video download and segmentation configuration ------------------ #
 VIDEO_DATABASE_FOLDER = "./video_database/"
 VIDEO_FPS = 2 # frames per second
@@ -118,3 +120,8 @@ GEI_ENABLED = True  # inject video timeline into prompt from Stage 2 graph
 GEI_MAX_EVENTS = 12  # target scene count; aggressive compression from ~120 segments
 GEI_MAX_CHARS = 2400  # hard cap on the text summary length
 GEI_MERGE_GAP_SEC = 5.0  # merge adjacent segments sharing entities within this gap
+
+# ------------------ tracing configuration ------------------ #
+TRACE_ENABLED = os.environ.get("SGD_TRACE_ENABLED", "1").lower() in {"1", "true", "yes"}
+TRACE_LOG_DIR = os.environ.get("SGD_TRACE_LOG_DIR", str(logs_root() / "traces"))
+TRACE_MAX_FIELD_CHARS = int(os.environ.get("SGD_TRACE_MAX_FIELD_CHARS", "12000"))

@@ -1,0 +1,136 @@
+This is BibTeX, Version 0.99e (TeX Live 2026)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: references.bib
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 9000 items from 6000.
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--empty publisher in neuro2020
+Warning--empty address in neuro2020
+Warning--no number and no volume in bai2025qwen3vl
+Warning--page numbers missing in both pages and numpages fields in bai2025qwen3vl
+Warning--empty publisher in caba2015activitynet
+Warning--empty address in caba2015activitynet
+Warning--empty publisher in cai2025naver
+Warning--empty address in cai2025naver
+Warning--empty publisher in fei2024videoofthought
+Warning--empty address in fei2024videoofthought
+Warning--empty publisher in videomme2024
+Warning--empty address in videomme2024
+Warning--empty publisher in scenegraph1
+Warning--empty address in scenegraph1
+Warning--no number and no volume in videomultiagents2025
+Warning--page numbers missing in both pages and numpages fields in videomultiagents2025
+Warning--empty publisher in li2022GLIP
+Warning--empty address in li2022GLIP
+Warning--empty publisher in frompixel2024
+Warning--empty address in frompixel2024
+Warning--empty publisher in video-llava2024
+Warning--empty address in video-llava2024
+Warning--empty publisher in llava2023
+Warning--empty address in llava2023
+Warning--empty address in videomind
+Warning--page numbers missing in both pages and numpages fields in videomind
+Warning--empty publisher in drvideo2025
+Warning--empty address in drvideo2025
+Warning--empty publisher in hyperglm2025
+Warning--empty address in hyperglm2025
+Warning--empty publisher in mrvideo
+Warning--empty address in mrvideo
+Warning--page numbers missing in both pages and numpages fields in mrvideo
+Warning--empty publisher in qiu2025step
+Warning--empty address in qiu2025step
+Warning--empty publisher in radford2021CLIP
+Warning--empty address in radford2021CLIP
+Warning--no number and no volume in videorag2025
+Warning--page numbers missing in both pages and numpages fields in videorag2025
+Warning--empty publisher in longvu2025
+Warning--empty address in longvu2025
+Warning--empty publisher in vagent2025
+Warning--empty address in vagent2025
+Warning--page numbers missing in both pages and numpages fields in vagent2025
+Warning--empty publisher in shu2025video
+Warning--empty address in shu2025video
+Warning--no number and no volume in team2026kimi
+Warning--page numbers missing in both pages and numpages fields in team2026kimi
+Warning--empty publisher in wang2025adaretake
+Warning--empty address in wang2025adaretake
+Warning--empty publisher in videotree2025
+Warning--empty address in videotree2025
+Warning--empty publisher in videoagent
+Warning--empty address in videoagent
+Warning--empty publisher in longvideobench2024
+Warning--empty address in longvideobench2024
+Warning--empty publisher in xu2017scene
+Warning--empty address in xu2017scene
+Warning--empty publisher in yang2025vca
+Warning--empty address in yang2025vca
+Warning--empty publisher in react2022
+Warning--empty address in react2022
+Warning--page numbers missing in both pages and numpages fields in react2022
+Warning--empty publisher in scenegraph2
+Warning--empty address in scenegraph2
+Warning--empty publisher in motifs2018
+Warning--empty address in motifs2018
+Warning--no number and no volume in zeng2026glm
+Warning--page numbers missing in both pages and numpages fields in zeng2026glm
+Warning--empty publisher in zhang2024simplellm
+Warning--empty address in zhang2024simplellm
+Warning--empty publisher in omagent2024
+Warning--empty address in omagent2024
+Warning--empty publisher in deepvideo2025
+Warning--empty address in deepvideo2025
+Warning--page numbers missing in both pages and numpages fields in deepvideo2025
+Warning--empty publisher in vs32023
+Warning--empty address in vs32023
+Warning--empty publisher in apollo2025
+Warning--empty address in apollo2025
+You've used 50 entries,
+            6273 wiz_defined-function locations,
+            1751 strings with 28713 characters,
+and the built_in function-call counts, 65359 in all, are:
+= -- 7100
+> -- 2990
+< -- 0
++ -- 1049
+- -- 1007
+* -- 5178
+:= -- 6771
+add.period$ -- 246
+call.type$ -- 50
+change.case$ -- 518
+chr.to.int$ -- 44
+cite$ -- 130
+duplicate$ -- 5594
+empty$ -- 3887
+format.name$ -- 1189
+if$ -- 15281
+int.to.chr$ -- 8
+int.to.str$ -- 1
+missing$ -- 198
+newline$ -- 425
+num.names$ -- 344
+pop$ -- 2528
+preamble$ -- 1
+purify$ -- 906
+quote$ -- 0
+skip$ -- 2140
+stack$ -- 0
+substring$ -- 4533
+swap$ -- 577
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 1369
+warning$ -- 80
+while$ -- 257
+width$ -- 0
+write$ -- 958
+(There were 80 warnings)
