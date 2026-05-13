@@ -332,3 +332,20 @@ def process_video(
         os.path.join(output_caption_folder, "captions.json"), "w"
     ) as f:
         json.dump(frame_captions, f, indent=4)
+
+
+def process_video_lite(
+    output_caption_folder: str,
+    subtitle_file_path: str,
+):
+    """Create caption artifacts from SRT subtitles for the development lite path."""
+    os.makedirs(output_caption_folder, exist_ok=True)
+    captions = parse_srt_to_dict(subtitle_file_path)
+    frame_captions = {}
+    for key, text in captions.items():
+        frame_captions[key] = {
+            "caption": f"\n\nTranscript during this video clip: {text}.",
+        }
+    frame_captions["subject_registry"] = {}
+    with open(os.path.join(output_caption_folder, "captions.json"), "w") as f:
+        json.dump(frame_captions, f, indent=4)

@@ -14,13 +14,23 @@ tar \
   --exclude='dist' \
   --exclude='.venv' \
   --exclude='venv' \
+  --exclude='.claude' \
   --exclude='__pycache__' \
   --exclude='.pytest_cache' \
   --exclude='.mypy_cache' \
+  --exclude='.codex_preview' \
   --exclude='video_database' \
   --exclude='data' \
   --exclude='.DS_Store' \
   --exclude='*.pyc' \
+  --exclude='*.aux' \
+  --exclude='*.bbl' \
+  --exclude='*.blg' \
+  --exclude='*.fdb_latexmk' \
+  --exclude='*.fls' \
+  --exclude='*.log' \
+  --exclude='*.out' \
+  --exclude='*.synctex.gz' \
   --exclude='.env' \
   --exclude='.env.*' \
   -czf "$ARCHIVE_PATH" \

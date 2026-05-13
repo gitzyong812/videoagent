@@ -4,6 +4,9 @@ tqdm
 nano-vectordb
 azure-identity
 requests
+yt-dlp
 openai
 pydantic>=2,<3
 typing-extensions>=4.0
+gradio
+mcp
