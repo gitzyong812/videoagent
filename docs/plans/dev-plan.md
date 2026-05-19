@@ -1,230 +1,684 @@
-# SGDAgent Development Plan
+# SGDAgent Canonical Development Plan
 
-> 本仓库是 [DeepVideoDiscovery](https://github.com/microsoft/DeepVideoDiscovery)（DVD）提交版的迁移版本。提交时移除了大部分监控点、调试入口与统计接口；本文件作为后续所有新功能开发与测试的总指引。完成的项请直接 `[x]` 勾选。
+Canonical source:
+  `docs/plans/SGD-Alg-plan.md`
+
+Purpose:
+  This is the only canonical development progress document. All implementation
+  work is organized around the Alg-plan modules M0-M11. Historical plans are
+  retained for context only and must not override this file.
+
+Last consolidated:
+  2026-05-20
 
 ---
 
-## 0. 迁移完整性 & 恢复"最简洁开发版"
+## Status Taxonomy
 
-**与 DVD 对比的实际差异**（仅列代码层面，已忽略 `__pycache__`、`.DS_Store`、命名 `dvd→sgd`）：
+Implemented:
+  Conforms to Alg-plan semantics and can be treated as a stable module.
 
-| 项 | DVD 中位置 | SGDAgent 中状态 | 备注 |
+Temporary:
+  Usable for MVP, but only as an adapter, navigation aid, or workaround.
+  Temporary components must be clearly labeled in experiments and papers.
+
+To Refactor:
+  Existing code or fields are useful but conflict with Alg-plan semantics,
+  strict graph-only rules, or the target schema.
+
+Planned:
+  Not implemented yet.
+
+---
+
+## Current Canonical Decisions
+
+- Alg-plan is the highest instruction for algorithm and system semantics.
+- MVP may reuse existing code, but Agent-facing behavior must use Alg-plan tool names.
+- Strict graph-only cannot expose captions, caption embeddings, free-form summaries, or free-form visual inspection.
+- `frame_inspect_tool` is retained only as an internal `VisualVerify` adapter.
+- GEI-MVP is retained only as a navigation aid in MVP Graph-guided mode. It cannot be used as evidence and should not be exposed in Strict Graph-only unless stripped into structured graph signatures.
+- After Stage3 lands, GEI must be materialized from `G_global_v1`.
+- Free-form `summary` fields are forbidden in strict inference. They must be replaced by structured `graph_signature` or `event_signature` records.
+- Final answers must be structured `AnswerWithEvidence` records; benchmark runners may extract the short answer.
+- Development progress is tracked only in this file.
+
+---
+
+## Run Mode Taxonomy
+
+Strict Graph-only:
+  Agent may access only stripped graph memory, graph-native tool outputs,
+  evidence pointers, and structured VisualVerify results.
+  Captions, caption embeddings, free-form summaries, transcript snippets,
+  GEI prompt timelines, and arbitrary raw-frame inspection are forbidden.
+
+MVP Graph-guided:
+  Temporary navigation aids such as GEI-MVP may be used to locate candidate
+  intervals, but they cannot be used as answer evidence.
+
+Builder-assisted:
+  Captions, transcripts, VLM narrations, and OCR may be used during offline
+  construction, but all such text must be stripped from inference artifacts.
+
+Hybrid:
+  Caption and graph tools may both be used. This is not a strict graph-only
+  setting and must be reported separately.
+
+---
+
+## Strict Inference Boundary
+
+Allowed:
+  stripped graph memory; entity records; graph facts; event nodes; temporal
+  edges; state carry-over records; evidence pointers; structured verification
+  results.
+
+Forbidden:
+  captions; caption snippets; transcript snippets; caption embeddings;
+  free-form summaries; GEI prompt timelines not materialized from `G_global_v1`;
+  arbitrary raw-frame inspection; direct `frame_inspect_tool`;
+  `clip_search_tool`; `global_browse_tool`.
+
+Temporary exception:
+  `frame_inspect_tool` may be used only internally by `VisualVerify`, and only
+  for structured claims grounded by graph-derived evidence pointers.
+
+---
+
+## Progress Overview
+
+| Module | Name | Status | Current Anchor |
 |---|---|---|---|
-| `trace_logger.py` | `dvd/trace_logger.py`（147 行） | **完全删除** | sgd_core 中所有 callsite (`trace_logger.log_*`) 仍保留 ~30 处，仅靠 `_build_trace_logger() → None` 短路 |
-| `TRACE_*` 配置 | `config.py` 末尾 5 行 (`TRACE_ENABLED / TRACE_LOG_DIR / TRACE_MAX_FIELD_CHARS`) | **删除** | 同时删了 `from sgd.path_config import logs_root` 顶部 import |
-| `_build_trace_logger` 函数体 | `sgd_core.py:303-314` | **掏空，return None** | uuid import 还在 sgd_core.py:9 |
-| `LITE_MODE` 开关 | `config.py` + `sgd_core.py:142-143` 的 `tools.remove(frame_inspect_tool)` | **删除** | 提交版强制完整模式 |
-| `process_video_lite` | `frame_caption.py:332-367` | **删除** | 仅字幕、无像素的轻量路径 |
-| `_is_youtube_url` + `yt_dlp` 依赖 | `video_utils.py` 顶部 | **删除** | 提交版仅支持本地视频 |
-| `if __name__ == "__main__":` 调试入口 | `utils.py` / `build_database.py` / `sgd_core.py` 末尾 | **删除** | 含写死路径的旧测试 main、`pdb.set_trace()` |
-| `evaluation/` | `evaluate_results.py / evaluate_results_enhanced.py / evaluate_stage1_graph.py` | **整目录移除** | 评测脚本 |
-| `scripts/` | `analyze_regression_failure_modes.py / build_run_summary.py / classify_improvement_causes.py / compare_badcase_runs.py / render_trace_report.py / trace_index.py / smoke_test_embedding.py / monitor_progress.sh / resume_benchmark.sh / run_baseline.sh / run_graph_stage12_smoke.sh / run_stage12_parallel_build.sh` | **整目录移除** | 监控、bad-case 分析、trace 渲染 |
-| `reproduce/` | `decode_frames.py / download_lvbench.sh / prepare_database.py / run_benchmark.py / transcribe.py` | **整目录移除** | LVBench 复现 |
-| `tests/` | `test_global_event_index.py` | **整目录移除** | |
-| `app.py` | DVD Gradio demo 主入口 | **整文件移除** | 见 `app-plan.md` |
-| `mcp_server.py` | MCP 接口 | **整文件移除** | |
-| `docs/paper/` | 论文与图表 | **整目录移除** | |
-
-### 0.1 恢复开发版最小动作（从最低成本开始）
-
-- [x] **a. 恢复 trace 子系统**（最优先；callsite 已经在 `sgd_core.py` 全部就位，恢复 1 个文件 + 5 行 config 即可解锁完整执行轨迹日志）
-  - [x] 新建 `sgd/trace_logger.py`：从 DVD 直接迁移，无需改动逻辑
-  - [x] `sgd/config.py` 末尾追加 `TRACE_ENABLED / TRACE_LOG_DIR / TRACE_MAX_FIELD_CHARS`，环境变量前缀使用 `SGD_TRACE_*`
-  - [x] `sgd/path_config.py` 已经有 `logs_root()`，确保 import 链可用
-  - [x] `sgd/sgd_core.py` 顶部恢复 `from sgd.trace_logger import TraceLogger`，恢复 `_build_trace_logger` 函数体（DVD `sgd_core.py:303-314`）
-  - [ ] 跑一次 `local_run.py`，确认 `data/logs/traces/trace_*.jsonl` 落盘（待你在 venv 环境验证）
-- [x] **b. 恢复 `tests/test_global_event_index.py`** 作为最小回归基线（29/29 passed in venv）
-- [ ] **c. 恢复 `reproduce/`** 的 LVBench 数据准备脚本（实验前置依赖，不再恢复就重写）
-- [x] **d. 恢复/重写 `evaluation/`** —— 已建包：`eval_agent.py`（QA 正确率，从 `evaluate_results.py` 迁移）+ `eval_graph.py`（stage1+stage2 图质量与检索，从 `evaluate_stage1_graph.py` 迁移）+ `eval_stage3_graph.py`（stub，§1 落地后填充）+ `run_graph_eval.py`（统一入口，子命令 `agent / graph / stage3 / all`）。CLI smoke 通过
-- [ ] **e. 恢复 `scripts/render_trace_report.py` + `trace_index.py`** —— 调试与论文 case study 都依赖
-- [ ] **f.（可选）恢复 `LITE_MODE` 与 `process_video_lite`** —— 长视频快速冒烟时有用，没需求可不恢复
-- [ ] **g.（可选）恢复 `mcp_server.py`** —— 暂不在路线图内，仅当需要外部接入再做
-
-> 注：`app.py`、`evaluation/`、`docs/` 不直接照搬，会按 §2、§3 的目标重新设计；DVD 版本只作参考。
+| M0 | Caption-free audit | Temporary | `scripts/audit_caption_free.py`, `tests/test_caption_free_mode.py` |
+| M1 | Temporal unit builder | Temporary | `frame_caption.py`, `video_utils.py`, `reproduce/` |
+| M2 | Entity registry / lifecycle MVP | To Refactor | Stage1 `entities`, Stage2 `active_entities` |
+| M3 | Frame facts | Temporary | `sgd/scene_graph/stage1_builder.py`, `query.py` |
+| M4 | Temporal fact consolidation | To Refactor | `sgd/scene_graph/segment_builder.py` |
+| M5 | Segment events | To Refactor | Stage2 `temporal_relations`, `summary` |
+| M6 | Global graph v1 | Planned | GEI exists as temporary navigation aid |
+| M7 | Verify / repair | Planned | policy gates and audit exist; graph verifier absent |
+| M8 | Graph store / index | To Refactor | JSON graph files, NanoVectorDB, `additional_data` |
+| M9 | Toolset wrapper | Planned | existing low-level tools only |
+| M10 | Graph agent | To Refactor | `GRAPH_ONLY_INFERENCE`, `stream_run`, `finish(answer)` |
+| M11 | Evaluation / demo | Temporary | `evaluation/`, `scripts/`, `app.py` |
 
 ---
 
-## 1. 目标一 · Stage3 全局图：构建真正的三层图三元组表征
+## M0. Caption-Free Audit
 
-当前实现仅有 stage1（frame-level scene graph）+ stage2（segment-level aggregated graph + global event index 压缩）。`global_event_index.py` 实际只是把 segment 摘要拼接进 prompt，**没有独立的 global graph 数据结构**。Stage3 的目标是把"全局事件链 + 跨片段实体绑定"变成真正可查询的图层。
+Status:
+  Temporary
 
-### 1.1 设计
+Goal:
+  Enforce strict graph-only boundaries before, during, and after inference.
 
-- [ ] **三层图 schema 统一**（`sgd/scene_graph/schema.py`）
-  - [ ] Frame-level: `FrameSceneGraph { frame_id, timestamp, objects:[VisualObject], relations:[Triplet] }`
-  - [ ] Segment-level: `SegmentSceneGraph { segment_id, [start,end], entities, events:[EventNode], relations }`
-  - [ ] Global-level: `GlobalSceneGraph { entity_registry, event_chain:[EventNode], cross_segment_relations }`
-  - [ ] 跨层引用约定：每个上层节点持有下层节点的 id 列表（`source_segments`、`source_frames`）
-- [ ] **视觉目标集合（visual object set）独立成第四类资产**
-  - [ ] 在 frame 层抽取并持久化 `objects.json`（可考虑接入 detector / open-vocab 模型）
-  - [ ] 与 frame graph 中的 entity 对齐到 `entity_registry`
+Inputs:
+  inference graph files, NanoVectorDB metadata, tool outputs, traces,
+  benchmark results.
 
-### 1.2 实现
+Outputs:
+  audit report, stripped inference artifacts, pass/fail gate for strict runs.
 
-- [ ] **`sgd/scene_graph/stage3_builder.py`**（新建）
-  - [ ] 输入：所有 segment graph + segment 摘要 + entity_registry
-  - [ ] 输出：单个 `global_graph.json`，含 event chain（事件因果/时序边）+ 跨片段实体合并结果
-  - [ ] 函数：`ensure_stage3_global_graph(video_db_path) -> GlobalSceneGraph`
-- [ ] **重构 `global_event_index.py`** —— 从 stage3 graph 物化得到压缩 prompt，而不是独立计算
-- [ ] **检索接口 `sgd/scene_graph/query_global.py`**（新建）
-  - [ ] `query_global_event(query, top_k)`：在 global event 节点上做语义检索
-  - [ ] `query_global_path(entity_a, entity_b)`：跨片段实体关系路径搜索
-- [ ] **Agent 工具暴露**（`sgd/build_database.py` + `sgd/func_call_shema.py`）
-  - [ ] 新增 `global_graph_browse` / `global_path_search` 两个 tool
-  - [ ] 调整 `sgd_core.py` 工具列表与 system prompt
+Current implementation:
+  `scripts/audit_caption_free.py` checks forbidden tools, forbidden payload
+  markers, graph-only DB keys, and runtime mode. `tests/test_caption_free_mode.py`
+  covers graph-only tool selection, DB metadata stripping, Stage1 caption hiding,
+  Stage2 caption/embedding exclusion, and GEI caption exclusion.
 
-### 1.3 验收
+Gap to Alg-plan:
+  Audit does not yet enforce a raw-vs-stripped graph split. It also does not
+  validate structured `AnswerWithEvidence` chains or block free-form `summary`
+  fields outside DB payload scans.
 
-- [ ] 在已建库视频上跑 stage3，生成 `global_graph.json` 与可视化导出
-- [ ] Agent 在 multiple-choice 集合上启用全局工具后正确率不降，全局类问题正确率上升
+Tasks:
+  - [x] Add graph-only tool-selection regression tests.
+  - [x] Add DB metadata stripping checks.
+  - [x] Add Stage1/Stage2 caption leakage regression tests.
+  - [x] Add run-level audit script.
+  - [ ] Define forbidden/allowed field schema for inference graphs.
+  - [ ] Add `construction_graph_raw.json` -> `inference_graph_stripped.json` stripper.
+  - [ ] Audit final `AnswerWithEvidence` traces for graph support.
+  - [ ] Audit tool inputs/outputs, trace JSONL, benchmark logs, DB metadata, and
+    rendered replay/demo logs for leakage.
+  - [ ] Add CI/smoke gate for strict graph-only runs.
 
----
+Acceptance criteria:
+  A strict graph-only run fails if captions, caption snippets, caption embeddings,
+  transcript snippets, free-form summaries, `clip_search_tool`,
+  `global_browse_tool`, direct `frame_inspect_tool`, or GEI prompt timelines
+  appear in Agent-visible observations, tool I/O, traces, final answer records,
+  graph DB metadata, benchmark logs, or rendered replay/demo logs.
 
-## 2. 目标二 · 三层图测评 pipeline + 图驱动 Agent + Agent 能力测评
-
-### 2.1 三层图本身的测评
-
-> §0.1.d 已落地：`evaluation/eval_graph.py` 同时覆盖 stage1+stage2（DVD 原文件就是合一的，强行拆分会让 ~150 行共享工具重复，留作未来文件膨胀时的拆分点）；`evaluation/eval_stage3_graph.py` 为 stub。下面是要补的功能。
-
-- [x] **`evaluation/eval_graph.py`** 已迁移（含 stage1 三元组质量 + stage1 检索 + stage2 segment 质量 + stage2 检索）
-- [ ] 在 `eval_graph.py` 中补 frame-level 三元组准确率：基于人工标注子集（当前是 `time_reference` 距离指标，缺真值三元组）
-- [ ] 在 `eval_graph.py` 中补 segment 事件边界 IoU 指标（当前只有距离）
-- [ ] **`evaluation/eval_stage3_graph.py`**（filling stub，依赖 §1）：
-  - [ ] event chain 拓扑正确率（时序、因果）
-  - [ ] cross-segment entity binding 正确率
-  - [ ] global retrieval recall@k
-- [x] **`evaluation/run_graph_eval.py`** 统一入口已建（子命令 `agent / graph / stage3 / all`）
-- [ ] 让 `run_graph_eval.py all` 产出 markdown 汇总报告（目前只是顺序调用）
-
-### 2.2 图驱动 Agent 优化
-
-- [ ] **Agent 行为分类器** `scripts/classify_trajectory.py`
-  - [ ] 把每条 trace 标成：`Global Browse Only / Iterative Search / Frame Inspect Trap / Clip Search Trap` 等（沿用 DVD 思路）
-  - [ ] 依赖 §0.1.a 的 trace 系统
-- [ ] **system prompt / tool 描述迭代**：基于 trajectory 分类找出失败模式，针对性修改 `sgd_core.py` 中的 prompt
-- [ ] **图层选择策略**：明确什么问题走哪一层（局部细节→frame、片段事件→segment、全局因果→global）
-- [ ] **缓存 / 资源预算**：`max_iterations` 与每层 `top_k` 的合理默认（写入 `config.py`）
-
-### 2.3 Agent 能力评测 pipeline
-
-- [ ] **`evaluation/eval_agent.py`**：
-  - [ ] 基础正确率（LVBench 全集 / 子集）
-  - [ ] 按问题类型分桶（temporal / causal / counting / detail / global）
-  - [ ] Trace 级指标：平均步数、tool 使用分布、verification 命中率
-- [ ] **回归对比 `scripts/compare_runs.py`**（沿用 DVD `compare_badcase_runs.py` 思路重写）
-  - [ ] 找出版本 A→B 的 win/lose case，附 trace diff
-- [ ] **数据准备 `reproduce/`**（恢复或重写）
-  - [ ] LVBench 下载 / 抽帧 / 字幕的脚本化
-  - [ ] 一键 `prepare_database.py`
+Risks:
+  Construction artifacts may still contain captions. The audit must distinguish
+  construction-only files from inference-visible files.
 
 ---
 
-## 3. 目标三 · 可视化工具
+## M1. Temporal Unit Builder
 
-### 3.1 工具 1 · 三层场景图可视化（建图侧）
+Status:
+  Temporary
 
-定位：研究/调试/绘图用，输入是已生成的 `*.json`，**离线**渲染，不与 Agent 推理耦合。
+Goal:
+  Build frame units, micro-clip units, and segment windows that downstream graph
+  builders can reference.
 
-- [ ] **`viz/graph_viewer.py`**（新模块；建议放 `sgd/viz/` 或顶层 `viz/`）
-  - [ ] 读取 `frame_graphs.json / segment_graphs.json / global_graph.json`
-  - [ ] 提供 layer filter（global / segment / frame）
-  - [ ] 节点点击 → 弹出 caption / 关键帧 / 原始三元组
-  - [ ] 边点击 → 来源 frame / segment 引用
-  - [ ] 时间轴联动（hover segment 高亮对应 global event）
-- [ ] **导出**：单文件 HTML（PyVis）+ 静态 PNG（用于论文图）
-- [ ] **CLI**：`python -m sgd.viz.graph_viewer <video_db_path>`
+Inputs:
+  raw video, decoded frames, optional subtitle/ASR for construction only.
 
-技术栈建议：PyVis（快速）/ Cytoscape.js（可控）+ 简单 Flask/Gradio 壳。
+Outputs:
+  frames, timestamps, segment windows, optional shot/action/event boundary hints.
 
-### 3.2 工具 2 · SGDAgent 推理过程可视化（Agent 侧）
+Current implementation:
+  Existing decoding, caption generation, lite mode, and LVBench preparation
+  scripts are present. Stage1 sampling uses fixed keyframe intervals; Stage2
+  uses 30s windows with overlap.
 
-定位：Demo + 调试。输入是 `local_run.py` 一次执行，**实时流式**展示 observe-reason-act。
+Gap to Alg-plan:
+  No first-class temporal-unit manifest. No content-adaptive sampling, shot
+  boundary detection, motion-peak sampling, or event-boundary refinement.
 
-参考：[DVD `app.py`](https://github.com/microsoft/DeepVideoDiscovery/blob/main/app.py)。详细设计已沉淀在 `app-plan.md`，本节只列里程碑。
+Tasks:
+  - [x] Restore `process_video_lite` and `LITE_MODE` for development workflows.
+  - [x] Restore `reproduce/` benchmark entrypoints.
+  - [ ] Add `temporal_units.json` with frame, micro-clip, and segment entries.
+  - [ ] Record exact frame IDs and timestamps used by graph builders.
+  - [ ] Add optional shot-boundary / motion-peak hooks.
+  - [ ] Ensure temporal units contain no inference-visible caption text.
 
-- [ ] **Phase 1 · 离线 replay 版**（先做这个，最快得到可演示物）
-  - [ ] `sgd_core.py` 落盘标准化 `trajectory.jsonl`（依赖 §0.1.a 已恢复的 trace 系统；可直接复用其 schema 或在其上加 `agent_step_start / observation / reason_summary / graph_highlight / evidence` 等事件类型）
-  - [ ] `app_replay.py` 读取 trace 与 graph bundle 渲染四个 Tab：Overview / Graph / Trace / Evidence
-- [ ] **Phase 2 · 实时 streaming**
-  - [ ] 改 `agent.run` 为 `agent.stream_run`，generator 模式
-  - [ ] Gradio Blocks 多输出面板逐步刷新
-- [ ] **Phase 3 · 交互调试**
-  - [ ] 节点/边点击联动证据 / 视频时间段
-  - [ ] 当前 step 的 active subgraph 高亮
-  - [ ] 三层 filter
-- [ ] **Phase 4 · 论文展示版**
-  - [ ] 预置 demo videos + questions
-  - [ ] 轨迹回放速度控制 + case study 导出
+Acceptance criteria:
+  Every fact/event/evidence pointer can refer to stable frame IDs and time spans
+  from a temporal-unit manifest.
 
-### 3.3 公共基础
-
-- [ ] **统一事件 schema** `sgd/agent/events.py`（新建 `AgentEvent` dataclass，§0.1.a 的 trace 文件以及 §3.2 的实时流共用同一份）
-- [ ] **公共渲染层** `sgd/viz/graph_render.py`（PyVis 封装，工具 1 / 2 共用）
+Risks:
+  Existing caption-driven preparation paths are useful for construction but must
+  not become inference memory.
 
 ---
 
-## 4. 工作顺序建议
+## M2. Entity Registry / Entity Lifecycle MVP
 
-> 严格依赖关系：§0.1.a → §1 → §2 → §3.2。可并行：§3.1 与 §1 并行；§3.2 Phase 1 与 §2.1 并行。
+Status:
+  To Refactor
 
-1. **本周**：§0.1.a 恢复 trace 子系统 + §0.1.b 测试基线
-2. **接下来 1–2 周**：§1.1 schema 设计 → §1.2 stage3_builder
-3. **接下来 1–2 周**：§2.1 三层图测评 + §3.1 工具 1 离线版
-4. **之后**：§2.2 / §2.3 Agent 能力优化与评测，§3.2 工具 2 分阶段推进
+Goal:
+  Build `E_video`, a persistent entity registry with aliases, time spans, support
+  frames, and enough lifecycle information for EntityResolve and EvidenceTrace.
+
+Inputs:
+  Stage1 frame entities, support frames, optional construction-only appearance
+  descriptions.
+
+Outputs:
+  `entity_registry.json` or equivalent section in stripped graph memory.
+
+Current implementation:
+  Stage1 graphs contain entities and per-frame entity mentions. Stage2 segments
+  contain active entities. There is no dedicated entity lifecycle registry.
+
+Gap to Alg-plan:
+  MVP requires `entity_id`, `category`, `aliases`, `time_spans`,
+  `support_frame_ids`, `source`, and `confidence`. Current data is distributed
+  across Stage1/Stage2 and is not a stable query target.
+
+Tasks:
+  - [ ] Add MVP `EntityRecord` schema.
+  - [ ] Build entity time spans from Stage1 frame mentions and Stage2 active entities.
+  - [ ] Attach support frame IDs and timestamps.
+  - [ ] Preserve aliases only if they are entity-local referring expressions
+    derived from graph-safe attributes, categories, or repeated entity labels.
+    Allowed examples: `person`, `man in black sweater`, `man with mustache`,
+    `red car`.
+  - [ ] Strip or mark construction-only any free-form narrative aliases copied
+    from captions. Forbidden strict examples: `the man who argues with the woman
+    after entering the room`, `the villain who later breaks the mirror`.
+  - [ ] Add entity merge/split audit hooks.
+  - [ ] Defer bbox, tracklet, mask, crop, and visual embeddings to v2.0 full.
+
+Acceptance criteria:
+  EntityResolve can return entity candidates with aliases, time spans, support
+  frames, and confidence without exposing captions.
+
+Risks:
+  Caption-derived aliases can leak narration. They need provenance and strict
+  stripping rules.
 
 ---
 
-## 5. 仓库目标结构（含未来增量）
+## M3. Frame Facts
 
-```
-SGDAgent/
-  local_run.py
-  app_replay.py            # 新增 §3.2 P1
-  app.py                   # 新增 §3.2 P2
-  sgd/
-    sgd_core.py
-    build_database.py
-    config.py
-    frame_caption.py
-    func_call_shema.py
-    path_config.py
-    trace_logger.py        # 恢复 §0.1.a
-    utils.py
-    video_utils.py
-    scene_graph/
-      schema.py
-      stage1_builder.py
-      segment_builder.py
-      stage3_builder.py    # 新增 §1.2
-      global_event_index.py
-      query.py
-      query_segment.py
-      query_global.py      # 新增 §1.2
-    agent/
-      events.py            # 新增 §3.3
-    viz/
-      graph_render.py      # 新增 §3.3
-      graph_viewer.py      # 新增 §3.1
-      trace_render.py      # 新增 §3.2
-  evaluation/
-    __init__.py
-    eval_agent.py            # 已迁移 §0.1.d
-    eval_graph.py            # 已迁移 §0.1.d（stage1+stage2 合一）
-    eval_stage3_graph.py     # stub，§1 落地后填充
-    run_graph_eval.py        # 已迁移 §0.1.d
-  reproduce/
-    decode_frames.py
-    prepare_database.py
-    run_benchmark.py
-  scripts/
-    render_trace_report.py
-    classify_trajectory.py
-    compare_runs.py
-  tests/
-    test_global_event_index.py
-    test_stage3_builder.py
-  data/                    # 数据/缓存（gitignored）
-  dist/                    # 提交版打包产物
-  app-plan.md              # 工具 2 的详细设计稿
-  dev-plan.md              # 本文件
-```
+Status:
+  Temporary
+
+Goal:
+  Extract frame/moment-level graph facts: entity presence, attributes, spatial
+  relations, contact/holding relations, and local actions.
+
+Inputs:
+  temporal units, entity registry, frame images, construction-only captions if enabled.
+
+Outputs:
+  frame facts with fact IDs, time spans, confidence, and support frames.
+
+Current implementation:
+  `stage1_builder.py` builds Stage1 frame graphs; `query.py` retrieves frame-level
+  graph matches. Caption context can exist in construction graphs and is hidden
+  in graph-only query output.
+
+Gap to Alg-plan:
+  Current Stage1 schema is frame-centric rather than fact-centric. Facts are not
+  first-class `GraphFact` records with stable IDs and evidence pointers.
+
+Tasks:
+  - [ ] Add `GraphFact` schema for frame facts.
+  - [ ] Convert Stage1 entities/relations into fact records.
+  - [ ] Require `source` / `source_provenance` on every fact.
+  - [ ] Require `status` on every fact: `unverified`, `verified`, `rejected`,
+    or `unsupported`.
+  - [ ] Replace free-form `caption_context` in inference artifacts with structured signatures.
+  - [ ] Add support frame IDs to every fact.
+  - [ ] Add frame-level fact precision evaluation on an annotated subset.
+
+Acceptance criteria:
+  RelationQuery can return fact records without captions, and every returned fact
+  has `fact_id`, subject, predicate, object, time span, support frames,
+  confidence, source/provenance, and status.
+
+Risks:
+  Existing caption fallback is useful for graph construction but must remain
+  construction-only.
+
+---
+
+## M4. Temporal Fact Consolidation
+
+Status:
+  To Refactor
+
+Goal:
+  Consolidate repeated frame facts into interval facts.
+
+Inputs:
+  frame facts, timestamps, entity registry.
+
+Outputs:
+  interval facts with smoothed time spans, confidence aggregation, and conflict flags.
+
+Current implementation:
+  Stage2 builder aggregates frame graph content into segment-level structures.
+  Interval facts are implicit, not first-class.
+
+Gap to Alg-plan:
+  No dedicated interval-fact layer. Temporal smoothing, hysteresis, minimum
+  duration filtering, and contradiction suppression are not represented as a
+  separate auditable step.
+
+Tasks:
+  - [ ] Add interval fact schema.
+  - [ ] Group frame facts by subject/predicate/object.
+  - [ ] Smooth adjacent observations into time spans.
+  - [ ] Track confidence aggregation and conflicts.
+  - [ ] Feed interval facts into Segment Event Inducer.
+
+Acceptance criteria:
+  Segment event induction consumes interval facts rather than raw frame snippets
+  or free-form summaries.
+
+Risks:
+  Over-smoothing may hide event boundaries; under-smoothing may fragment events.
+
+---
+
+## M5. Segment Events
+
+Status:
+  To Refactor
+
+Goal:
+  Induce segment-level event nodes, state transitions, participants, effects,
+  support mappings, and structured event signatures.
+
+Inputs:
+  interval facts, segment windows, entity registry, neighboring segment context.
+
+Outputs:
+  event nodes, state transitions, event signatures, support mappings.
+
+Current implementation:
+  Stage2 segment graph contains active entities, temporal relations, summaries,
+  optional caption snippets, and optional embeddings.
+
+Gap to Alg-plan:
+  Stage2 does not yet expose first-class `EventNode` and `StateTransition`
+  records. Free-form `summary` is a strict-mode leakage risk and must become
+  `graph_signature` / `event_signature`.
+
+Tasks:
+  - [ ] Define `EventNode` and `StateTransition` schema.
+  - [ ] Convert `temporal_relations` into event/fact-support structures where possible.
+  - [ ] Replace free-form `summary` with structured `event_signature`;
+    do not merely rename the field.
+  - [ ] Forbid string-valued natural-language `event_signature` in strict mode.
+  - [ ] Disable caption snippets in stripped inference graphs.
+  - [ ] Add event boundary IoU and participant accuracy evaluation.
+
+Acceptance criteria:
+  EventSearch returns event nodes with participants, time spans, confidence, and
+  support frame/fact references, not narrative summaries. `event_signature` is
+  a structured object containing event type, participants, time span,
+  preconditions, effects, and support facts.
+
+Risks:
+  Existing Stage2 summaries improve retrieval but are not valid strict evidence.
+
+---
+
+## M6. Global Graph v1
+
+Status:
+  Planned
+
+Goal:
+  Build the minimal Stage3 global graph needed for long-range temporal reasoning.
+
+Inputs:
+  segment events, entity lifecycle records, simple state records.
+
+Outputs:
+  `G_global_v1`:
+  entity_lifecycle_index, global_event_nodes, temporal_edges, first_last_index,
+  simple_state_carry_over.
+
+Current implementation:
+  GEI compresses Stage2 segments into a prompt-injected navigation aid. It is not
+  a materialized global graph, is not evidence, and is not valid for Strict
+  Graph-only unless stripped into structured graph signatures.
+
+Gap to Alg-plan:
+  `stage3_builder.py`, `query_global.py`, temporal DAG, first/last index, and
+  state carry-over are missing.
+
+Tasks:
+  - [ ] Add `GlobalGraphV1` schema.
+  - [ ] Implement `sgd/scene_graph/stage3_builder.py`.
+  - [ ] Build temporal edges from event time spans.
+  - [ ] Build first/last indexes for entity-event and relation queries.
+  - [ ] Add simple holder/location/visibility carry-over.
+  - [ ] Add `query_global.py` for temporal order queries.
+  - [ ] Rebuild GEI from `G_global_v1` when available.
+  - [ ] Keep causal edges, episodes, and causal path reasoning out of GlobalGraphV1.
+
+Acceptance criteria:
+  TemporalOrderQuery can answer first/last/before/after from `G_global_v1` and
+  trace evidence back to segment events and frame facts.
+
+Risks:
+  Global graph can reduce accuracy if used broadly. Router/policy must constrain
+  it to first/last, before/after, state carry-over, and entity lifecycle questions.
+
+---
+
+## M7. Verify / Repair
+
+Status:
+  Planned
+
+Goal:
+  Verify graph facts/events/paths and repair or downgrade unsupported structures.
+
+Inputs:
+  graph memory, support mappings, evidence pointers, candidate claims.
+
+Outputs:
+  verified graph records, repair logs, unsupported/low-confidence markers.
+
+Current implementation:
+  Runtime policy gates and controller signals exist. Caption-free audit exists.
+  There is no graph verifier or repair loop.
+
+Gap to Alg-plan:
+  EntityVerifier, RelationVerifier, StateVerifier, TemporalVerifier,
+  EvidenceVerifier, and GraphVerify are absent. MVP uses support completeness
+  checks as a lightweight verifier; full `GraphVerify` is deferred to v2.0 full.
+
+Tasks:
+  - [ ] Add support completeness checks for facts/events.
+  - [ ] Verify `support_frame_ids` exist for evidence-bearing facts/events.
+  - [ ] Verify unsupported events are not used as answer evidence.
+  - [ ] Verify no forbidden caption-like fields appear in evidence chains.
+  - [ ] Add temporal contradiction checks for Stage3 v1.
+  - [ ] Mark unsupported events/facts as non-evidence.
+  - [ ] Add `GraphVerify` as v2.0 full, after MVP tool wrappers.
+  - [ ] Add repair logs for schema-level fixes.
+
+Acceptance criteria:
+  AnswerWithEvidence refuses or downgrades answers whose supporting chain lacks
+  support frames or contains unsupported events.
+
+Risks:
+  Over-verification can create loops; limits and convergence checks are required.
+
+---
+
+## M8. Graph Store / Index
+
+Status:
+  To Refactor
+
+Goal:
+  Store graph-native memory and indexes separately from caption-based databases.
+
+Inputs:
+  verified graph records, stripped inference artifacts, optional graph-derived embeddings.
+
+Outputs:
+  GraphStore, EvidenceStore, IndexStore, and stripped inference DB metadata.
+
+Current implementation:
+  Stage1/Stage2 graph files and NanoVectorDB metadata are used. Caption-vector DBs
+  are skipped in graph-only mode, and caption metadata is stripped from graph-only DBs.
+
+Gap to Alg-plan:
+  No explicit GraphStore/EvidenceStore/IndexStore split. No raw/stripped graph
+  artifact pair. Graph-derived embeddings need strict provenance rules.
+
+Tasks:
+  - [ ] Define graph store layout.
+  - [ ] Write stripped inference graph files.
+  - [ ] Separate construction raw artifacts from inference artifacts.
+  - [ ] Add entity/relation/event/temporal/evidence indexes.
+  - [ ] Allow only tuple-label or graph-signature embeddings in strict mode.
+  - [ ] Require every embedding entry to record `embedding_source`.
+  - [ ] Forbid `embedding_source` values `caption`, `transcript`,
+    `free_form_summary`, and `event_sentence_summary` in strict mode.
+
+Acceptance criteria:
+  A strict run can be executed from stripped graph memory without reading caption
+  files or caption-vector indexes. Every vector index entry records an allowed
+  graph-derived `embedding_source`, such as `tuple_label` or
+  `structured_graph_signature`.
+
+Risks:
+  Existing database metadata may silently point back to caption artifacts; audit
+  must catch this.
+
+---
+
+## M9. Toolset Wrapper
+
+Status:
+  Planned
+
+Goal:
+  Expose Alg-plan semantic tools to the Agent while reusing existing low-level
+  implementations internally.
+
+Inputs:
+  GraphStore, EvidenceStore, low-level Stage1/Stage2/GEI/frame-inspect functions.
+
+Outputs:
+  Agent-facing tools:
+  QuestionDecompose, EntityResolve, RelationQuery, EventSearch,
+  TemporalOrderQuery, EvidenceTrace, VisualVerify, AnswerWithEvidence.
+
+Current implementation:
+  Agent currently sees low-level tools such as `frame_graph_query_tool`,
+  `segment_graph_query_tool`, `clip_search_tool` in hybrid mode, and
+  `frame_inspect_tool`.
+
+Gap to Alg-plan:
+  No wrapper layer. Direct `frame_inspect_tool` exposure must be removed from
+  Agent-facing graph-only action space.
+
+Tasks:
+  - [ ] Add wrapper module, likely `sgd/graph_tools/` or `sgd/agent/tools.py`.
+  - [ ] Implement QuestionDecompose as the source of `parsed_intent`.
+  - [ ] Implement EntityResolve over entity registry.
+  - [ ] Wrap frame graph query as RelationQuery.
+  - [ ] Wrap segment graph query as EventSearch.
+  - [ ] Implement TemporalOrderQuery over Stage3 v1 / GEI-MVP navigation.
+  - [ ] Implement EvidenceTrace over support mappings.
+  - [ ] Wrap frame inspect internally as VisualVerify.
+  - [ ] Restrict VisualVerify inputs to structured claims plus graph-derived
+  evidence pointers or candidate intervals.
+  - [ ] Reject arbitrary timestamps and free-form inspection prompts at the
+  VisualVerify wrapper boundary.
+  - [ ] Add output sanitizer for every wrapper tool.
+  - [ ] Replace `finish(answer)` with AnswerWithEvidence.
+
+Acceptance criteria:
+  In graph-only mode, Agent action space contains only Alg-plan semantic tools
+  and no direct caption or free-form visual inspection tools. Every wrapper
+  sanitizes low-level tool outputs before returning them to the Agent.
+
+Risks:
+  Wrapper outputs can accidentally preserve old field names such as `summary` or
+  `caption_context`; M0 audit must cover tool outputs.
+
+---
+
+## M10. Graph Agent
+
+Status:
+  To Refactor
+
+Goal:
+  Run graph-driven observe-reason-act with structured belief state, semantic
+  graph tools, evidence tracing, and structured final answers.
+
+Inputs:
+  question, graph tools, graph memory, runtime policy.
+
+Outputs:
+  AnswerWithEvidence JSON, trace, tool history, confidence/uncertainty metadata.
+
+Current implementation:
+  `GRAPH_ONLY_INFERENCE` removes caption search/global browse from graph-only
+  tool selection. `stream_run` exists. Policy gates discourage premature answers.
+
+Gap to Alg-plan:
+  Agent does not yet use Alg-plan semantic tool names. Belief state is implicit.
+  Final `finish(answer)` is not structured evidence JSON. VisualVerify is not a
+  constrained Agent-facing action.
+
+Tasks:
+  - [ ] Switch graph-only Agent action space to M9 wrapper tools.
+  - [ ] Add explicit belief-state fields for parsed intent, resolved entities,
+  candidate events/facts, evidence chain, conflicts, and uncertainty.
+  - [ ] Require EvidenceTrace before AnswerWithEvidence.
+  - [ ] Add structured final-answer schema to traces and benchmark output.
+  - [ ] Keep short answer extraction for LVBench evaluator.
+
+Acceptance criteria:
+  Every completed graph-only answer must pass AnswerWithEvidence validation:
+  at least one supporting graph fact or event; at least one support frame; no
+  forbidden caption-like fields; no direct `frame_inspect_tool` call; and if
+  GEI-MVP was used, it is recorded as navigation-only and excluded from evidence.
+
+Risks:
+  More structured tools can reduce flexibility; MVP adapters should preserve
+  enough retrieval recall while keeping the interface clean.
+
+---
+
+## M11. Evaluation / Demo
+
+Status:
+  Temporary
+
+Goal:
+  Evaluate answer accuracy, evidence correctness, temporal grounding, graph
+  quality, caption-free boundaries, and provide replay/demo tools.
+
+Inputs:
+  benchmark results, traces, graph artifacts, diagnostic annotations.
+
+Outputs:
+  accuracy reports, graph quality reports, caption-free audits, trace replay,
+  graph visualization, demo app.
+
+Current implementation:
+  `evaluation/` exists with agent/graph/stage3 entrypoints, but Stage3 evaluator
+  is a placeholder. Scripts for run summaries, trace rendering, monitoring, and
+  smoke runs exist. `app.py` exists and consumes `stream_run`, but it is still a
+  text/log style demo and can expose old semantics.
+
+Gap to Alg-plan:
+  No evidence-chain evaluation. No graph-native retrieval recall on annotated
+  evidence. Demo plan still references captions in graph UI and must be
+  sanitized for strict graph-only.
+
+Tasks:
+  - [x] Restore trace logger and trace utilities.
+  - [x] Restore benchmark/evaluation scripts.
+  - [x] Add graph-only smoke runner and caption-free audit runner.
+  - [ ] Add run-mode labels to every evaluation report:
+    Strict Graph-only, MVP Graph-guided, Builder-assisted, or Hybrid.
+  - [ ] Add `run_graph_eval.py all` markdown summary.
+  - [ ] Add evidence-chain validity evaluator.
+  - [ ] Add diagnostic subset schema and annotation format.
+  - [ ] Add graph retrieval recall@k / mIoU / MRR evaluation.
+  - [ ] Add Stage3 v1 evaluator after M6 lands.
+  - [ ] Sanitize demo/viewer data to show graph facts/evidence, not captions.
+  - [ ] In strict mode, demo must render only graph facts, event signatures,
+    evidence pointers, and verification results.
+  - [ ] Build replay from standardized trace and graph bundle.
+
+Acceptance criteria:
+  Main experiments report accuracy, evidence validity, caption-free pass/fail,
+  per-module graph quality, and run mode. Demo visualizes graph evidence without
+  exposing inference-time captions.
+
+Risks:
+  Accuracy-only evaluation can hide caption leakage or unsupported evidence.
+
+---
+
+## Near-Term Work Order
+
+1. Finish M0 strict artifact split and audit extension.
+2. Add M1 `temporal_units.json` with stable frame IDs and timestamps.
+3. Implement M2 entity registry MVP and M3 fact IDs/support frames.
+4. Refactor M5 free-form `summary` into structured `event_signature`.
+5. Build M9 wrapper layer so Agent-facing tools match Alg-plan.
+6. Upgrade M10 final answer to AnswerWithEvidence.
+7. Implement M6 Stage3 v1 temporal graph.
+8. Add M11 evidence-chain and graph retrieval evaluation.
+
+---
+
+## Non-Canonical Historical Context
+
+Archived documents:
+  `docs/plans/SG-plan.md`
+  `docs/plans/app-plan.md`
+
+Operational documents retained as-is:
+  `docs/plans/handoff-20260513.md`
+  `docs/plans/private-public-sync-plan.md`
+  `docs/baselines/new-baseline.md`
+
+These files may provide context but do not define current algorithm semantics or
+development order.

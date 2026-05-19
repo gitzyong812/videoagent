@@ -1,3 +1,22 @@
+# [Archived] SG-plan.md
+
+Archived on: 2026-05-20
+
+This document is retained for historical context. It is no longer the canonical
+algorithm specification or development progress document.
+
+Canonical replacements:
+  - `docs/plans/SGD-Alg-plan.md` for algorithm design, system semantics,
+    caption-free protocol, tools, and evaluation principles.
+  - `docs/plans/dev-plan.md` for the M0-M11 implementation progress plan.
+
+Reason:
+  Core experiment and caption-free decisions have been consolidated into
+  `SGD-Alg-plan.md`; implementation milestones have been consolidated into
+  `dev-plan.md`.
+
+---
+
 下面这份计划的核心不是“怎么把分数跑高”，而是把实验组织成一个明确的证明链：
 
 > **SGDAgent 的 inference-time memory 完全由三层 Scene Graph 承担；captions 只允许作为离线建图脚手架，不能作为 Agent 检索、观察、回退或最终证据。**
@@ -659,4 +678,3 @@ never over caption corpus.
 | Resolver wrong |       |       | Multi-entity                |          |
 
 这比泛泛写“模型理解错误”有价值。
-

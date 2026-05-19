@@ -1,3 +1,21 @@
+# [Archived] app-plan.md
+
+Archived on: 2026-05-20
+
+This document is retained for historical context. It is no longer the canonical
+demo, visualization, or development plan.
+
+Canonical replacements:
+  - `docs/plans/SGD-Alg-plan.md` for graph-native Agent semantics,
+    VisualVerify boundaries, and evidence-chain requirements.
+  - `docs/plans/dev-plan.md` for the M11 evaluation/demo development track.
+
+Reason:
+  The original demo design contains caption-centric and free-form display ideas
+  that are no longer valid for strict graph-only inference. Non-conflicting demo
+  requirements have been consolidated into `dev-plan.md`.
+
+---
 
 ## 1. 先定展示目标：SGDAgent 页面应该展示什么
 
