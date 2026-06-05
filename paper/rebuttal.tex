@@ -1,0 +1,199 @@
+%% ACM MM 2026 -- Author Response (Rebuttal), Paper #7367
+%% By-reviewer, point-by-point, in order. Reviewer header runs in with the first
+%% point; repeated concerns point to the first full reply (see Rx-y).
+
+\documentclass[10pt,twocolumn]{article}
+\usepackage[top=0.45in,bottom=0.4in,left=0.45in,right=0.45in]{geometry}
+\usepackage{newtxtext,newtxmath}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{eso-pic}
+\usepackage[switch]{lineno}
+\definecolor{rvR1}{RGB}{0,90,225}
+\definecolor{rvR2}{RGB}{0,165,45}
+\definecolor{rvR3}{RGB}{150,30,190}
+\definecolor{rvR4}{RGB}{235,120,0}
+\definecolor{rvR5}{RGB}{225,20,30}
+\newcommand{\rvcolor}{rvR1}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.7pt}
+\setlength{\columnsep}{0.15in}
+\pagestyle{empty}
+\newcommand{\rebuttalheader}{ACM MM 2026 Submission \#7367. Author Rebuttal.}
+\AtBeginDocument{%
+  \AddToShipoutPictureFG*{%
+    \AtPageUpperLeft{%
+      \raisebox{-0.24in}{%
+        \makebox[\paperwidth]{\scriptsize\bfseries\rebuttalheader}%
+      }%
+    }%
+  }%
+}
+\newcommand{\pt}[1]{\textbf{\textcolor{\rvcolor}{#1}}\ }
+\newcommand{\rv}[1]{\vspace{1.5pt}\pt{#1}}
+
+\begin{document}
+\small
+\linenumbers
+
+We thank all five reviewers for their careful reading and are encouraged that
+they find the work worthwhile --- ``sensible'' (27Jx), ``important''/``promising''
+(D8hx), and ``a fair and interesting contribution'' with ``compelling''
+matched-setting results (wGgF). We take the presentation problems seriously and
+have completed a full language and formatting revision, verifying that no model,
+experiment, or reported result is affected by these edits.
+
+\rv{Reviewer 27Jx (\#1)---R1-1: Presentation.} We sincerely apologize for the
+draft-stage errors, and we are very grateful for the reviewer's careful reading. We have carried out a thorough revision:
+resolved the dangling ``Figure ??'' to Fig.~1 (Sec.~3.2), corrected the flagged
+typos (``multi-granul''$\to$``multi-granular'', ``Constrion''$\to$``Construction'',
+``Fame-level''$\to$``Frame-level''), re-rendered Figs.~1--2 as vector graphics,
+and made a careful, line-by-line language pass over the entire manuscript. These
+were purely presentation issues, not substantive ones; no result, number, or claim was affected.
+
+\pt{R1-2: Distinction from Vgent.} We thank the reviewer.
+The distinction is paradigmatic and does not hinge on any single layer. Vgent is
+a \emph{fixed} retrieve-then-read graph-RAG over frame and segment local
+relations. In contrast, our contribution is twofold: we build a multi-level
+scene-graph index over long video, and we design a modular, plug-and-play
+adaptive agent that uses the scene graph as its primary retrieval index,
+verifying each proposal against raw frames before answering (R2-3). Together they drive the +18.2-pp
+matched-setting gain on LVBench (54.8\%$\to$73.0\%). We address the event layer's
+specific role, and its accuracy contribution, in R1-3.
+
+\pt{R1-3: The role of the event layer.} We 
+agree with the observation. At a fixed backbone the event layer's measurable
+effect is efficiency: it cuts LLM and frame-inspection calls by 71.5\% and 74.7\%
+at unchanged accuracy (64.6\%$\to$64.4\%). We read
+this as a capability gain, not a void: reaching the same answers with far less
+search is itself better reasoning. Still, efficiency need not carry the
+contribution alone. The flat
+accuracy reflects the conservative event-graph construction of the submitted
+version, not an intrinsic ceiling. In an additional experiment that strengthens
+the construction and queries the index \emph{caption-free}, the agent reaches
+\textbf{68.5\%} e2e accuracy on LVBench, a 3.9-pp gain over the segment-only
+version and a 13.7-pp gain over the caption-only baseline. A graph that answers
+68.5\% of questions with \emph{no} captions is an answer-bearing reasoning
+substrate, so the distinction does \emph{not} collapse. The same structured index lets the lighter \texttt{o4-mini} reach
+73.0\%, matching DVD's far stronger \texttt{o3} (74.2\%) and beating DVD's own
+\texttt{o4-mini} (70.2\%). Our continued experiments improve these results
+further; we will report fair, matched comparisons in the camera-ready.
+
+\renewcommand{\rvcolor}{rvR2}%
+\rv{Reviewer D8hx (\#2)---R2-1: Offline construction cost.} For all 103 LVBench
+videos (115.5h), construction costs \$112.74 (12,360 \texttt{gpt-4.1} frame-graph
+calls at one keyframe per 5s, $\le$120/video; 7.94h on four workers; the symbolic
+Stage~3 event build adds only 121s), i.e.\ \$0.98 per video-hour. We reuse DVD's open-sourced captions rather than
+generating our own, so this is our only added offline cost. End-to-end VQA over all 1549 questions costs \$279.54
+(\texttt{o4-mini}) and \$499.31 (\texttt{o3}), so this one-time construction is
+only 40\% and 23\% of the recurring online budget it serves.
+
+\pt{R2-2: Cross-benchmark control.} We agree not all entries are controlled. On
+LVBench the DVD comparison \emph{is} fully controlled: the same \texttt{o3}
+backbone, DVD's own open-sourced captions, and the same video database. On the
+other three, DVD released no full reproduction setup, so we cannot match its
+pipeline; we still use its captions and report these as best-effort positions.
+Other commercial and open models have closed weights, so they are reference
+positions only. Our claims
+therefore rest on the fully controlled LVBench comparison and its matched-setting
+ablations.
+
+\pt{R2-3: Direct graph quality.} Direct evaluation is desirable, but intrinsic
+scene-graph metrics need a gold-annotated benchmark that does not exist at hour
+scale, and they would still miss what matters: extraction accuracy and the
+graph's net effect on answers. Comparable systems, DVD included, are judged the
+same way, not by intrinsic quality. We therefore measure the graph through the
+task: the caption-free graph-only setting is cleanest, since with captions
+removed the answer must come from the graph, yet accuracy holds at 68.5\% on
+LVBench (R1-3), and the matched ablations isolate its gain. We will still add a
+small human-verified sample for entity and relation precision; the pipeline
+already shows 76.8\% entity-mention absorption and a 5.0\% invalid-relation rate.
+Propose--verify re-inspection of the raw frames further reduces how much
+frame-level error propagates into the event graph.
+
+\pt{R2-4: Implementation details.} To give the values asked for: entity alignment
+scores name, description, and type similarity with weights 0.7, 0.2, and 0.1, and
+merges above a threshold of 0.78; the entity blacklist removes artefacts and
+over-generic terms; segments merge into events at a 12s temporal gap with
+relation-overlap thresholds. The composite retrieval score and all remaining thresholds are fully specified in
+the appendix, which gives the alignment, gating, and event-construction
+algorithms; we will release a fully reproducible repository for the camera-ready.
+
+\pt{R2-5: Presentation.} See R1-1.
+
+\pt{R2-6: Isolating localization from FTT.} Our reported answered accuracy
+(ans\_acc) separates the two: the caption-only baseline scores 65.7\% and
+SGDAgent 74.2\% (+8.5\,pp), independent of the answer rate, while the FTT drop
+(16.5\%$\to$1.6\%) is itself a consequence of structured retrieval converging
+where open caption search loops for lack of locatable evidence.
+
+\renewcommand{\rvcolor}{rvR3}%
+\rv{Reviewer k56s (\#3)---R3-1: Baseline data citation.} Thank you for catching
+this. The correct DVD values are Video-MME 67.3 (we had mis-copied DVD's
+LongVideoBench(Long) entry, 68.6) and EgoSchema 76.6, both matching DVD's
+published numbers. The correction in fact
+widens our Video-MME margin to 69.0 vs.\ 67.3. We will present a carefully re-verified version, with a more
+general Fig.~1 example, in the camera-ready.
+
+\pt{R3-2: Related works.} Thank you; we will cite and discuss all three ([1] Mind
+Palace, [2] the Gaussian-token work, [3] GraphVideoAgent) in the camera-ready.
+They use the graph as an in-context representation or online entity memory,
+whereas we use it as the agent's primary retrieval index, gated to raw-frame
+verification before answering (see R1-2), a distinct design.
+
+\pt{R3-3: Offline construction cost.} See R2-1.
+
+\pt{R3-4: Error propagation \& robustness.} Two mechanisms limit it. First,
+propose--verify gates every graph hit to raw-frame re-inspection before answering
+(R2-3), so a hallucinated or mis-aligned node is caught at verification rather
+than read out as an answer, reducing upward propagation. Second, the caption-free
+graph-only system still reaches 68.5\% (R1-3), evidence that the pipeline
+tolerates imperfect frame-level extraction. To quantify this we will add a
+robustness analysis that perturbs frame-graph quality and reports the accuracy
+sensitivity, and we will discuss [4].
+
+\renewcommand{\rvcolor}{rvR4}%
+\rv{Reviewer SSkz (\#4)---R4-1: Over-strong coverage claim.} We agree, and will revise
+the wording: the method improves \emph{localization within the sampled frames}, and
+we will no longer claim to address incomplete sampling coverage, since the graph
+itself is built only from sparsely sampled keyframes.
+
+\pt{R4-2: The role of the event graph. } In the submitted table the event graph is
+not a fixed-backbone accuracy driver, and we present it as a higher-order layer
+that reduces the agent's search burden. A strengthened, caption-free run, however,
+shows it also carries accuracy, not only efficiency (see R1-3).
+
+\pt{R4-3: Heuristic construction.} For robustness see R2-3; we now fully specify
+the alignment, merging, and event thresholds (see R2-4).
+
+\pt{R4-4: Presentation.} See R1-1; we have already re-rendered Figures.
+
+\pt{R4-5: Questions.} Scene-graph accuracy: see R2-3. Repositioning the event
+graph as an efficiency layer: it does reduce search burden, but a strengthened
+caption-free run shows it is also accuracy-bearing (see R1-3). Full pipeline cost
+per video: see R2-1. Sampling interval: we currently sample one frame every 5s and will report
+2s/5s/10s sensitivity in the revision.
+
+\renewcommand{\rvcolor}{rvR5}%
+\rv{Reviewer wGgF (\#5)---R5-1: HIG \& hierarchy novelty.} Thank you; we agree HIG
+proposes a hierarchical video graph, and we will cite and contrast it. We will not
+claim the hierarchy concept as novel. Our work differs in task: HIG targets video
+scene-graph \emph{generation}, whereas we use a graph index to \emph{drive an
+adaptive agent} for long-video QA (see R1-2). 
+
+\pt{R5-2: Implementation details.} The alignment, retrieval, gating, and
+event-construction rules are given in the appendix as pseudocode; see R2-4 for the
+headline values.
+
+\pt{R5-3: Graph-depth ablation.} See R1-3: the segment graph drives
+fixed-backbone accuracy; the event graph reduces search burden and, under a
+stronger construction, also contributes accuracy (caption-free 68.5\%).
+
+\pt{R5-4: Efficiency evidence.} Beyond online call counts we now also report
+dollar cost and construction time (see R2-1).
+
+\pt{R5-5: Presentation.} See R1-1.
+
+\end{document}
