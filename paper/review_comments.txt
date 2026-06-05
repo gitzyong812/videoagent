@@ -1,0 +1,206 @@
+
+SGDAgent: Hierarchical Spatio-Temporal Scene Graph-Driven Agent for Structured Long-form Video Understanding
+Download PDF
+Yutong Gu, Yong Zhang, Qili Zhang, Xiaobo Wang 
+25 Mar 2026 (modified: 09 Apr 2026)
+ACMMM 2026 Conference Submission
+Conference, Senior Area Chairs, Area Chairs, Reviewers, Authors
+Revisions
+CC BY 4.0
+Abstract:
+Long-form video understanding requires semantic analysis and reasoning over hour-scale videos, yet faces fundamental challenges: incomplete coverage from lossy sampling, imprecise reasoning over long-range spatio-temporal interactions that flat representations fail to capture, and imprecise localization of sparse evidence buried in background noise. Recent agentic approaches build searchable caption databases for iterative querying, but the evidence space remains fundamentally unstructured—flat text and embeddings cannot represent entity-level semantics or support traceable retrieval. We propose Scene Graph-Driven Agent (SGDAgent), which restructures long video understanding by converting open-ended caption search into structured candidate verification. Concretely, we (i) design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (ii) build a bottom-up construction pipeline to generate such scene graphs, and (iii) design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way. Experiments across four benchmarks demonstrate substantial improvements: SGDAgent achieves +18.2 pp accuracy gain on LVBench with matched settings, and the structured graph index enables lighter backbones to match stronger baselines.Agent trajectory analysis confirms the gains stem from restructuring search itself—converting open retrieval into graph-anchored candidate verification.
+
+Keywords: Long-form video understanding, Hierarchchical spatio-temporal scene graph, Agentic video reasoning
+Primary Subject Area: Multimedia Reasoning
+Secondary Subject Area: Multimedia and Language
+
+## Reviewer 27Jx
+
+Sort: Newest First
+6 / 6 replies shown
+Add:
+Official Review of Submission7367 by Reviewer 27Jx
+Official Reviewby Reviewer 27Jx14 May 2026, 22:13 (modified: 28 May 2026, 21:55)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Reviewer 27Jx, AuthorsRevisions
+Strengths:
+The high-level idea of restructuring the evidence space for long-form video QA — replacing flat caption search with a hierarchical scene-graph index and a propose-verify-answer agent loop — is reasonable and addresses a real limitation of caption-centric agentic methods. The matched-setting ablations in Section 4.3 are a good practice: holding the backbone, caption source, and budget fixed isolates the contribution of the structured index more convincingly than the cross-method comparison in Table 1.
+
+Weaknesses:
+The manuscript contains a large number of draft-stage errors, and most of the text appears to have been submitted without substantive human polishing. Examples include a dangling "Figure ??" reference, repeated typos such as "multi-granul," "Constrion," and "Stage," and generally unedited phrasing throughout. In its current state the paper does not meet the presentation bar expected for review. The core distinction from VAgent is not adequately established. VAgent also uses a graph-structured representation for video retrieval, and the paper differentiates itself only by claiming VAgent is "limited to frame- or segment-level local relations without cross-scale unification." But the cross-scale event layer (Stage 3) is exactly what is supposed to provide this advantage, and the ablation in Table 3 shows that adding Stage 3 does not improve accuracy at all (64.6% → 64.4%). If the event layer contributes no accuracy gain, the central conceptual difference from VAgent largely collapses, and the paper is left differentiating itself mainly on an efficiency argument that it does not frame as its core contribution.
+
+Review:
+This paper proposes SGDAgent, a long-form video understanding agent built on a three-level (frame/segment/event) spatio-temporal scene graph index, queried through a propose-verify-answer loop. The direction is sensible and the matched-setting evaluation methodology is appreciated. However, the paper has two problems that I consider disqualifying in its current form. First, the manuscript is clearly a draft: it contains an unresolved "Figure ??" reference, numerous typographical errors, and unpolished prose throughout. This is not a matter of a few isolated mistakes; the writing as a whole has not been carefully revised, which makes the paper difficult to evaluate fairly and signals it was submitted prematurely. Second, and more fundamentally, the paper's claimed novelty relative to VAgent rests on cross-scale hierarchical unification, embodied by the event-level graph (Stage 3). Yet the authors' own ablation (Table 3) shows Stage 3 yields no accuracy improvement — it functions only as an efficiency layer that reduces LLM and frame-inspection calls. If the component that supposedly distinguishes SGDAgent from VAgent does not improve answer quality, then the core conceptual contribution over VAgent is not substantiated. The efficiency benefit is real and worth reporting, but it is not framed as the paper's main claim and is not, on its own, sufficient to establish the contribution. Because of the combination of an unpolished manuscript and an insufficiently justified core novelty claim, I recommend rejection. I would encourage the authors to thoroughly revise the writing and to either demonstrate an accuracy benefit from the hierarchical event layer or reframe the paper's contribution honestly around efficiency.
+
+Fit: 4: Large audience
+Fit Justification:
+Long-form video understanding, scene graph representation, and agentic multimodal reasoning are all well within the scope of the ACM MM community.
+
+Technical Quality: 3: Good
+Technical Presentation: 1: Very poor
+Rating: 1: Reject
+Confidence: 3: Knowledgeable
+
+
+## Reviewer D8hx
+
+Official Review of Submission7367 by Reviewer D8hx
+Official Reviewby Reviewer D8hx14 May 2026, 21:45 (modified: 28 May 2026, 21:55)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Reviewer D8hx, AuthorsRevisions
+Strengths:
+This paper tackles an important problem in long-form video understanding: how to efficiently locate sparse and temporally distributed evidence in hour-scale videos. The motivation is strong, since caption-only retrieval and flat embedding search often fail to capture entity-level relations and long-range temporal dependencies. SGDAgent converts open-ended caption search into graph-guided candidate verification by building a hierarchical spatio-temporal scene graph index. The frame-, segment-, and event-level graph design, unified by a shared entity registry, is a reasonable way to represent multi-scale video semantics. The agent design is intuitive. The propose-verify-answer paradigm uses graph retrieval to propose candidate regions and frame inspection to verify visual evidence. This avoids treating the scene graph as a direct answer source and instead uses it to structure the search process. The case study provides a clear illustration of how graph retrieval can progressively narrow the search from event to segment to frame-level evidence.
+
+Weaknesses:
+(1) The offline graph construction cost is not sufficiently reported. SGDAgent relies on GPT to generate frame-level scene graphs from sampled keyframes, followed by segment/event graph construction. Since this graph index is central to the method, the paper should report these.
+
+(2) The cross-benchmark comparison is not fully controlled. Table 1 includes results from different backbones, caption sources, and evaluation protocols, and the authors acknowledge that these should be read only as reference positions.
+
+(3) The scene graph quality is not directly evaluated. Since the method depends on VLM-generated entities, relations, event clusters, and cross-frame entity alignment. End-task QA accuracy alone is insufficient to validate the reliability of the graph index.
+
+(4) Many implementation details are underspecified. This limits reproducibility for an agentic system where prompts and heuristics can strongly affect results. For example, entity alignment thresholds, similarity weights, and entity blacklists.
+
+(5) There are also some presentation issues. Section 3.2 contains a Figure?? reference. Some language issues also should be polished.
+
+Review:
+This paper proposes SGDAgent, a scene-graph-driven agent for long-form video understanding. The main idea is to construct a hierarchical spatio-temporal scene graph index over long videos and use it to guide an agent through a propose-verify-answer pipeline. Instead of relying on open-ended caption retrieval, the method retrieves candidate events, segments, and frames from structured graph representations, then verifies evidence through targeted frame inspection. I find the problem setting important and the main idea promising. Long-form video QA often fails because the relevant evidence is sparse and difficult to locate, rather than because the final reasoning step is intrinsically hard. A structured graph index with entity, relation, and temporal anchors is a natural way to improve evidence search.
+
+However, I have several concerns that prevent a stronger recommendation. First, the cost and quality of the offline scene graph construction are not sufficiently analyzed. Since the graph is generated using chatgpt, the method may be benefiting from substantial closed-source VLM preprocessing that is not counted in the online reasoning budget. Second, the largest gains mix search improvement with terminal convergence and FTT reduction, making it hard to isolate the actual improvement in evidence localization. Third, most controlled ablations are conducted on LVBench, while the broader benchmark comparison is not strictly matched.
+
+Overall, I like the direction and believe graph-guided candidate verification is promising for long video understanding. However, the current paper needs stronger cost accounting, direct graph-quality evaluation, and more controlled cross-benchmark ablations to fully support its claims. I therefore recommend borderline.
+
+Fit: 4: Large audience
+Fit Justification:
+The paper is well aligned with ACM Multimedia topics, including long-form video understanding, multimodal reasoning, video question answering, scene graphs, and agentic retrieval. The topic is relevant to a broad multimedia audience.
+
+Technical Quality: 3: Good
+Technical Presentation: 3: Fair
+Rating: 3: Borderline
+Confidence: 2: Familiar
+
+
+## Reviewer k56s
+
+Official Review of Submission7367 by Reviewer k56s
+Official Reviewby Reviewer k56s12 May 2026, 23:18 (modified: 28 May 2026, 21:55)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Reviewer k56s, AuthorsRevisions
+Strengths:
+Clear Motivation
+The paper leverages the structured properties of Scene Graphs to mitigate the challenges associated with long videos—specifically, the sparsity of key clues and the difficulty of performing long-range spatio-temporal reasoning—representing a well-chosen entry point.
+
+Comprehensive Framework Design
+The bottom-up, three-level Scene Graph construction logic is clearly articulated, and the designed "Propose-Verify-Answer" toolchain is intuitive.
+
+Insightful Analysis
+Through ablation studies and trajectory analysis, the paper demonstrates how graph retrieval assists the agent in narrowing down the search space; the accompanying case studies are highly illustrative.
+
+Weaknesses:
+See review.
+
+Review:
+Overall Assessment
+This paper addresses the task of long-form video understanding by proposing a Scene Graph-Driven Agent (SGDAgent) based on a hierarchical spatio-temporal scene graph. The core motivation of the work, which is transforming traditional open-ended caption retrieval into a structured candidate verification process grounded in a three-level "frame-clip-global event" scene graph, is conceptually sound. However, from a holistic perspective, the theoretical novelty of the proposed method is relatively limited, as it primarily involves integrating scene graphs as retrieval indices within an existing Agent framework. Furthermore, the paper suffers from notable deficiencies in writing and formatting, and lacks adequate discussion regarding the computational overhead and potential error propagation issues associated with its practical application. Overall, while the paper possesses some engineering merit, a recommendation of "Weak Accept" is appropriate.
+
+Major Weaknesses and Suggestions
+1. Significant Writing and Formatting Oversights (Poor Writing and Formatting)
+The paper appears somewhat rushed in terms of fine-tuning details; it contains numerous obvious, elementary errors that severely compromise both the readability and the academic rigor of the work:
+
+Incorrect Baseline Data Citation: In the table comparing existing methods (Table 3), the authors report the results for the DVD model on the Video-MME dataset as 68.6. However, according to the original DVD paper, its result on Video-MME should be 67.3; the figure 68.6 actually corresponds to DVD's metric on the LongVideoBench (Long) dataset. The authors must carefully cross-check all cited benchmark data to avoid transcription errors that could invalidate the comparative analysis. Additionally, the reported results for EgoSchema do not match those in [1]; please verify this discrepancy as well.
+
+Spelling Errors: In Figure 1, the bottom-most label "Frame-level" is misspelled as "Fame-level." Furthermore, Figure 1 has certain limitations in terms of clarity; specifically, the use of basketball as an example may make it appear that the concept cannot be generalized to broader, more universal methods. It might be worth considering a different example for illustrative purposes.
+
+Broken References: In Section 3.2 (Line 390), an unresolved cross-reference appears as "as shown in Figure ??"; this reference clearly intended to point to Figure 1.
+
+2. Insufficient Citation of Related Works (Missing Related Works)
+When discussing the compression of spatio-temporal information in long/complex videos, hierarchical graph representations, and Graph-based Agents, it is recommended that the following recent works be cited to broaden the scope of the paper and ensure a more comprehensive literature review:
+
+[1] "Building a Mind Palace: Structuring Environment-Grounded Semantic Graphs for Effective Long Video Analysis with LLMs", CVPR 2025. This work also addresses the problem of long video understanding, proposing to represent long video content as a hierarchically organized topological semantic graph (Hierarchical Graph), utilizing nodes and edges to enhance an LLM's comprehension of the video. This approach bears a strong resemblance to the construction logic of the "Hierarchical Spatio-Temporal Scene Graph" proposed in the current paper; comparing against this work would serve to better highlight the uniqueness of the proposed toolchain design.
+
+[2] "Multivariate Gaussian Representation Learning for Medical Action Evaluation", arXiv:2511.10060. This work proposes compressing fine-grained actions into adaptive 3D Gaussian Tokens via a multivariate Gaussian representation, thereby filtering out spatio-temporal noise while preserving action semantics. This approach shares a fundamental conceptual similarity with the core idea, specifically, the strategy of constructing hierarchical scene graphs to compress spatio-temporal redundancy and extract key evidence from long videos. It is recommended that a discussion of this work be included around Line 159 or Line 168.
+
+[3] "Understanding Long Videos via LLM-Powered Entity Relation Graphs", arXiv:2501.15953. This work introduces GraphVideoAgent, an agent-based framework for long video understanding that tracks the evolution of entities within long videos by explicitly modulating dynamic entity relation graphs and leveraging the reasoning capabilities of LLMs. This aligns closely with the core concept of the current paper, which drives agents for retrieval and reasoning based on Scene Graphs.
+
+3. Computational Overhead of Offline Construction
+The bottom-up construction of scene graphs relies on a VLM to perform graph extraction on densely sampled keyframes. When processing long videos spanning hours, this approach—involving dense, repeated invocations—can incur substantial computational costs and API token overhead. We recommend that the authors include an analysis within the paper detailing the specific time consumption and token costs associated with the scene graph construction phase (the Offline Pipeline).
+
+4. Error Propagation and System Robustness
+The system's performance is highly contingent upon the quality of the underlying frame-level scene graph extraction. If the underlying VLM suffers from hallucinations, attribute misidentification, or fails to detect critical entities during the generation of frame-level scene graphs, these errors will propagate upward through the aggregation process to the Global Event Graph.
+
+How robust is the system to variations in the quality of the underlying scene graph generation? [4] To what extent do the strategies outlined in the paper mitigate the potentially fatal impact of such structural errors? We recommend that the authors include a relevant robustness analysis or a brief discussion to bolster the credibility of the proposed methodology.
+
+[4] "Agentic Very Long Video Understanding", arXiv:2601.18157v1.
+
+Fit: 4: Large audience
+Fit Justification:
+Long term video understanding fits ACMMM's topics of interest.
+
+Technical Quality: 3: Good
+Technical Presentation: 3: Fair
+Rating: 4: Weak Accept
+Confidence: 3: Knowledgeable
+
+## Reviewer SSkz
+
+Official Reviewby Reviewer SSkz06 May 2026, 15:25 (modified: 28 May 2026, 21:55)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Reviewer SSkz, AuthorsRevisions
+Strengths:
+Clear motivation and reasonable problem formulation. The paper identifies an important limitation of caption-centric long-video agents: flat text databases lack explicit entity, relation, and temporal structure. The proposed scene graph index directly addresses this issue.
+
+Coherent framework design. The hierarchical graph representation is intuitive and well organized. Frame-level graphs capture local entity relations, segment-level graphs aggregate short-term temporal interactions, and the global event graph provides high-level event organization.
+
+Strong matched-setting results and useful analysis. On LVBench, SGDAgent improves end-to-end accuracy from 54.8% to 73.0% under matched settings, and the trajectory case study clearly illustrates how graph-guided retrieval narrows the search space before visual verification.
+
+Weaknesses:
+Some claims are stronger than the method supports. The method mainly improves structured evidence retrieval and localization, but it does not fundamentally solve incomplete sampling coverage, since the graph is still built from sparsely sampled keyframes.
+
+The global event graph contributes more to efficiency than accuracy. The ablation shows that adding the global event graph does not further improve accuracy, but mainly reduces LLM calls and frame-inspection calls. This weakens the claim that it substantially improves high-level reasoning.
+
+Scene graph construction is heuristic and under-analyzed. Entity alignment, segment merging, and event construction rely on hand-designed similarity rules and thresholds. The paper does not sufficiently analyze robustness to noisy entities, wrong relations, or alignment errors.
+
+Writing and presentation require improvement. The paper contains several presentation issues. In particular, Figure 1 and Figure 2 have inconsistent font sizes and appear to be rasterized rather than vector graphics, which makes some labels blurry and difficult to read. There is also an unresolved figure reference in Section 3.2 (“Figure ?? (b)”), which should be corrected. In addition, the manuscript contains several typos and grammatical issues, such as “multi-granul,” “and convert,” “Section 3.3 describe,” and “Scene graph is ... that encode.”
+
+Review:
+This paper proposes SGDAgent, a hierarchical spatio-temporal scene-graph-driven agent for long-form video understanding. The key idea is to convert long videos into structured scene graph indices at frame, segment, and global event levels, and then use an agent to perform graph-guided candidate proposal, visual verification, and final answering. Questions: How accurate are the generated scene graphs themselves? Is there any evaluation of entity accuracy, relation accuracy, or temporal alignment quality? How sensitive is SGDAgent to the keyframe sampling interval? Would the performance drop significantly if the interval changes from 5 seconds to 10 seconds or 2 seconds? Since the global event graph mainly improves efficiency rather than accuracy, should the paper reposition it as an efficiency layer instead of a reasoning layer? How much does the full pipeline cost per video, including graph construction with gpt-4.1 and online reasoning with o4-mini or o3?
+
+Fit: 4: Large audience
+Fit Justification:
+The paper presents a meaningful and well-motivated framework for restructuring long-video search with hierarchical scene graphs. The matched-setting results are strong, and the overall design is coherent. However, the claims are somewhat overextended, the graph construction pipeline is heuristic, and the contribution of graph structure versus agent control needs clearer separation. These issues make the paper promising but not fully convincing.
+
+Technical Quality: 3: Good
+Technical Presentation: 3: Fair
+Rating: 3: Borderline
+Confidence: 3: Knowledgeable
+
+## Reviewer wGgF
+Official Reviewby Reviewer wGgF23 Apr 2026, 12:10 (modified: 28 May 2026, 21:55)Program Chairs, Senior Area Chairs, Area Chairs, Reviewers Submitted, Reviewer wGgF, AuthorsRevisions
+Strengths:
+The paper tackles long-form video understanding, where flat caption-based retrieval struggles with sparse evidence localization, long-range temporal interactions, and traceable reasoning.
+
+The paper proposes to convert open-ended caption search into graph-anchored candidate verification, using a three-level scene graph index (frame/segment/event) plus an agent operating in a propose-verify-answer loop.
+
+Experiment results on four benchmark datasets demonstrate substantial improvements.
+
+Weaknesses:
+The paper claims as a key contribution a hierarchical spatio-temporal scene graph architecture and says prior work lacks unified cross-scale hierarchical organization, but prior work such as HIG (CVPR 2024) already introduced a hierarchical graph approach for scene graph generation in video understanding
+
+Several important components are described only at a high level: entity alignment uses a weighted combination of similarities with thresholding; event construction uses temporal gap/shared entities/relation overlap; retrieval uses a composite score; controller signals and routing rules are mentioned but not concretely specified.
+
+The graph-depth ablation indicates that adding the global event graph does not further improve accuracy over Stage 1+2, but mainly reduces LLM and frame-inspection calls. That is still useful, but it weakens the impression that the full three-level hierarchy is uniformly necessary for performance.
+
+The paper argues that the graph structure makes search more efficient, but the reported efficiency evidence mainly concerns online call counts.
+
+There are noticeable writing and formatting issues, including awkward grammar and an unresolved “Figure ??” reference.
+
+Review:
+The paper claims a "hierarchical spatio-temporal scene graph architecture" as a central contribution and explicitly states that prior methods lack unified cross-scale hierarchical organization. However, HIG (CVPR 2024) already proposes a Hierarchical Interlacement Graph for scene graph generation in video understanding, and describes it as a hierarchical graph structure for modeling scene changes across tasks. Because of this prior art, I do not think the hierarchy itself can be presented as strongly novel
+
+After discounting the hierarchy claim somewhat, the paper’s more convincing contribution is the graph-driven propose-verify-answer pipeline: the graph is elevated from auxiliary representation to primary retrieval index, and the agent uses graph-localized proposals before visual verification. I think this is a fair and interesting contribution, but the paper should position it more explicitly as the main novelty, instead of bundling it together with a representation.
+
+Many implementation choices are too abstractly described. For example, entity alignment depends on a weighted combination of name similarity, description similarity, and type consistency, but the weighting and threshold are not given. Event construction likewise depends on temporal and semantic heuristics, but the exact merging/splitting rule is unclear. The composite retrieval score is specified conceptually but not operationally. The controller signals and routing/gating strategies are important to the reported gains, yet their instantiation remains underspecified.
+
+The matched-setting LVBench results are compelling and, in my view, are the main reason the paper is above the bar. However, the paper also acknowledges that the cross-benchmark comparisons are not controlled. This makes the broader performance positioning less definitive than the narrative sometimes suggests.
+
+Segment-level graphs seem to provide the main accuracy benefit, while the event-level graph primarily reduces tool usage and search depth. This is still a meaningful contribution, but it suggests the full hierarchy should be presented with more nuance. In particular, the event-level graph looks more like an efficiency layer than an accuracy-critical component.
+
+Fit: 4: Large audience
+Fit Justification:
+The paper is an excellent fit for ACM Multimedia. It sits squarely at the intersection of video understanding, multimodal reasoning, structured visual representation, and agentic retrieval/search over long videos. The problem setting, methodology, and benchmarks are all directly relevant to the ACM MM community. The paper also addresses long-form video QA with structured multimodal representations, which should interest a broad portion of the multimedia retrieval and understanding audience.
+
+Technical Quality: 3: Good
+Technical Presentation: 4: Good
+Rating: 3: Borderline
+Confidence: 3: Knowledgeable
