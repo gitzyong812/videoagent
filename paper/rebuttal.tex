@@ -34,6 +34,8 @@
 }
 \newcommand{\pt}[1]{\textbf{\textcolor{\rvcolor}{#1}}\ }
 \newcommand{\rv}[1]{\vspace{1.5pt}\pt{#1}}
+\let\origemph\emph
+\renewcommand{\emph}[1]{\textbf{\textit{#1}}}
 
 \begin{document}
 \small
@@ -46,44 +48,38 @@ matched-setting results (wGgF). We take the presentation problems seriously and
 have completed a full language and formatting revision, verifying that no model,
 experiment, or reported result is affected by these edits.
 
-\rv{Reviewer 27Jx (\#1): R1-1: Presentation.} We sincerely apologize for the
-draft-stage errors, and we are very grateful for the reviewer's careful reading. We have carried out a thorough revision:
-resolved the dangling \texttt{Figure ??} to Fig.~1 (Sec.~3.2), corrected the flagged
-typos (\texttt{multi-granul}$\to$\texttt{multi-granular}, \texttt{Constrion}$\to$\texttt{Construction},
-\texttt{Fame-level}$\to$\texttt{Frame-level}), re-rendered Figs.~1 and 2 as vector graphics,
-and made a careful, line-by-line language pass over the entire manuscript. These
-were purely presentation issues, not substantive ones. No result, number, or claim was affected.
+\rv{Reviewer 27Jx (\#1) -- R1-1: Presentation.} We apologize for the draft-stage errors
+and thank the reviewer for the close reading. We have made a line-by-line revision: the
+dangling \texttt{Figure ??} now resolves to Fig.~1 (Sec.~3.2), the flagged typos are fixed
+(\texttt{multi-granul}$\to$\texttt{multi-granular}, \texttt{Constrion}$\to$\texttt{Construction},
+\texttt{Fame-level}$\to$\texttt{Frame-level}), and Figs.~1--2 are re-rendered as vector
+graphics. These are surface issues that affect no model, experiment, or result, and are
+fully correctable.
 
-\pt{R1-2: Distinction from Vgent.} We thank the reviewer.
-The distinction is paradigmatic and does not hinge on any single layer. Vgent is
-a \emph{fixed} retrieve-then-read graph-RAG over frame and segment local
-relations. In contrast, our contribution is twofold: we build a multi-level
-scene-graph index over long video, and we design a modular, plug-and-play
-adaptive agent that uses the scene graph as its primary retrieval index,
-verifying each proposal against raw frames before answering (R2-3). Together they drive the +18.2-pp
-matched-setting gain on LVBench (54.8\%$\to$73.0\%). We address the event layer's
-specific role, and its accuracy contribution, in R1-3.
+\pt{R1-2: Distinction from Vgent.} The difference is paradigmatic, along two axes.
+\emph{Representation:} Vgent builds a single \emph{flat} graph over local frame/segment
+relations; we use an LLM to build a \emph{three-level hierarchical} scene graph
+(frame$\to$segment$\to$event) unified by a shared entity registry, exposing cross-scale
+structure a flat graph cannot. \emph{Reasoning:} Vgent is a fixed retrieve-then-read RAG
+pipeline that answers in a single pass; our agent treats the hierarchical graph as its
+primary retrieval index and reasons \emph{agentically} over multiple rounds, issuing
+multi-level graph queries, verifying each proposal against raw frames, and deciding its
+next step until it converges. Together these
+drive the +18.2-pp matched-setting gain on LVBench (54.8\%$\to$73.0\%).
 
-\pt{R1-3: The role of the event graph.} We 
-agree with the observation. At a fixed backbone the event layer's measurable
-effect is efficiency: it cuts LLM and frame-inspection calls by 71.5\% and 74.7\%
-at unchanged accuracy (64.6\%$\to$64.4\%). We read
-this as a capability gain, not a void: reaching the same answers with far less
-search is itself better reasoning. Still, efficiency need not carry the
-contribution alone. The flat
-accuracy reflects the conservative event-graph construction of the submitted
-version, not an intrinsic ceiling. In an additional experiment that strengthens
-the construction and queries the index \emph{caption-free}, the agent reaches
-\textbf{68.5\%} e2e accuracy on LVBench, a 3.9-pp gain over the segment-only
-version and a 13.7-pp gain over the caption-only baseline. A graph that answers
-68.5\% of questions with \emph{no} captions is an answer-bearing reasoning
-substrate, so the distinction does \emph{not} collapse. The same structured index lets the lighter \texttt{o4-mini} reach
-73.0\%, matching DVD's far stronger \texttt{o3} (74.2\%) and beating DVD's own
-\texttt{o4-mini} (70.2\%). Our continued experiments improve these results
-further, and we will report fair, matched comparisons in the revision.
+\pt{R1-3: The role of the event graph.} We respectfully find the 64.6\%$\to$64.4\%
+reading too narrow: it isolates the Stage-3 \emph{increment} and asks it to carry the
+contribution alone. (i) Our representation is a three-level stack (Base (frame-level)\,+\,Stage~2 (segment-level)\,+\,Stage~3 (event/video-level)),
+so the fair comparison is the full stack against Base, where the hierarchy improves
+\emph{both} axes: accuracy rises 54.8\%$\to$73.0\% (+18.2\,pp, matched) \emph{and} the
+event layer cuts LLM and frame-inspection calls by 71.5\% and 74.7\% and shortens the
+agent's reasoning rounds. Reaching the same answers with far less search is itself a
+reasoning gain.
+(ii) In our \emph{follow-up experiment} that strengthens Stage~3, the event layer also lifts accuracy whilekeeping the efficiency: it reaches \emph{68.5\%} e2e on LVBench, +3.9\,pp over the
+segment-only version (64.6\%) and +13.7\,pp over the caption-only Base (54.8\%). We will report these strengthened, matched results in the revision.
 
 \renewcommand{\rvcolor}{rvR2}%
-\rv{Reviewer D8hx (\#2): R2-1: Offline construction cost.} For all 103 LVBench
+\rv{Reviewer D8hx (\#2) -- R2-1: Offline construction cost.} For all 103 LVBench
 videos (115.5h), construction costs \$112.74 (12,360 \texttt{gpt-4.1} frame-graph
 calls at one keyframe per 5s, $\le$120/video, 7.94h on four workers, and the symbolic
 Stage~3 event build adds only 121s), i.e.\ \$0.98 per video-hour. We reuse DVD's open-sourced captions rather than
@@ -131,7 +127,7 @@ SGDAgent 74.2\% (+8.5\,pp), independent of the answer rate, while the FTT drop
 where open caption search loops for lack of locatable evidence.
 
 \renewcommand{\rvcolor}{rvR3}%
-\rv{Reviewer k56s (\#3): R3-1: Baseline data citation.} Thank you for catching
+\rv{Reviewer k56s (\#3) -- R3-1: Baseline data citation.} Thank you for catching
 this. The correct DVD values are Video-MME 67.3 (we had mis-copied DVD's
 LongVideoBench(Long) entry, 68.6) and EgoSchema 76.6, both matching DVD's
 published numbers. The correction in fact
@@ -156,7 +152,7 @@ robustness analysis that perturbs frame-graph quality and reports the accuracy
 sensitivity, and we will discuss [4].
 
 \renewcommand{\rvcolor}{rvR4}%
-\rv{Reviewer SSkz (\#4): R4-1: Over-strong coverage claim.} We agree, and will revise
+\rv{Reviewer SSkz (\#4) -- R4-1: Over-strong coverage claim.} We agree, and will revise
 the wording. The method improves \emph{localization within the sampled frames}, and
 we will no longer claim to address incomplete sampling coverage, since the graph
 itself is built only from sparsely sampled keyframes.
@@ -178,7 +174,7 @@ per video. For the sampling interval, we currently sample one frame every 5s and
 2s/5s/10s sensitivity in the revision.
 
 \renewcommand{\rvcolor}{rvR5}%
-\rv{Reviewer wGgF (\#5): R5-1: HIG \& hierarchy novelty.} Thank you. We agree HIG
+\rv{Reviewer wGgF (\#5) -- R5-1: HIG \& hierarchy novelty.} Thank you. We agree HIG
 proposes a hierarchical video graph, and we will cite and contrast it. We will not
 claim the hierarchy concept as novel. Our work differs in task: HIG targets video
 scene-graph \emph{generation}, whereas we use a graph index to \emph{drive an
