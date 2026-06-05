@@ -148,12 +148,12 @@ robustness analysis that perturbs frame-graph quality and reports the accuracy
 sensitivity, and we will discuss [4].
 
 \renewcommand{\rvcolor}{rvR4}%
-\rv{Reviewer SSkz (\#4) -- R4-1: Over-strong coverage claim.} We agree, and will revise
+\rv{Reviewer SSkz (\#4) -- R4-1: Over-strong coverage claim.} We will revise
 the wording. The method improves \emph{localization within the sampled frames}, and
 we will no longer claim to address incomplete sampling coverage, since the graph
 itself is built only from sparsely sampled keyframes.
 
-\pt{R4-2: The role of the event graph. } In the submitted table the event graph is
+\pt{R4-2: The role of the event graph. } The event graph is
 not a fixed-backbone accuracy driver, and we present it as a higher-order layer
 that reduces the agent's search burden. A strengthened, caption-free run, however,
 shows it also carries accuracy, not only efficiency (Please see R1-3).
@@ -171,10 +171,12 @@ per video. For the sampling interval, we currently sample one frame every 5s and
 
 \renewcommand{\rvcolor}{rvR5}%
 \rv{Reviewer wGgF (\#5) -- R5-1: HIG \& hierarchy novelty.} Thank you. We agree HIG
-proposes a hierarchical video graph, and we will cite and contrast it. We will not
-claim the hierarchy concept as novel. Our work differs in task: HIG targets video
-scene-graph \emph{generation}, whereas we use a graph index to \emph{drive an
-adaptive agent} for long-video QA (Please see R1-2). 
+is relevant prior work and will cite and contrast it. We do not claim hierarchy
+itself as novel. The hierarchy differs in both form and purpose: HIG aggregates
+interactivities for video scene-graph \emph{generation}, whereas SGDAgent builds a
+frame--segment--event graph index as the representation layer for an adaptive
+long-video understanding agent. Thus, HIG predicts scene graphs, while we use scene
+graphs to guide proposal and verification for long-video QA (Please see R1-2).
 
 \pt{R5-2: Implementation details.} The alignment, retrieval, gating, controller-signal, and
 event-construction rules are all specified operationally in the appendix as
