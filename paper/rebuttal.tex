@@ -63,7 +63,7 @@ verifying each proposal against raw frames before answering (R2-3). Together the
 matched-setting gain on LVBench (54.8\%$\to$73.0\%). We address the event layer's
 specific role, and its accuracy contribution, in R1-3.
 
-\pt{R1-3: The role of the event layer.} We 
+\pt{R1-3: The role of the event graph.} We 
 agree with the observation. At a fixed backbone the event layer's measurable
 effect is efficiency: it cuts LLM and frame-inspection calls by 71.5\% and 74.7\%
 at unchanged accuracy (64.6\%$\to$64.4\%). We read
@@ -95,7 +95,7 @@ LVBench the DVD comparison \emph{is} fully controlled: the same \texttt{o3}
 backbone, DVD's own open-sourced captions, and the same video database. On the
 other three, DVD released no full reproduction setup, so we cannot match its
 pipeline; we still use its captions and report these as best-effort positions.
-Other commercial and open models have closed weights, so they are reference
+Other commercial and open models have closed weights or fixed pipelines, so they are reference
 positions only. Our claims
 therefore rest on the fully controlled LVBench comparison and its matched-setting
 ablations.
@@ -121,7 +121,7 @@ relation-overlap thresholds. The composite retrieval score and all remaining thr
 the appendix, which gives the alignment, gating, and event-construction
 algorithms; we will release a fully reproducible repository for the camera-ready.
 
-\pt{R2-5: Presentation.} See R1-1.
+\pt{R2-5: Presentation.} Thanks; see R1-1.
 
 \pt{R2-6: Isolating localization from FTT.} Our reported answered accuracy
 (ans\_acc) separates the two: the caption-only baseline scores 65.7\% and
@@ -143,7 +143,7 @@ They use the graph as an in-context representation or online entity memory,
 whereas we use it as the agent's primary retrieval index, gated to raw-frame
 verification before answering (see R1-2), a distinct design.
 
-\pt{R3-3: Offline construction cost.} See R2-1.
+\pt{R3-3: Offline construction cost.} Thanks; see R2-1.
 
 \pt{R3-4: Error propagation \& robustness.} Two mechanisms limit it. First,
 propose--verify gates every graph hit to raw-frame re-inspection before answering
@@ -183,9 +183,9 @@ claim the hierarchy concept as novel. Our work differs in task: HIG targets vide
 scene-graph \emph{generation}, whereas we use a graph index to \emph{drive an
 adaptive agent} for long-video QA (see R1-2). 
 
-\pt{R5-2: Implementation details.} The alignment, retrieval, gating, and
-event-construction rules are given in the appendix as pseudocode; see R2-4 for the
-headline values.
+\pt{R5-2: Implementation details.} The alignment, retrieval, gating, controller-signal, and
+event-construction rules are all specified operationally in the appendix as
+pseudocode; see R2-4 for the headline values.
 
 \pt{R5-3: Graph-depth ablation.} See R1-3: the segment graph drives
 fixed-backbone accuracy; the event graph reduces search burden and, under a
@@ -194,6 +194,6 @@ stronger construction, also contributes accuracy (caption-free 68.5\%).
 \pt{R5-4: Efficiency evidence.} Beyond online call counts we now also report
 dollar cost and construction time (see R2-1).
 
-\pt{R5-5: Presentation.} See R1-1.
+\pt{R5-5: Presentation.} Thanks; see R1-1.
 
 \end{document}
