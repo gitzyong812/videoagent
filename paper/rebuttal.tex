@@ -74,7 +74,7 @@ so the fair comparison is the full stack against Base, where the hierarchy impro
 \emph{both} axes: accuracy rises 54.8\%$\to$73.0\% (+18.2\,pp, matched) and the
 event layer cuts LLM and frame-inspection calls by 71.5\% and 74.7\% and shortens the
 agent's reasoning rounds.
-\emph{(2)} In our \emph{follow-up experiment} that strengthens Stage~3, the event layer also lifts accuracy whilekeeping the efficiency: it reaches \emph{68.5\%} e2e on LVBench, +3.9\,pp over the
+\emph{(2)} In our \emph{follow-up experiment} that strengthens Stage~3, the event layer also lifts accuracy while keeping the efficiency: it reaches \emph{68.5\%} e2e on LVBench, +3.9\,pp over the
 segment-only version (64.6\%) and +13.7\,pp over the caption-only Base (54.8\%). We will report these strengthened, matched results in the revision.
 
 \renewcommand{\rvcolor}{rvR2}%
@@ -123,8 +123,8 @@ SGDAgent 74.2\% (+8.5\,pp), independent of the answer rate, while the FTT drop
 where open caption search loops for lack of locatable evidence.
 
 \renewcommand{\rvcolor}{rvR3}%
-\rv{Reviewer k56s (\#3) -- R3-1: Baseline data citation.} Thank you for pointing out
-this. The correct DVD values are Video-MME 67.3 (we had mis-copied DVD's
+\rv{Reviewer k56s (\#3) -- R3-1: Baseline data citation.} Thank you for pointing
+this out. The correct DVD values are Video-MME 67.3 (we had mis-copied DVD's
 LongVideoBench(Long) entry, 68.6) and EgoSchema 76.6, both matching DVD's
 published numbers. The correction in fact
 widens our Video-MME margin to 69.0 vs.\ 67.3. We will present a carefully re-verified version, with a more
@@ -153,7 +153,7 @@ the wording. The method improves \emph{localization within the sampled frames}, 
 we will no longer claim to address incomplete sampling coverage, since the graph
 itself is built only from sparsely sampled keyframes.
 
-\pt{R4-2: The role of the event graph. } The event graph is
+\pt{R4-2: The role of the event graph.} The event graph is
 not a fixed-backbone accuracy driver, and we present it as a higher-order layer
 that reduces the agent's search burden. A strengthened, caption-free run, however,
 shows it also carries accuracy, not only efficiency (Please see R1-3).
