@@ -32,6 +32,8 @@
 %
 % Recommended for better-looking tables
 \usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage{multirow}
 
 %
 % Keep the \pdfinfo as shown here. There's no need
@@ -541,7 +543,6 @@ We report four complementary metrics: \emph{end-to-end accuracy} (e2e\_acc), the
 \subsection{Main Results}
 \label{sec:results}
 
-\textbf{Performance positioning.}
 Table~\ref{tab:main_comparison} positions SGDAgent against published results on four long-video understanding benchmarks.
 Because the methods differ in backbone, caption source, and evaluation protocol, these numbers are reference comparisons rather than controlled evidence of component effectiveness.
 The strict conclusions of this paper therefore rest on the matched-setting LVBench results and ablations in Section~\ref{sec:ablation}.
@@ -552,35 +553,6 @@ With \texttt{o3}, SGDAgent obtains reported scores of 75.9\% on LVBench, 74.0\% 
 The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
 These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
 
-\textbf{Matched-setting analysis.}
-To isolate the contribution of each component under controlled conditions, Table~\ref{tab:main} reports matched-setting results on LVBench, where all methods share the same backbone, caption source, and budget.
-
-\begin{table}[!tb]
-  \centering
-  \caption{Matched-setting results on LVBench.
-  All methods share the same backbone, caption source, and budget.}
-  \label{tab:main}
-  \small
-  \begin{tabular*}{\columnwidth}{l@{\extracolsep{\fill}}cccc}
-    \toprule
-    Method & e2e\_acc & ans\_acc & answer rate & FTT rate \\
-    \midrule
-    Caption only          & 54.8\% & 65.7\% & 83.5\% & 16.5\% \\
-    SG only               & 58.0\% & 69.1\% & 83.9\% & 16.1\% \\
-    SGDAgent-base         & 64.4\% & 72.2\% & 89.2\% & 10.8\% \\
-    SGDAgent (full)       & 73.0\% & 74.2\% & 98.4\% & 1.6\%  \\
-    \bottomrule
-  \end{tabular*}
-\end{table}
-
-\textbf{Effect of graph augmentation.}
-Combining the caption index with the scene graph index (SGDAgent-base) raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
-The full system adds the control strategies and reaches 73.0\% end-to-end accuracy with a 98.4\% answer rate.
-Using scene graphs alone (\emph{SG only}) is weaker than the combined configuration: its end-to-end accuracy exceeds caption-only by 3.2 points, and its answered accuracy of 69.1\% remains below the 72.2\% of SGDAgent-base.
-The gain therefore comes from a complementary combination in which captions preserve broad semantic coverage and graphs contract the search space into candidate regions for visual verification.
-The following ablation study further dissects which graph levels and control strategies drive these gains.
-
-
 % ============================================================
 %  Section 4.3  --  Ablation Study
 % ============================================================
@@ -588,7 +560,8 @@ The following ablation study further dissects which graph levels and control str
 \subsection{Ablation Study}
 \label{sec:ablation}
 
-Having established SGDAgent's overall effectiveness in Section~\ref{sec:results}, we ablate its two core design dimensions under strictly matched settings: graph-level depth (Sections~\ref{sec:representation}--\ref{sec:construction}) and agent control strategies (Section~\ref{sec:agent}).
+Having established SGDAgent's overall effectiveness in Section~\ref{sec:results}, we analyze its index components, graph-level depth, and agent control strategies under strictly matched settings.
+All settings in Table~\ref{tab:component_ablation} share the same backbone, caption source, and budget.
 
 
 % -----------
@@ -596,24 +569,54 @@ Having established SGDAgent's overall effectiveness in Section~\ref{sec:results}
 % -----------
 
 
-\begin{table}[!tb]
+\begin{table*}[!tb]
   \centering
-  \caption{Ablation on graph-level depth. LLM and FI calls are per-question averages on the full LVBench dataset.}
-  \label{tab:tiers}
-  \small
-  \begin{tabular*}{\columnwidth}{l@{\extracolsep{\fill}}cccc}
-    \toprule
-    Method & e2e\_acc & ans\_acc & LLM calls & FI calls \\
-    \midrule
-    Stage~1              & 59.2\% & 69.0\% & 4.92 & 2.38 \\
-    Stages~1--2          & 64.6\% & 72.0\% & 10.3 & 5.34  \\
-    Stages~1--3          & 64.4\% & 72.2\% & 2.94  & 1.35  \\
-    \bottomrule
-  \end{tabular*}
-\end{table}
+  \caption{Matched-setting component and graph-level ablations on LVBench.
+  Missing answer rates are computed as e2e\_acc/ans\_acc, with FTT rates as their complements.
+  Asterisks mark provisional estimates.}
+  \label{tab:component_ablation}
+  \footnotesize
+  \setlength{\tabcolsep}{2.5pt}
+  \renewcommand{\arraystretch}{1.12}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{l|ccccc@{\hspace{4pt}}|cccccc}
+    \hline
+    \multirow{2}{*}{Setting} &
+    \multirow{2}{*}{Caption (C)} &
+    \multicolumn{3}{c}{Hierarchical spatio-temporal scene graph (HSG)} &
+    \multirow{2}{*}{\shortstack{Control\\strategy}} &
+    \multirow{2}{*}{e2e\_acc ($\uparrow$)} &
+    \multirow{2}{*}{ans\_acc ($\uparrow$)} &
+    \multirow{2}{*}{\shortstack{Answer\\rate ($\uparrow$)}} &
+    \multirow{2}{*}{\shortstack{FTT\\rate ($\downarrow$)}} &
+    \multirow{2}{*}{\shortstack{LLM\\calls ($\downarrow$)}} &
+    \multirow{2}{*}{\shortstack{FI\\calls ($\downarrow$)}} \\
+    \cline{3-5}
+    & &
+    Frame-level (F) &
+    Segment-level (S) &
+    Global event (G) &
+    & & & & & & \\
+    \hline
+    Base       & $\checkmark$ &              &              &              &              & 54.8\% & 65.7\% & 83.5\% & 16.5\% & 3.7  & 1.1 \\
+    Base\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              &              & 59.2\% & 69.0\% & 85.8\% & 14.2\% & 4.9  & 2.4 \\
+    Base\textsuperscript{C+F+S} & $\checkmark$ & $\checkmark$ & $\checkmark$ &              &              & 62.8\% & 72.0\% & 87.2\% & 12.8\% & 9.6  & 5.1 \\
+    Base\textsuperscript{F+S+G}            &              & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & 58.0\% & 69.1\% & 83.9\% & 16.1\% & 4.4 & 1.6 \\
+    \hline
+    SGDAgent\textsuperscript{base} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & 64.4\% & 72.2\% & 89.2\% & 10.8\% & \textbf{2.9}  & 1.4 \\
+    SGDAgent & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0\%} & \textbf{74.2\%} & \textbf{98.4\%} & \textbf{1.6\%}  & 3.4  & \textbf{1.0} \\
+    \hline
+  \end{tabular}%
+  }
+\end{table*}
+
+\textbf{Effect of graph augmentation.}
+Combining the caption index with all three graph levels (SGDAgent-base) raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
+Using scene graphs alone (\emph{SG only}) is weaker than SGDAgent-base: its end-to-end accuracy exceeds caption-only by 3.2 points, while its answered accuracy of 69.1\% remains below 72.2\%.
+The gain therefore comes from a complementary combination in which captions preserve broad semantic coverage and graphs contract the search space into candidate regions for visual verification.
+Adding the control strategies yields the full system, which reaches 73.0\% end-to-end accuracy with a 98.4\% answer rate.
 
 \textbf{Effect of graph-level depth.}
-Table~\ref{tab:tiers} dissects the contribution of each graph level.
 The largest accuracy gain comes from adding Stage~2, which introduces segment-level graphs and $SR$, to Stage~1, which provides frame-level graphs and $FR$.
 Adding Stage~3, the global event graph queried by $GR$, does not further improve accuracy, but it reduces LLM calls by more than $3\times$ (10.3$\to$2.94) and frame-inspection calls by approximately $4\times$ (5.34$\to$1.35).
 Global event graph proposal through $GR$ narrows the search to relevant segments in one step and avoids exhaustive segment-by-segment exploration.
