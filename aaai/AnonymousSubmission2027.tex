@@ -236,29 +236,25 @@ SGDAgent complements these approaches with retrieval over a scene-graph index to
 \label{sec:method}
 
 
-This section introduces the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which uses a \emph{hierarchical scene graph representation} to index multi-granular spatio-temporal video semantics and convert open-ended caption search into graph-anchored candidate verification.
-Section~\ref{sec:representation} first defines the \textbf{hierarchical scene graph representation}, which forms the video index $D(V)=\{C(V),\;G^{f},\;G^{s},\;G^{g}\}$.
-Section~\ref{sec:construction} then presents the \textbf{bottom-up scene graph construction} that builds the scene-graph hierarchy offline.
-Finally, Section~\ref{sec:agent} describes the \textbf{scene graph-driven agent}, which runs an observe-reason-act loop under a \emph{propose-verify-answer} paradigm.
+SGDAgent converts open-ended caption search into graph-guided candidate localization followed by visual verification.
+We first define and construct its hierarchical spatio-temporal scene graph index, then present the propose-verify-answer agent.
 
 \subsection{Hierarchical Scene Graph Representation}
 \label{sec:representation}
 
-SGDAgent organizes video knowledge as a video index comprising a caption index and a three-level spatio-temporal scene graph representation (Figure~\ref{fig:graph}(c)):
+SGDAgent represents a video $V$ with a caption index and a three-level spatio-temporal scene graph hierarchy (Figure~\ref{fig:graph}(c)):
 \begin{equation}
   D(V) = \bigl\{C(V),\; G^{f},\; G^{s},\; G^{g}\bigr\},
 \end{equation}
-Here, $C(V)$ is the caption index for open semantic retrieval, $G^{f}=\{G_i^{f}\}_{i=1}^{N}$ is the frame-level graph sequence, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$ is the segment-level graph sequence, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ is the global event graph with event nodes $V^{g}$ and edges $\mathcal{E}^{g}$.
-All three levels share a video-level entity registry $E^{\mathrm{video}}$, in which each entry stores a unique ID, entity type, attributes, description, and temporal span from first to last appearance.
-The registry therefore provides a cross-scale identity anchor.
+$C(V)$ is the caption index, while $G^{f}=\{G_i^{f}\}_{i=1}^{N}$, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ denote the frame-level, segment-level, and global event graphs, respectively.
+All graph levels share an entity registry $E^{\mathrm{video}}$ that stores each entity's ID, type, attributes, description, and temporal span for cross-scale identity alignment.
 
 \textbf{Frame-level graph.}
 Each frame-level graph captures an entity-relation snapshot at a single keyframe:
 \begin{equation}
   G_i^{f} = (E_i^{f},\; R_i^{f},\; t_i,\; c_i),
 \end{equation}
-Here, $E_i^{f} \subseteq E^{\mathrm{video}}$ is the visible entity set, $R_i^{f}$ contains relation triples $(s,p,o)$ with $s,o \in E_i^{f}$ and predicate $p$, $t_i$ is the timestamp, and $c_i$ is the aligned caption.
-Frame-level graphs provide the finest spatial granularity by anchoring objects and local relations to specific time points.
+$E_i^{f} \subseteq E^{\mathrm{video}}$ contains visible entities, $R_i^{f}$ contains triples $(s,p,o)$ with $s,o \in E_i^{f}$, $t_i$ is the timestamp, and $c_i$ is the aligned caption.
 
 \textbf{Segment-level graph.}
 Each segment-level graph aggregates entity interactions over a short temporal window:
@@ -266,8 +262,8 @@ Each segment-level graph aggregates entity interactions over a short temporal wi
   G_j^{s} = (E_j^{s},\; R_j^{s},\;
   [t_j^{\mathrm{s}}, t_j^{\mathrm{e}}],\; F_j,\; s_j),
 \end{equation}
-Here, $E_j^{s}$ is the active entity set, $R_j^{s}$ contains temporal relations, $[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the time range, $F_j$ contains supporting frame IDs, and $s_j$ is the segment summary.
-Each temporal relation is represented as $(s,p,o,t_{\mathrm{start}},t_{\mathrm{end}},\mathcal{F})$, which binds its participants to a temporal extent and supporting frames.
+$E_j^{s}$ contains active entities, $R_j^{s}$ contains temporal relations, $[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the segment interval, $F_j$ contains supporting frame IDs, and $s_j$ is the summary.
+Each relation $(s,p,o,t_{\mathrm{start}},t_{\mathrm{end}},\mathcal{F})$ is grounded by its temporal extent and supporting frames.
 
 \textbf{Global event graph.}
 The global event graph $G^{g}=(V^{g},\,\mathcal{E}^{g})$ organizes higher-level event semantics over segments.
@@ -276,45 +272,9 @@ Each event node $n_k \in V^{g}$ is
   n_k = (P_k,\; R_k,\;
   [t_k^{\mathrm{s}}, t_k^{\mathrm{e}}],\; S_k,\; F_k,\; \sigma_k),
 \end{equation}
-Here, $P_k$ contains participant entities, $R_k$ contains salient relations, $[t_k^{\mathrm{s}},t_k^{\mathrm{e}}]$ is the event time range, $S_k$ contains supporting segment IDs, $F_k$ contains supporting frames, and $\sigma_k$ is the event summary.
-Event nodes are typed as \emph{unit events} (compact episodes) or \emph{group events} (longer episodes).
-Event edges $\mathcal{E}^{g}$ include \texttt{before}, \texttt{overlaps}, \texttt{entity-\allowbreak carryover}, \texttt{same-\allowbreak thread}, \texttt{parent-\allowbreak child}, encoding cross-segment chains and hierarchical structure.
+$P_k$ and $R_k$ contain participants and salient relations, $[t_k^{\mathrm{s}},t_k^{\mathrm{e}}]$ is the event interval, $S_k$ and $F_k$ provide segment and frame provenance, and $\sigma_k$ is the summary.
+Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode \texttt{before}, \texttt{overlaps}, \texttt{entity-\allowbreak carryover}, \texttt{same-\allowbreak thread}, and \texttt{parent-\allowbreak child} relations.
 
-
-\subsection{Bottom-up Scene Graph Construction}
-\label{sec:construction}
-
-We develop a bottom-up pipeline to generate the hierarchical scene graph representation, as shown in Figure~\ref{fig:graph}(b).
-The pipeline first extracts frame-level graphs, then aggregates them into segment-level graphs, and finally organizes the segments into a global event graph.
-$FR$, $SR$, and $GR$ query the frame-level, segment-level, and global event graphs, respectively.
-
-\textbf{Frame-level graph extraction and entity registration.}
-Keyframes are uniformly sampled at fixed intervals.
-For each keyframe, a VLM produces a structured scene graph in a single pass, including typed entities, attributes, and relation triples.
-Entity identity is maintained by greedily aligning each new entity to the video-level registry $E^{\mathrm{video}}$ with a weighted score $0.7R_{\mathrm{name}}+0.2R_{\mathrm{desc}}+0.1R_{\mathrm{type}}$.
-Entities with scores of at least $\tau=0.78$ are merged, while the remaining entities are registered as new.
-When the VLM extracts no usable entity, coarse-grained entities are recovered from temporally neighboring captions to prevent empty-\allowbreak graph gaps.
-
-\textbf{Segment-level graph merging.}
-Frame-level graphs are aggregated into segment-level graphs through 30-second sliding windows with 5-second overlap.
-Within each window, frame-level triples with the same $(s,p,o)$ signature are merged into temporal relations spanning the earliest to the latest supporting frame.
-Frame IDs and occurrence counts are retained.
-Each segment-level graph also includes a textual summary, while overlap links between adjacent windows support cross-\allowbreak boundary retrieval.
-
-\textbf{Global event graph construction.}
-Temporally proximate and semantically coherent segments are clustered into events.
-Two adjacent segments are mergeable when their temporal gap is at most 12 seconds and they satisfy a semantic condition based on relation overlap, shared entities, or predicate overlap.
-The relation- and predicate-overlap thresholds are 0.18 and 0.22, respectively.
-Overly long or discontinuous clusters are split into unit events, and multiple units form group events through \texttt{parent-\allowbreak child} edges.
-Pairwise \texttt{before}, \texttt{overlaps}, \texttt{entity-\allowbreak carryover}, and \texttt{same-\allowbreak thread} edges are inferred from temporal order and entity sharing.
-
-\textbf{Quality control.}
-Lightweight constraints are applied throughout the pipeline: an entity blacklist removes generic entities, a predicate whitelist suppresses noisy relations, and schema validation enforces structural consistency.
-In the global event graph, confidence and uncertainty estimates are attached to nodes for downstream gating.
-
-
-\subsection{Scene Graph-Driven Agent}
-\label{sec:agent}
 
 \begin{figure*}[!tb]
   \centering
@@ -324,6 +284,32 @@ In the global event graph, confidence and uncertainty estimates are attached to 
   \label{fig:mechanism}
 \end{figure*}
 
+\subsection{Bottom-up Scene Graph Construction}
+\label{sec:construction}
+
+The bottom-up pipeline extracts frame-level graphs, merges them into segment-level graphs, and organizes the segments into a global event graph (Figure~\ref{fig:graph}(b)).
+
+\textbf{Frame-level graph extraction and entity registration.}
+A VLM extracts typed entities, attributes, and relations from uniformly sampled keyframes.
+Each entity is greedily aligned to $E^{\mathrm{video}}$ using name, description, and type similarity.
+Matched entities are merged, and the rest are registered as new.
+If extraction is empty, neighboring captions provide coarse entities to prevent graph gaps.
+
+\textbf{Segment-level graph merging.}
+Frame-level graphs are merged within overlapping temporal windows.
+Matching triples form temporally grounded relations while preserving provenance and cross-window links.
+
+\textbf{Global event graph construction.}
+Temporally adjacent and semantically overlapping segments are clustered into events.
+Long or discontinuous clusters are split into unit events and organized into group events.
+Temporal, entity-continuity, thread, and hierarchy links form the global event graph.
+
+\textbf{Quality control.}
+Lightweight filtering and schema validation suppress noisy entities and relations, while global event nodes retain confidence and uncertainty estimates for downstream gating.
+
+
+\subsection{Scene Graph-Driven Agent}
+\label{sec:agent}
 
 \begin{algorithm}[!tb]
   \caption{SGDAgent graph-driven reasoning loop.}
@@ -356,35 +342,22 @@ In the global event graph, confidence and uncertainty estimates are attached to 
   \ENDFOR
   \STATE \RETURN $\textsc{ForcedAnswer}(H)$
   \end{algorithmic}
-  \end{algorithm}
+\end{algorithm}
 
-The reasoning agent uses the prebuilt hierarchical spatio-temporal scene graph to index multi-granular video semantics, as shown in Figure~\ref{fig:mechanism}.
+\subsubsection{Adaptive reasoning agent loop.}
+Figure~\ref{fig:mechanism} and Algorithm~\ref{alg:search} summarize the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
+At step~$t$, state~$H$ contains the question, retrieved candidates, accumulated evidence, and controller signals.
+The LLM selects $a_t \in \mathcal{T}$, and the tool output updates~$H$.
+\textsc{Answer} is accepted only after confidence gating, and every graph-derived claim requires qualified visual evidence from $FI$.
+If the budget~$T$ is exhausted, terminal readout returns the best-supported option from the trajectory.
 
-\textbf{Adaptive reasoning agent loop.}
-The agent operates in a closed loop following the observe-reason-act paradigm~\cite{react2022} (Algorithm~\ref{alg:search}).
-At each step~$t$, the agent \emph{observes} the current state~$H$, comprising the question, retrieved candidates, accumulated evidence, and control signals from prior tool calls.
-The backbone LLM then \emph{reasons} over~$H$ and selects an action $a_t \in \mathcal{T}$.
-The selected tool executes, and its output---candidate windows, visual observations, or controller signals---updates~$H$ for the next iteration.
-\textsc{Answer} is accepted only when the accumulated evidence passes confidence gating.
-For every claim derived from graph retrieval, the gate requires qualified visual evidence from $FI$ rather than accepting graph text as a final fact.
-If the budget~$T$ is exhausted without convergence, a forced readout extracts the best-supported option from the trajectory.
+\subsubsection{Tool chain.}
+The agent acts over the tool chain $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \textsc{Answer}\}$.
+$GR$, $SR$, and $FR$ query the global event, segment-level, and frame-level graphs to propose candidates at progressively finer granularity.
+The frame-inspection tool $FI$ verifies candidates against raw frames, while caption backoff $CB$ provides a complementary text channel.
+Each graph query returns ranked regions, provenance pointers, and controller signals for confidence-aware descent and verification.
 
-\textbf{Tool chain.}\quad
-% NOTE on GR vs.\ current implementation: the action set below reflects the
-% target scene-graph architecture. In the present online system, a full GR
-% over a true global event graph is not yet realised as a callable tool; the
-% global event graph is approximated by (i) a Global Event Graph Index---a prompt-injected
-% timeline summary pre-computed from the segment-level graph---and (ii) a
-% caption-based global-browse helper. Upgrading this to a tool-level query
-% over a complete global event graph is consistent with the hierarchy in
-% Sec.~3.1 and is left as future work.
-Following the propose-verify design in Figure~\ref{fig:mechanism}, the agent acts over $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \textsc{Answer}\}$.
-The graph retrieval tools $GR$, $SR$, and $FR$ query the global event graph, segment-level graphs, and frame-level graphs, respectively, to propose candidates at progressively finer granularity.
-The pixel-inspection tool $FI$ verifies these proposals against raw frames, while the caption backoff $CB$ supplies an orthogonal dense-text channel.
-Each proposal call returns both ranked regions and a vector of \emph{controller signals} that estimates how its output should be used.
-These signals let the agent build a confidence-aware cascade rather than blindly fuse retrieval scores.
-
-At the interface level, the tool chain can be summarized as
+The tool interfaces are
 \[
 \resizebox{\columnwidth}{!}{$
   \begin{array}{rcl}
@@ -399,71 +372,40 @@ All three graph retrievers share a common scorer that ranks a candidate region $
   S(w \mid q) \;=\; S_{\mathrm{lex}}(w,q) \;+\;
   S_{\mathrm{soft}}(w,q) \;+\; S_{\mathrm{temp}}(w,q),
 \end{equation}
-Here, $S_{\mathrm{lex}}$ aggregates token overlap scored separately over entity names, relation predicates, and region summaries.
-$S_{\mathrm{soft}}$ is the cosine similarity between embeddings when region vectors are available and falls back to lexical fuzzy matching otherwise.
-$S_{\mathrm{temp}}$ combines the intersection over union with any time span parsed from $q$ and soft anchors inferred from cues such as \emph{beginning}, \emph{end}, or \emph{middle}.
-A build-time entity blacklist keeps video-production artifacts such as ``scene'', ``shot'', and ``narrator'', as well as mis-extracted verbs, out of both $S_{\mathrm{lex}}$ and $S_{\mathrm{soft}}$.
-The $\mathrm{scope}$ argument carries a time constraint forwarded from a coarser-level call.
-Each returned region also carries a \emph{provenance pointer} to supporting nodes at the next finer level, which provides the structure for cascaded retrieval.
+$S_{\mathrm{lex}}$ scores token overlap over entity names, relation predicates, and region summaries.
+$S_{\mathrm{soft}}$ uses embedding cosine similarity when available and lexical fuzzy matching otherwise.
+$S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
+The $\mathrm{scope}$ argument forwards a coarse time constraint, while provenance pointers link each region to supporting nodes at the next finer level.
 
 \emph{Global event graph retrieval (GR).}\quad
-$GR$ queries the global event graph and is the coarsest proposer and natural entry point for causal, plot-level, and other video-spanning questions without a prior scope.
-A call takes the question and the entire video timeline as its search space, then returns a short list of event blocks spanning tens of seconds to minutes.
-Each result includes event-to-event relations and provenance pointers to its supporting segments.
-The agent consumes these outputs in two ways.
-Each event's time span is forwarded as the $\mathrm{scope}$ of a subsequent $SR$ call, narrowing segment-level retrieval from the whole video to a few minutes in one step.
-Independently, the event-to-event chain dictates the order in which events are visited when the question requires following a causal or temporal sequence, turning what would be a flat multi-hop search into a directed walk over the global event graph.
+$GR$ searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment provenance.
+The selected event span scopes the subsequent $SR$ call to a smaller temporal range.
+For temporal or causal sequences, event edges also determine the traversal order.
 
 \emph{Segment-level graph retrieval (SR).}\quad
-$SR$ is the primary proposer during online inference and is invoked either without a prior scope or within the scope of a preceding $GR$ result.
-It indexes sliding segments of roughly $10$--$30$ seconds, each aggregating entities and time-stamped temporal triples over a short window.
-A call returns ranked segment windows, their highest-scoring temporal triples, provenance pointers to supporting keyframes, and the full controller-signal vector.
-The agent uses $SR$'s time windows as the default input to $FI$ whenever pixel verification is warranted, and drills down through the provenance pointers to $FR$ when object- or relation-level grounding is needed.
-Because $SR$'s output is structured, its controller signals can report quality along several axes at once: whether the top hit was only soft-matched, whether the best window is too wide for the question, and whether the question type demands visual detail the graph cannot settle on its own.
+$SR$ searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe provenance, and controller signals.
+Its windows feed $FI$ directly or constrain $FR$ when object- or relation-level grounding is needed.
+The signals flag fuzzy matches, overly broad windows, and visual details that the graph cannot resolve.
 
 \emph{Frame-level graph retrieval (FR).}\quad
-$FR$ is the finest-grained proposer and is reserved for questions that need object-level grounding: specific attributes, identity, counts, or pairwise spatial relations at a particular moment.
-It is invoked with a narrow $\mathrm{scope}$ forwarded from $SR$ and returns a ranked set of keyframes, each carrying an entity--attribute--relation snapshot anchored to a single timestamp.
-Its output plays two roles.
-The keyframe timestamps provide tightly bounded inputs to $FI$, limiting pixel sampling to windows of a few seconds.
-The returned entities and relations remain candidate evidence and cannot serve as terminal facts until $FI$ confirms the relevant visual content.
+$FR$ retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
+It returns ranked keyframes with timestamped entity--attribute--relation snapshots.
+These timestamps bound $FI$ to short windows, while the graph content remains candidate evidence until visually confirmed.
 
-\emph{Pixel verification (FI) and caption backoff (CB).}\quad
+\emph{Frame inspection (FI) and caption backoff (CB).}\quad
 $FI$ is the only action that returns to raw pixels.
-It consumes a graph-proposed time window, uniformly samples frames within it, and performs question-conditioned visual QA over those frames.
-The resulting evidence is bound to a narrow, graph-localized region and can support the final answer.
-$CB$ instead queries the embedding-based caption index and returns a dense natural-language summary of matching clips when the graph index lacks the surface form used by a question.
-Caption backoff supplements candidate discovery but does not validate the correctness of graph-derived claims.
+It samples a graph-proposed window and produces question-conditioned visual evidence for the final answer.
+$CB$ queries the embedding-based caption index when graph retrieval lacks the question's surface form.
+Caption backoff aids candidate discovery but cannot validate graph-derived claims.
 
-\emph{Controller-signal routing.}\quad
-The controller signals emitted by each graph retrieval turn these interfaces into a coordinated cascade.
-They summarize whether the top hit was lexical or fuzzy-only, whether the best region is too coarse, whether the question requires visual detail, and whether the retriever recommends descending another level or invoking pixel verification.
+
+\subsubsection{Agent control strategies.}
+Controller signals coordinate the cascade by indicating match quality, region granularity, visual-detail requirements, and the recommended next action.
 \textbf{Strategy~R} (query-type routing) maps counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions from $SR$.
 \textbf{Strategy~CG} (confidence gating) blocks \textsc{Answer} when a \emph{localize-only} or \emph{weak-match} signal is raised, escalates coarse candidates for fine-detail questions to narrow-window visual verification, and redirects weak graph retrieval to $CB$ when appropriate.
-The finish gate additionally requires qualified $FI$ evidence before any graph-derived claim can support \textsc{Answer}.
+The finish gate requires qualified $FI$ evidence before any graph-derived claim can support \textsc{Answer}.
 \textbf{Strategy~T} (terminal convergence) extracts the best-supported option from the accumulated trace when the budget $T$ is exhausted, preventing otherwise useful trajectories from ending as FTT outcomes.
-The resulting coarse-to-fine cascade qualifies each retrieval hop through controller signals instead of blindly fusing all scores.
 Section~\ref{sec:ablation} evaluates R, CG, and T separately.
-
-
-\section{Experiments}
-\label{sec:experiments}
-
-% ============================================================
-%  Section 4.1  --  Experimental Setup
-% ============================================================
-
-\subsection{Experimental Setup}
-\label{sec:setup}
-
-\textbf{Dataset.}
-Our primary benchmark is \textbf{LVBench}~\cite{lvbench}, which contains 1{,}549 four-choice video QA questions over long-form videos.
-The system receives a video, a natural-language question, and four candidate answers, and it must return exactly one option.
-Failure to return a valid option is recorded as a failed-to-terminate (FTT) outcome.
-
-% ============================================================
-%  Main Comparison Table -- spans 4 benchmarks
-% ============================================================
 
 \begin{table*}[!tb]
   \centering
@@ -523,51 +465,6 @@ Failure to return a valid option is recorded as a failed-to-terminate (FTT) outc
   }
 \end{table*}
 
-\textbf{Implementation details.}
-The reasoning backbone is \texttt{o4-mini} (temperature~0) with a maximum of 15 reasoning steps per question.
-Frame-level graphs are extracted by prompting \texttt{gpt-4.1} on keyframes sampled at one frame every 5~seconds (up to 120 per video).
-Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
-Local visual verification is performed by \texttt{gpt-4.1-mini}, with a budget of 50~frames per \texttt{frame\_inspect} call.
-$GR$ returns at most 5 candidates from the global event graph, $SR$ returns 6 from the segment-level graphs, and $FR$ returns 8 from the frame-level graphs.
-Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while global event graph construction takes approximately 121 seconds.
-The video index is constructed once and reused across all questions.
-To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, candidate answer set, and budget limits.
-The ablations vary video-index composition, scene-graph hierarchy, and agent control.
-All methods are permitted to produce FTT outcomes.
-
-\textbf{Evaluation metrics.}
-We report four complementary metrics: \emph{end-to-end accuracy} (e2e\_acc), the fraction of all questions answered correctly; \emph{answered accuracy} (ans\_acc), the accuracy over questions for which the system produced a valid option; \emph{answer rate}, the fraction of questions that received a valid option; and \emph{FTT rate}, the fraction of questions for which the system failed to return an option because of empty output, runtime failure, or trajectory non-convergence.
-
-
-% ============================================================
-%  Section 4.2  --  Main Results
-% ============================================================
-
-\subsection{Main Results}
-\label{sec:results}
-
-Table~\ref{tab:main_comparison} positions SGDAgent against published results on four long-video understanding benchmarks.
-Because the methods differ in backbone, caption source, and evaluation protocol, these numbers are reference comparisons rather than controlled evidence of component effectiveness.
-The strict conclusions of this paper therefore rest on the matched-setting LVBench results and ablations in Section~\ref{sec:ablation}.
-
-With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
-These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} backbone.
-With \texttt{o3}, SGDAgent obtains reported scores of 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
-The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
-These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
-
-% ============================================================
-%  Section 4.3  --  Ablation Study
-% ============================================================
-
-\subsection{Ablation Study}
-\label{sec:ablation}
-
-Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
-All configurations share the same backbone, candidate answers, and budget.
-Base is the caption-only baseline, superscripts identify enabled index components, and SGDAgent\textsuperscript{base} uses the complete video index without agent control.
-The upper block varies video-index composition and scene-graph hierarchy, while the lower block adds matched combinations of control strategies to SGDAgent\textsuperscript{base}.
-
 
 % -----------
 %  Experiment 1: Video-index Composition and Scene-graph Hierarchy
@@ -623,6 +520,86 @@ The upper block varies video-index composition and scene-graph hierarchy, while 
   }
 \end{table*}
 
+
+
+\begin{figure*}[!tb]
+  \centering
+   \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
+  \caption{Case study on LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
+  Coarse-to-fine scene graph retrieval narrows candidates from events to segments and frames, followed by one visual inspection that confirms the answer.}
+  \label{fig:trajectory}
+\end{figure*}
+
+
+\section{Experiments}
+\label{sec:experiments}
+
+% ============================================================
+%  Section 4.1  --  Experimental Setup
+% ============================================================
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\textbf{Dataset.}
+Our primary benchmark is \textbf{LVBench}~\cite{lvbench}, which contains 1{,}549 four-choice video QA questions over long-form videos.
+The system receives a video, a natural-language question, and four candidate answers, and it must return exactly one option.
+Failure to return a valid option is recorded as a failed-to-terminate (FTT) outcome.
+
+% ============================================================
+%  Main Comparison Table -- spans 4 benchmarks
+% ============================================================
+
+
+\textbf{Implementation details.}
+The reasoning backbone is \texttt{o4-mini} (temperature~0) with a maximum of 15 reasoning steps per question.
+Frame-level graphs are extracted by prompting \texttt{gpt-4.1} on keyframes sampled at one frame every 5~seconds (up to 120 per video).
+Entity alignment weights name, description, and type similarity by 0.7, 0.2, and 0.1, respectively, with a merge threshold of 0.78.
+Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
+Global event clustering uses a maximum temporal gap of 12~seconds, relation- and predicate-overlap thresholds of 0.18 and 0.22, and shared entities as an additional merge cue.
+Local visual verification is performed by \texttt{gpt-4.1-mini}, with a budget of 50~frames per \texttt{frame\_inspect} call.
+$GR$ returns at most 5 candidates from the global event graph, $SR$ returns 6 from the segment-level graphs, and $FR$ returns 8 from the frame-level graphs.
+Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while global event graph construction takes approximately 121 seconds.
+The video index is constructed once and reused across all questions.
+To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, candidate answer set, and budget limits.
+The ablations vary video-index composition, scene-graph hierarchy, and agent control.
+All methods are permitted to produce FTT outcomes.
+
+\textbf{Evaluation metrics.}
+We report four complementary metrics: \emph{end-to-end accuracy} (e2e\_acc), the fraction of all questions answered correctly; \emph{answered accuracy} (ans\_acc), the accuracy over questions for which the system produced a valid option; \emph{answer rate}, the fraction of questions that received a valid option; and \emph{FTT rate}, the fraction of questions for which the system failed to return an option because of empty output, runtime failure, or trajectory non-convergence.
+
+
+% ============================================================
+%  Section 4.2  --  Main Results
+% ============================================================
+
+\subsection{Main Results}
+\label{sec:results}
+
+Table~\ref{tab:main_comparison} positions SGDAgent against published results on four long-video understanding benchmarks.
+Because the methods differ in backbone, caption source, and evaluation protocol, these numbers are reference comparisons rather than controlled evidence of component effectiveness.
+The strict conclusions of this paper therefore rest on the matched-setting LVBench results and ablations in Section~\ref{sec:ablation}.
+
+With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
+These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} backbone.
+With \texttt{o3}, SGDAgent obtains reported scores of 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
+The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
+These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
+
+% ============================================================
+%  Section 4.3  --  Ablation Study
+% ============================================================
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+
+
+Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
+All configurations share the same backbone, candidate answers, and budget.
+Base is the caption-only baseline, superscripts identify enabled index components, and SGDAgent\textsuperscript{base} uses the complete video index without agent control.
+The upper block varies video-index composition and scene-graph hierarchy, while the lower block adds matched combinations of control strategies to SGDAgent\textsuperscript{base}.
+
+
 \textbf{Effect of video-index composition and scene-graph hierarchy.}
 The graph-only configuration reaches 58.0\% end-to-end accuracy, 3.2 points above the caption-only Base, while combining captions with the complete scene-graph hierarchy reaches 64.4\% end-to-end accuracy and 72.2\% answered accuracy.
 Starting from the caption-only Base, adding frame-level graphs queried by $FR$ raises end-to-end accuracy from 54.8\% to 59.2\%, and adding segment-level graphs queried by $SR$ further raises it to 62.8\%.
@@ -655,15 +632,6 @@ The complete design therefore shifts computation from repeated local exploration
 
 \subsection{Analysis on Agentic Reasoning Behavior}
 \label{sec:analysis}
-
-
-\begin{figure*}[!tb]
-  \centering
-   \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
-  \caption{Case study on LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
-  Coarse-to-fine scene graph retrieval narrows candidates from events to segments and frames, followed by one visual inspection that confirms the answer.}
-  \label{fig:trajectory}
-\end{figure*}
 
 The ablation identifies the contribution of each component, while Figure~\ref{fig:trajectory} illustrates how graph-guided search changes a reasoning trajectory.
 Graph retrieval replaces broad caption exploration with coarse-to-fine candidate localization followed by focused visual verification.
