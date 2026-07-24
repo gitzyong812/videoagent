@@ -140,7 +140,7 @@ Recent agentic approaches build searchable caption as video indexes for iterativ
 We propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
 Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
 Across four benchmarks, SGDAgent remains competitive with stronger-backbone baselines.
-Under matched LVBench settings, the graph index raises end-to-end accuracy from 54.8\% to 64.4\%, and the control strategies further raise it to 73.0\%.
+Under matched LVBench settings, adding the scene-graph hierarchy to the caption index raises end-to-end accuracy from 54.8\% to 64.4\%, and the three control strategies further raise it to 73.0\%.
 Agent trajectory analysis further shows that the gains arise from converting open retrieval into graph-anchored candidate verification.
 \end{abstract}
 
@@ -185,14 +185,14 @@ SGDAgent therefore separates structured localization from visual confirmation wi
 % - Para 5: Results -
 
 These designs yield substantial gains under controlled settings.
-On LVBench~\cite{lvbench}, augmenting the caption index with the three-level graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
-Adding the routing, confidence-gating, and terminal-convergence strategies further raises end-to-end accuracy to 73.0\%, increases the answer rate from 83.4\% to 98.4\%, and reduces the failed-to-terminate (FTT) rate from 16.6\% to 1.6\%.
+On LVBench~\cite{lvbench}, augmenting the caption index with the scene-graph hierarchy raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
+Adding the routing, confidence-gating, and terminal-convergence strategies further raises end-to-end accuracy to 73.0\%, increases the answer rate from 83.5\% to 98.4\%, and reduces the failed-to-terminate (FTT) rate from 16.5\% to 1.6\%.
 Across four benchmarks, SGDAgent with the lighter \texttt{o4-mini} backbone approaches DVD~\cite{deepvideo2025} with the stronger \texttt{o3} backbone on LVBench and LongVideoBench~\cite{longvideobench2024}, although these cross-method results are reference comparisons rather than fully controlled experiments.
 Ablation and trajectory analyses show that frame-level and segment-level graphs progressively improve candidate discovery, the global event graph primarily reduces search cost, and the control strategies improve answer quality and convergence.
 
 % - Para 6: Contributions -
 
-In summary, we contribute (1)~a \textbf{hierarchical spatio-temporal scene graph representation} comprising frame-level graphs, segment-level graphs, and a global event graph connected through a shared entity registry and constructed by a bottom-up offline pipeline; (2)~a \textbf{scene graph-driven agent} that combines graph-guided candidate proposal, visual verification, caption fallback, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of graph indexing, graph depth, and agent control.
+In summary, we contribute (1)~a \textbf{hierarchical spatio-temporal scene graph representation} comprising frame-level graphs, segment-level graphs, and a global event graph connected through a shared entity registry and constructed by a bottom-up offline pipeline; (2)~a \textbf{scene graph-driven agent} that combines graph-guided candidate proposal, visual verification, caption fallback, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control.
 
 
 
@@ -231,7 +231,7 @@ Interactive approaches include multi-round frame retrieval in VideoAgent~\cite{v
 VideoMind~\cite{videomind} separates localization, verification, and answering, VCA~\cite{yang2025vca} uses curiosity-driven tree exploration, and Vgent~\cite{vagent2025} performs graph-structured retrieval and reasoning.
 Other directions include multi-agent systems~\cite{omagent2024}, neuro-symbolic reasoning~\cite{neuro2020,cai2025naver}, and end-to-end post-training on agent trajectories~\cite{team2026kimi,zeng2026glm}.
 These agents improve navigation flexibility, but vary in whether retrieved evidence is explicitly structured and independently verified.
-SGDAgent complements these approaches with a scene graph hierarchy that proposes entity- and temporally grounded candidates for subsequent visual verification.
+SGDAgent complements these approaches with retrieval over a scene-graph index to propose entity- and temporally grounded candidates for subsequent visual verification.
 
 
 \section{Methodology}
@@ -240,7 +240,7 @@ SGDAgent complements these approaches with a scene graph hierarchy that proposes
 
 This section introduces the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which uses a \emph{hierarchical scene graph representation} to index multi-granular spatio-temporal video semantics and convert open-ended caption search into graph-anchored candidate verification.
 Section~\ref{sec:representation} first defines the \textbf{hierarchical scene graph representation}, which forms the video index $D(V)=\{C(V),\;G^{f},\;G^{s},\;G^{g}\}$.
-Section~\ref{sec:construction} then presents the \textbf{bottom-up scene graph construction} that extracts and aggregates the three graph levels offline.
+Section~\ref{sec:construction} then presents the \textbf{bottom-up scene graph construction} that builds the scene-graph hierarchy offline.
 Finally, Section~\ref{sec:agent} describes the \textbf{scene graph-driven agent}, which runs an observe-reason-act loop under a \emph{propose-verify-answer} paradigm.
 
 \subsection{Hierarchical Scene Graph Representation}
@@ -287,22 +287,23 @@ Event edges $\mathcal{E}^{g}$ include \texttt{before}, \texttt{overlaps}, \textt
 \label{sec:construction}
 
 We develop a bottom-up pipeline to generate the hierarchical scene graph representation, as shown in Figure~\ref{fig:graph}(b).
-Stage~1 constructs frame-level graphs queried by $FR$, Stage~2 aggregates them into segment-level graphs queried by $SR$, and Stage~3 organizes the segments into the global event graph queried by $GR$.
+The pipeline first extracts frame-level graphs, then aggregates them into segment-level graphs, and finally organizes the segments into a global event graph.
+$FR$, $SR$, and $GR$ query the frame-level, segment-level, and global event graphs, respectively.
 
-\textbf{Stage~1: Frame-level graph extraction and entity registration.}
+\textbf{Frame-level graph extraction and entity registration.}
 Keyframes are uniformly sampled at fixed intervals.
 For each keyframe, a VLM produces a structured scene graph in a single pass, including typed entities, attributes, and relation triples.
 Entity identity is maintained by greedily aligning each new entity to the video-level registry $E^{\mathrm{video}}$ with a weighted score $0.7R_{\mathrm{name}}+0.2R_{\mathrm{desc}}+0.1R_{\mathrm{type}}$.
 Entities with scores of at least $\tau=0.78$ are merged, while the remaining entities are registered as new.
 When the VLM extracts no usable entity, coarse-grained entities are recovered from temporally neighboring captions to prevent empty-\allowbreak graph gaps.
 
-\textbf{Stage~2: Segment-level graph merging.}
+\textbf{Segment-level graph merging.}
 Frame-level graphs are aggregated into segment-level graphs through 30-second sliding windows with 5-second overlap.
 Within each window, frame-level triples with the same $(s,p,o)$ signature are merged into temporal relations spanning the earliest to the latest supporting frame.
 Frame IDs and occurrence counts are retained.
 Each segment-level graph also includes a textual summary, while overlap links between adjacent windows support cross-\allowbreak boundary retrieval.
 
-\textbf{Stage~3: Global event graph construction.}
+\textbf{Global event graph construction.}
 Temporally proximate and semantically coherent segments are clustered into events.
 Two adjacent segments are mergeable when their temporal gap is at most 12 seconds and they satisfy a semantic condition based on relation overlap, shared entities, or predicate overlap.
 The relation- and predicate-overlap thresholds are 0.18 and 0.22, respectively.
@@ -524,14 +525,14 @@ Failure to return a valid option is recorded as a failed-to-terminate (FTT) outc
 
 \textbf{Implementation details.}
 The reasoning backbone is \texttt{o4-mini} (temperature~0) with a maximum of 15 reasoning steps per question.
-Stage~1 extracts frame-level graphs by prompting \texttt{gpt-4.1} on keyframes sampled at one frame every 5~seconds (up to 120 per video).
-Stage~2 constructs segment-level graphs using 30-second sliding windows with 5-second overlap.
+Frame-level graphs are extracted by prompting \texttt{gpt-4.1} on keyframes sampled at one frame every 5~seconds (up to 120 per video).
+Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
 Local visual verification is performed by \texttt{gpt-4.1-mini}, with a budget of 50~frames per \texttt{frame\_inspect} call.
 $GR$ returns at most 5 candidates from the global event graph, $SR$ returns 6 from the segment-level graphs, and $FR$ returns 8 from the frame-level graphs.
-Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while Stage~3, which constructs the global event graph, takes approximately 121 seconds.
+Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while global event graph construction takes approximately 121 seconds.
 The video index is constructed once and reused across all questions.
 To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, candidate answer set, and budget limits.
-The ablations vary only the enabled video-index components and control strategies.
+The ablations vary video-index composition, scene-graph hierarchy, and agent control.
 All methods are permitted to produce FTT outcomes.
 
 \textbf{Evaluation metrics.}
@@ -562,18 +563,20 @@ These reference positions are consistent with the matched-setting finding that s
 \subsection{Ablation Study}
 \label{sec:ablation}
 
-Having established SGDAgent's overall effectiveness in Section~\ref{sec:results}, we analyze its index components, graph-level depth, and agent control strategies under strictly matched settings.
-All settings in Table~\ref{tab:component_ablation} share the same backbone, candidate answer set, and budget, and differ only in the enabled video index components and control strategies.
+Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
+All configurations share the same backbone, candidate answers, and budget.
+Base is the caption-only baseline, superscripts identify enabled index components, and SGDAgent\textsuperscript{base} uses the complete video index without agent control.
+The upper block varies video-index composition and scene-graph hierarchy, while the lower block adds matched combinations of control strategies to SGDAgent\textsuperscript{base}.
 
 
 % -----------
-%  Experiment 1: Graph Levels
+%  Experiment 1: Video-index Composition and Scene-graph Hierarchy
 % -----------
 
 \begin{table*}[!tb]
   \centering
-  \caption{Matched-setting component, graph-level, and control-strategy ablations on LVBench.
-  Answer rates are computed as e2e\_acc/ans\_acc, with FTT rates as their complements.}
+  \caption{Unified matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control strategies on LVBench.
+  FI denotes frame inspection, and call counts are per-question averages.}
   \label{tab:component_ablation}
   \footnotesize
   \setlength{\tabcolsep}{2.5pt}
@@ -581,22 +584,22 @@ All settings in Table~\ref{tab:component_ablation} share the same backbone, cand
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{l|cccccccc|cccccc}
     \hline
-    \multirow{2}{*}{Setting} &
-    \multirow{2}{*}{Caption (C)} &
-    \multicolumn{3}{c}{Hierarchical spatio-temporal scene graph} &
+    \multirow{2}{*}{Configuration} &
+    \multirow{2}{*}{\shortstack{Caption\\index (C)}} &
+    \multicolumn{3}{c}{Hierarchical spatio-temporal scene graphs} &
     {} &
-    \multicolumn{3}{c|}{Control strategies} &
-    \multirow{2}{*}{e2e\_acc ($\uparrow$)} &
-    \multirow{2}{*}{ans\_acc ($\uparrow$)} &
+    \multicolumn{3}{c|}{Agent control strategies} &
+    \multirow{2}{*}{\shortstack{End-to-end\\accuracy ($\uparrow$)}} &
+    \multirow{2}{*}{\shortstack{Answered\\accuracy ($\uparrow$)}} &
     \multirow{2}{*}{\shortstack{Answer\\rate ($\uparrow$)}} &
     \multirow{2}{*}{\shortstack{FTT\\rate ($\downarrow$)}} &
-    \multirow{2}{*}{\shortstack{LLM\\calls ($\downarrow$)}} &
-    \multirow{2}{*}{\shortstack{FI\\calls ($\downarrow$)}} \\
+    \multirow{2}{*}{\shortstack{Avg. LLM\\calls ($\downarrow$)}} &
+    \multirow{2}{*}{\shortstack{Avg. FI\\calls ($\downarrow$)}} \\
     \cline{3-5}\cline{7-9}
     & &
-    {\scriptsize\shortstack{Frame-level\\(F)}} &
-    {\scriptsize\shortstack{Segment-level\\(S)}} &
-    {\scriptsize\shortstack{Global event\\(G)}} &
+    {\scriptsize\shortstack{Frame-level graph\\(F)}} &
+    {\scriptsize\shortstack{Segment-level graph\\(S)}} &
+    {\scriptsize\shortstack{Global event graph\\(G)}} &
     \rule{0pt}{5.0ex} &
     {\scriptsize\shortstack{Query-type\\routing (R)}} &
     {\scriptsize\shortstack{Confidence\\gating (CG)}} &
@@ -620,41 +623,30 @@ All settings in Table~\ref{tab:component_ablation} share the same backbone, cand
   }
 \end{table*}
 
-\textbf{Effect of graph augmentation.}
-Combining the caption index with all three graph levels (SGDAgent-base) raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
-Using the three graph levels without captions (Base\textsuperscript{F+S+G}) is weaker than SGDAgent-base: its end-to-end accuracy exceeds the caption-only Base by 3.2 points, while its answered accuracy of 69.1\% remains below 72.2\%.
-The gain therefore comes from a complementary combination in which captions preserve broad semantic coverage and graphs contract the search space into candidate regions for visual verification.
-Adding the control strategies yields the full system, which reaches 73.0\% end-to-end accuracy with a 98.4\% answer rate.
-
-\textbf{Effect of graph-level depth.}
-Stage~1, which adds frame-level graphs queried by $FR$ to the caption-only Base, raises end-to-end accuracy from 54.8\% to 59.2\%.
-Stage~2 adds segment-level graphs queried by $SR$ and further raises end-to-end accuracy to 62.8\%.
-Stage~3 adds the global event graph queried by $GR$, modestly raises end-to-end accuracy to 64.4\%, and reduces LLM calls by more than $3\times$ (9.6$\to$2.9) and frame-inspection calls by approximately $4\times$ (5.1$\to$1.4).
-Global event graph proposal through $GR$ narrows the search to relevant segments in one step and avoids exhaustive segment-by-segment exploration.
-Stage~3 therefore contributes primarily as an efficiency layer rather than an accuracy layer.
+\textbf{Effect of video-index composition and scene-graph hierarchy.}
+The graph-only configuration reaches 58.0\% end-to-end accuracy, 3.2 points above the caption-only Base, while combining captions with the complete scene-graph hierarchy reaches 64.4\% end-to-end accuracy and 72.2\% answered accuracy.
+Starting from the caption-only Base, adding frame-level graphs queried by $FR$ raises end-to-end accuracy from 54.8\% to 59.2\%, and adding segment-level graphs queried by $SR$ further raises it to 62.8\%.
+Adding the global event graph queried by $GR$ reaches 64.4\% while reducing LLM calls from 9.6 to 2.9 and frame-inspection calls from 5.1 to 1.4.
+These results reveal complementary roles: captions provide broad lexical coverage, frame-level and segment-level graphs support structured candidate discovery, and the global event graph primarily improves routing efficiency before visual verification.
 
 
 \textbf{Effect of agent control strategies.}
-The lower block of Table~\ref{tab:component_ablation} evaluates the three control strategies introduced in Section~\ref{sec:agent}.
-Strategy~R (query-type routing) improves answered accuracy from 72.2\% to 75.1\% while reducing the FTT rate from 10.8\% to 7.5\%, indicating that it primarily improves answer quality through more appropriate graph retrieval and visual verification.
-Strategy~T (terminal convergence) addresses a different axis: adding it to Strategy~R raises the answer rate from 92.5\% to 95.5\% but lowers answered accuracy from 75.1\% to 74.1\%.
-This trade-off shows that Strategy~T primarily improves whether the agent returns an answer rather than the quality of already valid answers.
-Strategy~CG (confidence gating) supplements weak graph evidence through caption backoff and requires qualified visual verification for graph-derived claims.
-In combination with Strategy~T, it raises end-to-end accuracy from 70.8\% (R+T) to 73.0\% (R+CG+T).
-The complete policy therefore balances answer quality and convergence, reaching 73.0\% end-to-end accuracy with an FTT rate of 1.6\%.
+Adding query-type routing (R) to SGDAgent\textsuperscript{base} raises answered accuracy from 72.2\% to 75.1\% and the answer rate from 89.2\% to 92.6\%, improving both answer quality and coverage.
+Adding confidence gating (CG) to R raises end-to-end accuracy from 69.5\% to 70.7\% and the answer rate from 92.6\% to 94.8\%, with a small change in answered accuracy from 75.1\% to 74.6\%.
+Adding terminal convergence (T) to R raises the answer rate from 92.6\% to 95.6\% and reduces the FTT rate from 7.4\% to 4.4\%, although answered accuracy decreases from 75.1\% to 74.1\%.
+These comparisons separate their roles: R contributes most to answered accuracy, whereas CG and T primarily recover otherwise unresolved trajectories through evidence escalation and terminal readout.
+Together, the three strategies achieve the best end-to-end accuracy of 73.0\% and answer rate of 98.4\%, with 74.2\% answered accuracy and 1.6\% FTT.
 
 % -----------
 %  Experiment 3: Efficiency
 % -----------
 
 \textbf{Efficiency analysis.}
-Beyond accuracy, a central claim of this paper is that graph-anchored candidate verification restructures the search process itself.
-Table~\ref{tab:component_ablation} compares per-question search cost across the same matched ablation settings.
-First, introducing frame-level and segment-level graph retrieval (Stages~1--2) increases tool usage: LLM calls rise from 3.7 to 9.6, and frame inspections rise from 1.1 to 5.1.
-This increase indicates that the accuracy gain comes from deeper candidate discovery and stronger local verification rather than lightweight reranking of existing trajectories.
-Second, adding the global event graph reduces LLM calls from 9.6 to 2.9 and frame inspections from 5.1 to 1.4 while raising end-to-end accuracy from 62.8\% to 64.4\%.
-With all three control strategies enabled, the complete SGDAgent reaches 73.0\% end-to-end accuracy with 3.4 LLM calls and 1.0 frame-inspection call per question.
-This confirms that the global event graph narrows search to relevant segments in fewer steps, serving as an efficiency mechanism on top of frame-level and segment-level candidate discovery.
+Frame-level and segment-level retrieval trade computation for deeper candidate discovery, increasing LLM calls from 3.7 to 9.6 and frame inspections from 1.1 to 5.1.
+The global event graph compresses this search to 2.9 LLM calls and 1.4 frame inspections by routing local retrieval to a smaller temporal scope.
+Control adds modest deliberation (2.9$\to$3.4 LLM calls) but reduces frame inspections (1.4$\to$1.0).
+The full system still uses fewer calls than the caption-only Base (3.7 and 1.1) while reaching 73.0\% end-to-end accuracy.
+The complete design therefore shifts computation from repeated local exploration to global proposal and selective visual verification.
 
 
 % ============================================================
@@ -673,29 +665,24 @@ This confirms that the global event graph narrows search to relevant segments in
   \label{fig:trajectory}
 \end{figure*}
 
-The ablation results show \emph{what} improves, while this section examines \emph{how} search behavior changes by comparing the reasoning trajectories of the caption-only baseline and SGDAgent (Figure~\ref{fig:trajectory}).
-The key finding is that graph-driven proposal replaces open-ended caption exploration with a focused cascaded narrowing, producing trajectories that are both shorter and more targeted.
+The ablation identifies the contribution of each component, while Figure~\ref{fig:trajectory} illustrates how graph-guided search changes a reasoning trajectory.
+Graph retrieval replaces broad caption exploration with coarse-to-fine candidate localization followed by focused visual verification.
 
 \textbf{Case study: escaping the frame-inspect trap.}\quad
 The question asks: ``Why does the man follow the woman in red after they meet for the third time?'' (correct answer: the woman has his book).
-The question is challenging because the agent must first locate a specific \emph{repeated event} (the third encounter) within an hour-long video and then infer the \emph{motivation} behind the subsequent action from an object-possession relation.
-The caption-only baseline follows $\mathrm{GB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$ and selects the wrong option.
-Without a structured intermediate representation, the agent cannot reliably connect ``the man,'' ``the woman in red,'' ``the third encounter,'' and ``the carried object'' into a coherent chain.
-It therefore performs repeated broad-range frame inspections that return noisy local descriptions until the budget is exhausted and an answer is forced from fragmentary evidence.
-This is the \emph{frame-inspect trap}~\cite{deepvideo2025}.
+The question is challenging because the agent must first locate a specific \emph{repeated event} within an hour-long video and then infer the \emph{motivation} behind the subsequent action from an object-possession relation.
+The caption-only Base follows global browse (GB) over the caption index with five subsequent frame inspections, $\mathrm{GB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
+Without structured links among the participants, repeated encounter, and carried object, its broad inspections return fragmented evidence.
+This repeated-inspection failure is the \emph{frame-inspect trap}~\cite{deepvideo2025}.
 
-SGDAgent follows $\mathrm{GR} \!\to\! \mathrm{SR} \!\to\! \mathrm{FR} \!\to\! \mathrm{FI} \!\to\! \mathrm{Answer}$, with each graph level progressively narrowing the candidate space.
-$GR$ first anchors ``the third encounter'' to event \texttt{evt\_0055} [23:45--24:40] with high confidence.
-This result reduces the search scope from the full video to a 55-second window containing the relevant participants and the action ``follow.''
-$SR$ localizes to segment \texttt{seg\_0058} [23:45--24:15], surfacing active entities (woman, man, building) and their spatial relations within the event window.
-$FR$ queries ``woman book'' at the frame level and retrieves \emph{person--holding--book} triples from keyframes \texttt{fra\_0064} and \texttt{fra\_0086}.
-These triples provide an explicit hypothesis for the subsequent visual check.
-A single focused $FI$ call on the narrowed window [24:00--24:15] confirms the book-possession relation and yields the correct answer.
-In contrast, the baseline consumes five $FI$ calls spread across the entire video yet never assembles these cues into a coherent chain.
+SGDAgent instead follows $\mathrm{GR} \!\to\! \mathrm{SR} \!\to\! \mathrm{FR} \!\to\! \mathrm{FI} \!\to\! \mathrm{Answer}$.
+$GR$ proposes event \texttt{evt\_0055} [23:45--24:40] for ``the third encounter,'' reducing the full video to a 55-second candidate window.
+$SR$ narrows this window to segment \texttt{seg\_0058} [23:45--24:15] and surfaces the relevant participants and interactions.
+$FR$ then retrieves candidate \emph{person--holding--book} triples from keyframes \texttt{fra\_0064} and \texttt{fra\_0086}.
+A single $FI$ call on [24:00--24:15] verifies the book-possession relation in raw frames and supports the correct answer.
 
-The graph does not directly answer the question but progressively converts an open-ended ``why'' query into verification over a small candidate set.
-Global event graph retrieval narrows the temporal scope, segment-level graph retrieval surfaces entity interactions, and frame-level graph matching identifies the object relation that $FI$ must confirm.
-This demonstrates that gains stem from restructuring search itself rather than from stronger frame inspection.
+The graph therefore supplies structured candidates rather than terminal facts: $GR$ and $SR$ localize the event, $FR$ proposes the object relation, and $FI$ confirms it visually.
+This trajectory supports the ablation finding that the hierarchy improves reasoning by restructuring search, not by replacing pixel-level verification.
 
 \section{Conclusion}
 
@@ -703,7 +690,7 @@ This paper presents SGDAgent, which restructures long-form video understanding t
 Its core components are a three-level scene graph representation connected through a shared entity registry, a bottom-up construction pipeline, and a graph-driven agent that follows the propose-verify-answer paradigm.
 Under matched LVBench settings~\cite{lvbench}, augmenting captions with the graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
 The routing, confidence-gating, and terminal-convergence strategies further raise end-to-end accuracy to 73.0\% and the answer rate to 98.4\%.
-Ablations show that frame-level and segment-level graphs provide progressive accuracy gains through structured candidate discovery, while the global event graph adds a smaller accuracy gain and primarily improves efficiency through cascaded retrieval.
+Ablations of video-index composition and scene-graph hierarchy show that frame-level and segment-level graphs provide progressive accuracy gains through structured candidate discovery, while the global event graph adds a smaller accuracy gain and primarily improves efficiency through cascaded retrieval.
 Trajectory analysis confirms that the graph narrows the candidate space and that targeted visual inspection verifies the final evidence before answering.
 
 
