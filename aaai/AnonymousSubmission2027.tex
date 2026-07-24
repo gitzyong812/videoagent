@@ -539,10 +539,10 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 \subsection{Experimental Setup}
 \label{sec:setup}
 
-\textbf{Dataset.}
-Our primary benchmark is \textbf{LVBench}~\cite{lvbench}, which contains 1{,}549 four-choice video QA questions over long-form videos.
-The system receives a video, a natural-language question, and four candidate answers, and it must return exactly one option.
-Failure to return a valid option is recorded as a failed-to-terminate (FTT) outcome.
+\textbf{Datasets.}
+We evaluate SGDAgent on LVBench full~\cite{lvbench}, LongVideoBench validation~\cite{longvideobench2024}, Video-MME Long without subtitles~\cite{videomme2024}, and EgoSchema Val 500~\cite{egoschema2023}.
+All SGDAgent results in Table~\ref{tab:main_comparison} are our runs on these splits.
+LVBench, which contains 1{,}549 questions over 103 long videos, is additionally used for matched-setting ablations and trajectory analysis.
 
 % ============================================================
 %  Main Comparison Table -- spans 4 benchmarks
@@ -550,21 +550,21 @@ Failure to return a valid option is recorded as a failed-to-terminate (FTT) outc
 
 
 \textbf{Implementation details.}
-The reasoning backbone is \texttt{o4-mini} (temperature~0) with a maximum of 15 reasoning steps per question.
-Frame-level graphs are extracted by prompting \texttt{gpt-4.1} on keyframes sampled at one frame every 5~seconds (up to 120 per video).
+We use \texttt{o4-mini} at temperature~0 with at most 15 reasoning steps, while \texttt{gpt-4.1} extracts frame-level graphs from one frame every 5~seconds, up to 120 per video.
 Entity alignment weights name, description, and type similarity by 0.7, 0.2, and 0.1, respectively, with a merge threshold of 0.78.
 Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
 Global event clustering uses a maximum temporal gap of 12~seconds, relation- and predicate-overlap thresholds of 0.18 and 0.22, and shared entities as an additional merge cue.
-Local visual verification is performed by \texttt{gpt-4.1-mini}, with a budget of 50~frames per \texttt{frame\_inspect} call.
-$GR$ returns at most 5 candidates from the global event graph, $SR$ returns 6 from the segment-level graphs, and $FR$ returns 8 from the frame-level graphs.
-Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while global event graph construction takes approximately 121 seconds.
+Visual verification uses \texttt{gpt-4.1-mini} with at most 50~frames per call, while $GR$, $SR$, and $FR$ return up to 5, 6, and 8 candidates, respectively.
+Building the LVBench scene graph index takes about 7.94 hours with four workers, including about 121 seconds for global event graph construction.
 The video index is constructed once and reused across all questions.
-To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, candidate answer set, and budget limits.
-The ablations vary video-index composition, scene-graph hierarchy, and agent control.
-All methods are permitted to produce FTT outcomes.
+Matched LVBench configurations share the backbone, frame-inspection VLM, captions, answer choices, and budgets, varying only index composition, scene-graph hierarchy, and agent control.
 
 \textbf{Evaluation metrics.}
-We report four complementary metrics: \emph{end-to-end accuracy} (e2e\_acc), the fraction of all questions answered correctly; \emph{answered accuracy} (ans\_acc), the accuracy over questions for which the system produced a valid option; \emph{answer rate}, the fraction of questions that received a valid option; and \emph{FTT rate}, the fraction of questions for which the system failed to return an option because of empty output, runtime failure, or trajectory non-convergence.
+We report end-to-end accuracy over all questions, answered accuracy, answer rate, and failed-to-terminate (FTT) rate.
+FTT includes empty outputs, runtime failures, and non-convergent trajectories.
+As in caption-index agents~\cite{videoagent,deepvideo2025,drvideo2025}, we evaluate the scene graph as an intermediate retrieval index through downstream QA and ablations.
+Open-vocabulary video scene-graph generation lacks a standard benchmark covering cross-frame identity and hierarchical events~\cite{frompixel2024,hig2024,hyperglm2025}.
+We therefore inspect a small subset and find that salient entities, relations, and temporal links are generally preserved, but this qualitative check does not replace intrinsic evaluation.
 
 
 % ============================================================
@@ -574,13 +574,12 @@ We report four complementary metrics: \emph{end-to-end accuracy} (e2e\_acc), the
 \subsection{Main Results}
 \label{sec:results}
 
-Table~\ref{tab:main_comparison} positions SGDAgent against published results on four long-video understanding benchmarks.
-Because the methods differ in backbone, caption source, and evaluation protocol, these numbers are reference comparisons rather than controlled evidence of component effectiveness.
-The strict conclusions of this paper therefore rest on the matched-setting LVBench results and ablations in Section~\ref{sec:ablation}.
+Table~\ref{tab:main_comparison} reports our SGDAgent runs on four benchmarks alongside published results.
+Cross-method comparisons are for reference because settings differ, while component attribution relies on the matched LVBench ablations in Section~\ref{sec:ablation}.
 
 With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
 These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} backbone.
-With \texttt{o3}, SGDAgent obtains reported scores of 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
+Our \texttt{o3} runs achieve 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
 The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
 These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
 
@@ -652,12 +651,10 @@ This trajectory supports the ablation finding that the hierarchy improves reason
 
 \section{Conclusion}
 
-This paper presents SGDAgent, which restructures long-form video understanding through a video index that combines captions with hierarchical spatio-temporal scene graphs.
-Its core components are a three-level scene graph representation connected through a shared entity registry, a bottom-up construction pipeline, and a graph-driven agent that follows the propose-verify-answer paradigm.
-Under matched LVBench settings~\cite{lvbench}, augmenting captions with the graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
-The routing, confidence-gating, and terminal-convergence strategies further raise end-to-end accuracy to 73.0\% and the answer rate to 98.4\%.
-Ablations of video-index composition and scene-graph hierarchy show that frame-level and segment-level graphs provide progressive accuracy gains through structured candidate discovery, while the global event graph adds a smaller accuracy gain and primarily improves efficiency through cascaded retrieval.
-Trajectory analysis confirms that the graph narrows the candidate space and that targeted visual inspection verifies the final evidence before answering.
+SGDAgent combines captions with hierarchical spatio-temporal scene graphs to localize candidates and verifies them through targeted visual inspection.
+Across four benchmarks, it remains competitive with agents using stronger reasoning backbones.
+On matched LVBench settings~\cite{lvbench}, the graph index raises end-to-end accuracy from 54.8\% to 64.4\%, and agent control further raises it to 73.0\%.
+Ablations show that frame-level and segment-level graphs improve candidate discovery, while the global event graph primarily reduces search cost.
 
 
 % %%
