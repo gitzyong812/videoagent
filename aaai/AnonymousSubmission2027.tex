@@ -133,9 +133,8 @@
 \maketitle
 
 \begin{abstract}
-
-Long-form video understanding requires semantic analysis and reasoning over hour-scale videos, yet it faces three fundamental challenges: incomplete coverage under lossy sampling, imprecise reasoning over long-range spatio-temporal interactions that flat representations fail to capture, and imprecise localization of sparse evidence buried in background noise.
-Recent agentic approaches build searchable caption databases for iterative querying, but their evidence spaces remain fundamentally unstructured because flat text and embeddings cannot explicitly represent entity-level semantics or support traceable retrieval.
+Long-form video understanding must locate sparse evidence and reason over long-range spatio-temporal interactions under lossy sampling and limited context.
+Recent agentic approaches build searchable caption databases for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
 We propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
 Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
 Experiments across four benchmarks demonstrate substantial improvements: SGDAgent achieves +18.2\,pp accuracy gain on LVBench with matched settings, and the structured graph index enables lighter backbones to match stronger baselines.
