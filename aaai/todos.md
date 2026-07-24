@@ -73,10 +73,3 @@ The following tasks are intentionally deferred from the current revision.
 - 数值精度不统一，例如 `8.30%`、`9.00%` 与其他一位小数结果混用。
 - 当前编译仍有一处方法小标题产生的 Underfull hbox，作为低优先级排版问题记录。
 
-## 输出格式与假设
-
-- 问题按 P0、P1、P2 排序，同一优先级内按对核心论点的影响排序。
-- 仅基于当前 LaTeX 和编译后的 PDF，不依据尚未完成的实现源码。
-- 将父级时间 scope 视为下一级检索的硬过滤条件。
-- 不验证外部论文数据，不建议新增实验，也不处理页数限制。
-- 图片问题只形成清单，不修改 Figure 1–3。

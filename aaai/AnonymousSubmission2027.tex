@@ -192,32 +192,29 @@ Ablation and trajectory analyses show that segment-level graphs improve candidat
 
 In summary, we contribute (1)~a \textbf{hierarchical spatio-temporal scene graph representation} comprising frame-, segment-, and event-level graphs connected through a shared entity registry and constructed by a bottom-up offline pipeline; (2)~a \textbf{scene graph-driven agent} that combines graph-guided candidate proposal, visual verification, caption fallback, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of graph indexing, graph depth, and agent control.
 
+
+
 \section{Related Work}
 \label{sec:related}
 
 \textbf{Long-video understanding.}
-With the rapid development of vision foundation models~\cite{radford2021CLIP,li2022GLIP} and multimodal large language models~\cite{llava2023,video-llava2024,bai2025qwen3vl}, video understanding has achieved remarkable progress on short-clip benchmarks~\cite{caba2015activitynet}.
-Yet hour-scale videos expose three fundamental bottlenecks that persist across existing approaches.
-\emph{Large temporal span}: long videos span tens of thousands of frames, so methods must either sample discontinuously~\cite{deepvideo2025} or compress visual tokens~\cite{wang2025adaretake} under context-window constraints, inevitably losing spatio-temporal detail~\cite{lvbench,longvideobench2024}.
-\emph{Complex spatio-temporal interactions}: entities exhibit long-range dependencies through spatial relations, state transitions, and causal chains that natural-language transcriptions cannot represent explicitly~\cite{zhang2024simplellm}.
-\emph{Sparse critical evidence}: key clues often appear in fleeting actions or cross-segment causal links, while multi-step reasoning agents~\cite{videoagent,omagent2024} must progressively narrow an implicit search space to find them.
-Against this backdrop, existing methods fall into two classes.
-The first extends context capacity through longer windows, token compression, or hierarchical representations~\cite{gemini15,qwen,internvl,seed,radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,longvu2025,shu2025video,apollo2025}, yet must still locate sparse evidence within compressed representations.
-The second treats it as a retrieval problem, mining information through selective sampling or agentic search~\cite{deepvideo2025,mrvideo,videoseek,zhang2024simplellm,videorag2025,videotree2025,drvideo2025,yang2025vca}.
-SGDAgent restructures the \emph{evidence space itself} by augmenting captions with a scene graph index in which retrieval becomes candidate proposal grounded in entities, relations, and temporal constraints.
+Vision foundation models and multimodal large language models have advanced short-clip understanding~\cite{radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,caba2015activitynet}, but hour-scale videos still present three persistent challenges: large temporal spans, complex spatio-temporal interactions, and sparse critical evidence.
+Long videos require discontinuous sampling~\cite{deepvideo2025} or token compression~\cite{wang2025adaretake}, which can lose detail~\cite{lvbench,longvideobench2024}, while text descriptions cannot explicitly capture long-range entity dependencies~\cite{zhang2024simplellm} and agents must progressively locate fleeting evidence~\cite{videoagent,omagent2024}.
+Existing methods either extend context through longer windows, token compression, or hierarchical representations~\cite{gemini15,qwen,internvl,seed,radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,longvu2025,shu2025video,apollo2025}, or retrieve evidence through selective sampling and agentic search~\cite{deepvideo2025,mrvideo,videoseek,zhang2024simplellm,videorag2025,videotree2025,drvideo2025,yang2025vca}.
+These approaches reduce input scale or search cost, but sparse evidence must still be located within compressed or selectively sampled representations.
+SGDAgent instead augments captions with a scene graph index that grounds candidate proposal in entities, relations, and temporal constraints.
 
 \textbf{Scene graph representation.}
 Scene graphs encode visual entities and their spatio-temporal interactions as graph nodes and edges~\cite{xu2017scene,tpt2023}.
-Traditional generation pipelines follow a detect-then-classify paradigm, building graphs in sequential detection and relation recognition stages~\cite{xu2017scene,motifs2018}.
-Recent advances leverage vision-language models for open-vocabulary scene graph generation~\cite{frompixel2024,vs32023,hyperglm2025}, although cross-segment entity association and temporal dynamics remain challenging.
+Traditional detect-then-classify pipelines~\cite{xu2017scene,motifs2018} have evolved toward open-vocabulary generation with vision-language models~\cite{frompixel2024,vs32023,hyperglm2025}, although cross-segment association and temporal dynamics remain challenging.
 HIG~\cite{hig2024} models hierarchical interlacement for video scene graph generation, while VideoMindPalace~\cite{videomindpalace2025} organizes long-video observations into an environment-grounded topological graph that is supplied to an LLM for reasoning.
 GraphVideoAgent~\cite{graphvideoagent2025} maintains a dynamic entity-relation graph to guide frame selection, and EGAgent~\cite{egagent2026} combines temporally annotated entity scene graphs with structured visual and audio search over very long egocentric videos.
-These approaches establish the value of graph structure for video understanding, while SGDAgent focuses on a frame-segment-event scene graph that serves as the retrieval index of an adaptive propose-verify-answer agent.
-Graph results localize candidate evidence, and targeted visual inspection confirms the relevant facts before the agent answers.
+Together, these studies establish graph structure as useful for generation, memory organization, and evidence search in long videos.
+SGDAgent differs by using a frame-segment-event scene graph as the retrieval index of a propose-verify-answer agent, where graph retrieval localizes candidates and targeted visual inspection confirms the facts.
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.96\textwidth]{../paper/figures/Graph.pdf}
+  \includegraphics[width=0.92\textwidth]{../paper/figures/Graph.pdf}
   \caption{Hierarchical scene graph representation and bottom-up construction pipeline.
   (a)~Keyframes are sampled from a long video.
   (b)~A VLM generates frame-level scene graphs, while entity alignment maintains identity consistency through a shared video-level registry.
@@ -226,25 +223,17 @@ Graph results localize candidate evidence, and targeted visual inspection confir
 \end{figure*}
 
 \textbf{Agentic video reasoning.}
-A growing body of work models long-video understanding as an agentic reasoning problem.
-Early efforts fed per-frame or per-clip visual tokens directly into large language models~\cite{video-llava2024,videochat2025}, but context-window limits and quadratic computation costs confine them to short clips and cause substantial semantic loss on hour-scale inputs.
-LLoVi~\cite{zhang2024simplellm} addresses this by converting each clip into a text description that an LLM reasons over jointly; VideoRAG~\cite{videorag2025} introduces retrieval-augmented generation to pre-index video content and retrieve relevant segments at query time; VideoTree~\cite{videotree2025} builds a query-adaptive hierarchical representation for long-video reasoning; and DrVideo~\cite{drvideo2025} reformulates long-video understanding as document retrieval over progressively refined text memory.
-The field then shifted to interactive agentic loops: VideoAgent~\cite{videoagent} controls multi-round frame retrieval through an LLM-driven state-action-observation loop; DVD~\cite{deepvideo2025} establishes agentic search over a multi-granularity video database through the ReAct paradigm~\cite{react2022}; VideoSeek~\cite{videoseek} designs a multi-granularity toolkit that mirrors human seeking behavior; VideoMind~\cite{videomind} implements localize-verify-answer phases through specialized roles on a unified backbone; VCA~\cite{yang2025vca} uses curiosity-driven tree exploration for long-video navigation; and Vgent~\cite{vagent2025} introduces graph-structured retrieval and reasoning for long videos.
-Recent work also explores multi-agent frameworks~\cite{omagent2024} and neuro-symbolic reasoning~\cite{neuro2020,cai2025naver}, and end-to-end post-training of LLMs with agent trajectories has emerged as an important trend~\cite{team2026kimi,zeng2026glm}.
-These methods improve search flexibility but differ in how they represent and verify candidate evidence.
-SGDAgent uses its scene graph hierarchy as a retrieval index that proposes entity- and temporally grounded candidates, which the agent then verifies visually before answering.
- 
+Directly feeding frame or clip tokens to language models~\cite{video-llava2024,videochat2025} is constrained by context length and computation on hour-scale videos.
+Text-centered methods address this limitation through joint clip descriptions in LLoVi~\cite{zhang2024simplellm}, retrieval-augmented indexing in VideoRAG~\cite{videorag2025}, query-adaptive hierarchies in VideoTree~\cite{videotree2025}, or progressively refined document memory in DrVideo~\cite{drvideo2025}.
+Interactive approaches include multi-round frame retrieval in VideoAgent~\cite{videoagent}, ReAct-based search over a multi-granularity database in DVD~\cite{deepvideo2025,react2022}, and human-like seeking tools in VideoSeek~\cite{videoseek}.
+VideoMind~\cite{videomind} separates localization, verification, and answering, VCA~\cite{yang2025vca} uses curiosity-driven tree exploration, and Vgent~\cite{vagent2025} performs graph-structured retrieval and reasoning.
+Other directions include multi-agent systems~\cite{omagent2024}, neuro-symbolic reasoning~\cite{neuro2020,cai2025naver}, and end-to-end post-training on agent trajectories~\cite{team2026kimi,zeng2026glm}.
+These agents improve navigation flexibility, but vary in whether retrieved evidence is explicitly structured and independently verified.
+SGDAgent complements these approaches with a scene graph hierarchy that proposes entity- and temporally grounded candidates for subsequent visual verification.
+
+
 \section{Methodology}
 \label{sec:method}
-
-\begin{figure*}[!tb]
-  \centering
-  \includegraphics[width=0.96\textwidth]{../paper/figures/workflow.pdf}
-  \caption{Scene graph-driven agent.
-  A long video is converted into a scene-graph-augmented database containing global-, segment-, and frame-level graphs alongside a caption database.
-  An adaptive reasoning agent searches this database through a propose-verify tool chain within an observe-reason-act loop.}
-  \label{fig:mechanism}
-\end{figure*}
 
 
 This section introduces the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which uses a \emph{hierarchical scene graph representation} to index multi-granular spatio-temporal video semantics and convert open-ended caption search into graph-anchored candidate verification.
@@ -325,20 +314,27 @@ At the event level, confidence and uncertainty estimates are attached to nodes f
 \subsection{Scene Graph-Driven Agent}
 \label{sec:agent}
 
+\begin{figure*}[!tb]
+  \centering
+  \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
+  \caption{Scene graph-driven agent. A long video is converted into a scene-graph-augmented database containing global-, segment-, and frame-level graphs alongside a caption database. An adaptive reasoning agent searches this database through a propose-verify tool chain within an observe-reason-act loop.}
+  \label{fig:mechanism}
+\end{figure*}
+
 
 \begin{algorithm}[!tb]
   \caption{SGDAgent: Graph-Driven Reasoning Loop}
   \label{alg:search}
   \begin{algorithmic}[1]
-  \small
+  \footnotesize
   \REQUIRE Database $D(V)=\{C(V), G^f, G^s, G^g\}$, query $q$,
     budget $T$
   \ENSURE Answer $\hat{a}$
   \STATE $H \leftarrow \textsc{InitState}(q)$
-    \COMMENT{routing state, candidates, evidence}
+  \/\/ routing state, candidates, evidence
   \FOR{$t = 1, \ldots, T$}
       \STATE $a_t \leftarrow \textsc{LLM}(H)$
-        \COMMENT{$a_t \in \{GR, SR, FR, FI, \textsc{Answer}\}$}
+        \/\/ $a_t \in \{GR, SR, FR, FI, \textsc{Answer}\}$
       \IF{$a_t \in \{GR, SR, FR\}$}
           \STATE $\mathcal{W} \leftarrow \textsc{QueryGraph}(a_t, q, D(V))$
           \IF{$\textsc{WeakSignal}(\mathcal{W}, H)$}
@@ -402,7 +398,7 @@ All three graph retrievers share a common scorer that ranks a candidate region $
 Here, $S_{\mathrm{lex}}$ aggregates token overlap scored separately over entity names, relation predicates, and region summaries.
 $S_{\mathrm{soft}}$ is the cosine similarity between embeddings when region vectors are available and falls back to lexical fuzzy matching otherwise.
 $S_{\mathrm{temp}}$ combines the intersection over union with any time span parsed from $q$ and soft anchors inferred from cues such as \emph{beginning}, \emph{end}, or \emph{middle}.
-A build-time entity blacklist keeps video-production artifacts such as ``scene,'' ``shot,'' and ``narrator,'' as well as mis-extracted verbs, out of both $S_{\mathrm{lex}}$ and $S_{\mathrm{soft}}$.
+A build-time entity blacklist keeps video-production artifacts such as ``scene'', ``shot'', and ``narrator'', as well as mis-extracted verbs, out of both $S_{\mathrm{lex}}$ and $S_{\mathrm{soft}}$.
 The $\mathrm{scope}$ argument carries a time constraint forwarded from a coarser-level call.
 Each returned region also carries a \emph{provenance pointer} to supporting nodes at the next finer level, which provides the structure for cascaded retrieval.
 
@@ -663,6 +659,14 @@ The complete policy therefore balances answer quality and convergence, reaching 
 %  Experiment 3: Efficiency
 % -----------
 
+\begin{figure*}[!tb]
+  \centering
+   \includegraphics[width=0.92\textwidth]{../paper/figures/Case.pdf}
+  \caption{Case study from LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
+  SGDAgent's graph queries progressively narrow the candidates from the event level to the segment and frame levels, guiding a single focused visual inspection to the correct answer.}
+  \label{fig:trajectory}
+\end{figure*}
+
 \textbf{Efficiency analysis.}
 Beyond accuracy, a central claim of this paper is that graph-anchored candidate verification restructures the search process itself.
 Table~\ref{tab:behavior} compares per-question search cost between the caption-only baseline and SGDAgent variants across all questions with complete trajectory traces.
@@ -673,8 +677,7 @@ This confirms that the event-level proposal layer narrows search to relevant seg
 
 \begin{table}[!tb]
   \centering
-  \caption{Search-efficiency comparison.
-  Values are per-question averages over LVBench questions with complete trajectory traces.}
+  \caption{Search-efficiency comparison. Values are per-question averages over LVBench questions with complete trajectory traces.}
   \label{tab:behavior}
   \small
   \begin{tabular*}{\columnwidth}{l@{\extracolsep{\fill}}cccc}
@@ -697,15 +700,6 @@ This confirms that the event-level proposal layer narrows search to relevant seg
 
 \subsection{Analysis on Agentic Reasoning Behavior}
 \label{sec:analysis}
-
-
-\begin{figure*}[!tb]
-  \centering
-   \includegraphics[width=\textwidth]{../paper/figures/Case.pdf}
-  \caption{Case study from LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
-  SGDAgent's graph queries progressively narrow the candidates from the event level to the segment and frame levels, guiding a single focused visual inspection to the correct answer.}
-  \label{fig:trajectory}
-\end{figure*}
 
 
 The ablation results show \emph{what} improves, while this section examines \emph{how} search behavior changes by comparing the reasoning trajectories of the caption-only baseline and SGDAgent (Figure~\ref{fig:trajectory}).
@@ -731,12 +725,6 @@ In contrast, the baseline consumes five $FI$ calls spread across the entire vide
 The graph does not directly answer the question but progressively converts an open-ended ``why'' query into verification over a small candidate set.
 Event anchoring narrows the temporal scope, segment-level retrieval surfaces entity interactions, and frame-level triple matching identifies the object relation that $FI$ must confirm.
 This demonstrates that gains stem from restructuring search itself rather than from stronger frame inspection.
-
-\textbf{Limitations.}
-SGDAgent localizes evidence only within the sampled frames and therefore cannot recover visual events omitted by the sampling process.
-Errors in entity extraction, relation prediction, or cross-frame alignment may propagate from frame-level graphs to segment- and event-level graphs.
-Targeted visual verification and caption backoff mitigate these errors but do not guarantee complete robustness.
-Moreover, no standard hour-scale benchmark provides open-vocabulary entity, relation, and temporal-alignment annotations for intrinsic graph-quality evaluation, so our primary evidence remains end-to-end QA performance and matched retrieval behavior.
 
 \section{Conclusion}
 
