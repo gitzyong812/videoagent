@@ -136,7 +136,7 @@
 
 \begin{abstract}
 Long-form video understanding must locate sparse evidence and reason over long-range spatio-temporal interactions under lossy sampling and limited context.
-Recent agentic approaches build searchable caption as video indexes for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
+Recent agentic approaches build video captions into searchable indexes for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
 We propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
 Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
 Across four benchmarks, SGDAgent remains competitive with stronger-backbone baselines.
@@ -244,7 +244,7 @@ We first define and construct its hierarchical spatio-temporal scene graph index
 
 SGDAgent represents a video $V$ with a caption index and a three-level spatio-temporal scene graph hierarchy (Figure~\ref{fig:graph}(c)):
 \begin{equation}
-  D(V) = \bigl\{C(V),\; G^{f},\; G^{s},\; G^{g}\bigr\},
+  \mathcal{I}(V) = \bigl\{C(V),\; G^{f},\; G^{s},\; G^{g}\bigr\},
 \end{equation}
 $C(V)$ is the caption index, while $G^{f}=\{G_i^{f}\}_{i=1}^{N}$, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ denote the frame-level, segment-level, and global event graphs, respectively.
 All graph levels share an entity registry $E^{\mathrm{video}}$ that stores each entity's ID, type, attributes, description, and temporal span for cross-scale identity alignment.
@@ -311,48 +311,15 @@ Lightweight filtering and schema validation suppress noisy entities and relation
 \subsection{Scene Graph-Driven Agent}
 \label{sec:agent}
 
-\begin{algorithm}[!tb]
-  \caption{SGDAgent graph-driven reasoning loop.}
-  \label{alg:search}
-  \begin{algorithmic}[1]
-  \footnotesize
-  \REQUIRE Video index $D(V)=\{C(V), G^f, G^s, G^g\}$, query $q$,
-    budget $T$
-  \ENSURE Answer $\hat{a}$
-  \STATE $H \leftarrow \textsc{InitState}(q)$
-  \/\/ routing state, candidates, evidence
-  \FOR{$t = 1, \ldots, T$}
-      \STATE $a_t \leftarrow \textsc{LLM}(H)$
-        \/\/ $a_t \in \{GR, SR, FR, FI, \textsc{Answer}\}$
-      \IF{$a_t \in \{GR, SR, FR\}$}
-          \STATE $\mathcal{W} \leftarrow \textsc{QueryGraph}(a_t, q, D(V))$
-          \IF{$\textsc{WeakSignal}(\mathcal{W}, H)$}
-              \STATE $H \leftarrow \textsc{CaptionBackoff}(H, q, C(V))$
-          \ELSE
-              \STATE $H \leftarrow \textsc{UpdateCandidates}(H, \mathcal{W})$
-          \ENDIF
-      \ELSIF{$a_t = FI$}
-          \STATE $e \leftarrow \textsc{FrameInspect}(\textsc{Top}(H), q)$
-          \STATE $H \leftarrow \textsc{UpdateEvidence}(H, e)$
-      \ELSIF{$a_t = \textsc{Answer} \land \textsc{GatingOK}(H)$}
-          \STATE \RETURN $\textsc{Readout}(H)$
-      \ELSE
-          \STATE $H \leftarrow \textsc{RejectFinish}(H)$
-      \ENDIF
-  \ENDFOR
-  \STATE \RETURN $\textsc{ForcedAnswer}(H)$
-  \end{algorithmic}
-\end{algorithm}
-
 \subsubsection{Adaptive reasoning agent loop.}
-Figure~\ref{fig:mechanism} and Algorithm~\ref{alg:search} summarize the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
+Figure~\ref{fig:mechanism} summarizes the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
 At step~$t$, state~$H$ contains the question, retrieved candidates, accumulated evidence, and controller signals.
-The LLM selects $a_t \in \mathcal{T}$, and the tool output updates~$H$.
-\textsc{Answer} is accepted only after confidence gating, and every graph-derived claim requires qualified visual evidence from $FI$.
-If the budget~$T$ is exhausted, terminal readout returns the best-supported option from the trajectory.
+The LLM proposes an action, query-type routing maps it to $a_t \in \mathcal{T}$, and the selected tool updates~$H$.
+A final answer is accepted only after confidence gating, and any graph-derived claim requires qualified visual evidence from $FI$.
+If the step budget~$B$ is exhausted, terminal readout returns the best-supported option from the trajectory.
 
 \subsubsection{Tool chain.}
-The agent acts over the tool chain $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \textsc{Answer}\}$.
+The agent acts over the tool chain $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \mathrm{Answer}\}$.
 $GR$, $SR$, and $FR$ query the global event, segment-level, and frame-level graphs to propose candidates at progressively finer granularity.
 The frame-inspection tool $FI$ verifies candidates against raw frames, while caption backoff $CB$ provides a complementary text channel.
 Each graph query returns ranked regions, provenance pointers, and controller signals for confidence-aware descent and verification.
@@ -361,9 +328,9 @@ The tool interfaces are
 \[
 \resizebox{\columnwidth}{!}{$
   \begin{array}{rcl}
-  \textsc{GraphRetrieve}_{\ell}: & (q,\ \mathrm{scope},\ k) & \mapsto\ (\mathrm{regions}_{1:k},\ \mathrm{signals}), \\
-  \textsc{VerifyPixels}: & (\mathrm{window},\ q) & \mapsto\ \mathrm{evidence}, \\
-  \textsc{CaptionBackoff}: & (q) & \mapsto\ \mathrm{summary}.
+  \mathrm{GraphRetrieve}_{\ell}: & (q,\ \mathrm{scope},\ k) & \mapsto\ (\mathrm{regions}_{1:k},\ \mathrm{signals}), \\
+  \mathrm{FrameInspect}: & (\mathrm{window},\ q) & \mapsto\ \mathrm{evidence}, \\
+  \mathrm{CaptionBackoff}: & (q) & \mapsto\ \mathrm{summary}.
   \end{array}
 $}
 \]
@@ -377,34 +344,65 @@ $S_{\mathrm{soft}}$ uses embedding cosine similarity when available and lexical 
 $S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
 The $\mathrm{scope}$ argument forwards a coarse time constraint, while provenance pointers link each region to supporting nodes at the next finer level.
 
-\emph{Global event graph retrieval (GR).}\quad
+\emph{Global event graph retrieval (GR).}
 $GR$ searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment provenance.
 The selected event span scopes the subsequent $SR$ call to a smaller temporal range.
 For temporal or causal sequences, event edges also determine the traversal order.
 
-\emph{Segment-level graph retrieval (SR).}\quad
+\emph{Segment-level graph retrieval (SR).}
 $SR$ searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe provenance, and controller signals.
 Its windows feed $FI$ directly or constrain $FR$ when object- or relation-level grounding is needed.
 The signals flag fuzzy matches, overly broad windows, and visual details that the graph cannot resolve.
 
-\emph{Frame-level graph retrieval (FR).}\quad
+\emph{Frame-level graph retrieval (FR).}
 $FR$ retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
 It returns ranked keyframes with timestamped entity--attribute--relation snapshots.
 These timestamps bound $FI$ to short windows, while the graph content remains candidate evidence until visually confirmed.
 
-\emph{Frame inspection (FI) and caption backoff (CB).}\quad
+\emph{Frame inspection (FI) and caption backoff (CB).}
 $FI$ is the only action that returns to raw pixels.
 It samples a graph-proposed window and produces question-conditioned visual evidence for the final answer.
 $CB$ queries the embedding-based caption index when graph retrieval lacks the question's surface form.
 Caption backoff aids candidate discovery but cannot validate graph-derived claims.
 
+\begin{algorithm}[!tb]
+  \caption{SGDAgent reasoning loop with control strategies: query-type routing (R), confidence gating (CG), and terminal convergence (T).}
+  \label{alg:search}
+  \begin{algorithmic}[1]
+  \footnotesize
+  \REQUIRE Video index $\mathcal{I}(V)=\{C(V),G^f,G^s,G^g\}$, query $q$, step budget $B$
+  \ENSURE Answer $\hat{a}$
+  \STATE $H \leftarrow \mathrm{InitState}(q)$
+  \FOR{$t=1,\ldots,B$}
+      \STATE $a_t \leftarrow \mathrm{QueryTypeRoute}(\mathrm{LLM}(H),q)$
+        \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[R]}}
+      \IF{$a_t \in \{GR,SR,FR\}$}
+          \STATE $H \leftarrow \mathrm{GraphRetrieve}(H,a_t,q,\mathcal{I}(V))$
+          \IF{$\mathrm{WeakGraphSignal}(H)$}
+              \STATE $H \leftarrow \mathrm{CaptionBackoff}(H,q,C(V))$
+                \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[CG]}}
+          \ENDIF
+      \ELSIF{$a_t=CB$}
+          \STATE $H \leftarrow \mathrm{CaptionBackoff}(H,q,C(V))$
+      \ELSIF{$a_t=FI$}
+          \STATE $H \leftarrow \mathrm{FrameInspect}(H,q)$
+      \ELSIF{$a_t=\mathrm{Answer} \land \mathrm{ConfidenceGate}(H)$}
+          \RETURN $\mathrm{Readout}(H)$
+            \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[CG]}}
+      \ENDIF
+  \ENDFOR
+  \RETURN $\mathrm{TerminalReadout}(H)$
+    \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[T]}}
+  \end{algorithmic}
+\end{algorithm}
+
 
 \subsubsection{Agent control strategies.}
-Controller signals coordinate the cascade by indicating match quality, region granularity, visual-detail requirements, and the recommended next action.
-\textbf{Strategy~R} (query-type routing) maps counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions from $SR$.
-\textbf{Strategy~CG} (confidence gating) blocks \textsc{Answer} when a \emph{localize-only} or \emph{weak-match} signal is raised, escalates coarse candidates for fine-detail questions to narrow-window visual verification, and redirects weak graph retrieval to $CB$ when appropriate.
-The finish gate requires qualified $FI$ evidence before any graph-derived claim can support \textsc{Answer}.
-\textbf{Strategy~T} (terminal convergence) extracts the best-supported option from the accumulated trace when the budget $T$ is exhausted, preventing otherwise useful trajectories from ending as FTT outcomes.
+As shown in Algorithm~\ref{alg:search}, controller signals encode match quality, region granularity, the need for visual inspection, and the recommended next action.
+\textbf{Strategy~R} (query-type routing) sends questions about counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions at $SR$.
+\textbf{Strategy~CG} (confidence gating) prevents answering under \emph{localize-only} or \emph{weak-match} signals, sends coarse candidates to narrow-window visual inspection, and redirects weak graph results to $CB$ when appropriate.
+The finish gate accepts graph-derived claims only when supported by qualified $FI$ evidence.
+\textbf{Strategy~T} (terminal convergence) returns the best-supported option from the accumulated trace when the step budget $B$ is exhausted, reducing FTT outcomes.
 Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 \begin{table*}[!tb]
