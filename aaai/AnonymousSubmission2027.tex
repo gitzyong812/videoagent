@@ -278,7 +278,7 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
+  \includegraphics[width=0.75\textwidth]{../paper/figures/workflow.pdf}
   \caption{SGDAgent reasoning workflow.
   Within an observe-reason-act loop, the agent searches a video index of captions and hierarchical spatio-temporal scene graphs, proposes candidates through graph retrieval, and confirms them through visual inspection.}
   \label{fig:mechanism}
@@ -501,18 +501,18 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     {\scriptsize\shortstack{Terminal\\convergence (T)}} &
     & & & & & \\
     \hline
-    Base       & $\checkmark$ &              &              &              & {} &              &              &              & 54.8\% & 65.7\% & 83.5\% & 16.5\% & 3.7  & 1.1 \\
-    Base\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              & {} &              &              &              & 59.2\% & 69.0\% & 85.8\% & 14.2\% & 4.9  & 2.4 \\
-    Base\textsuperscript{C+F+S} & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & {} &              &              &              & 62.8\% & 72.0\% & 87.2\% & 12.8\% & 9.6  & 5.1 \\
-    Base\textsuperscript{F+S+G}            &              & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 58.0\% & 69.1\% & 83.9\% & 16.1\% & 4.4 & 1.6 \\
+    \emph{Base}       & $\checkmark$ &              &              &              & {} &              &              &              & 54.8\% & 65.7\% & 83.5\% & 16.5\% & 3.7  & 1.1 \\
+    \emph{Base}\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              & {} &              &              &              & 59.2\% & 69.0\% & 85.8\% & 14.2\% & 4.9  & 2.4 \\
+    \emph{Base}\textsuperscript{C+F+S} & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & {} &              &              &              & 62.8\% & 72.0\% & 87.2\% & 12.8\% & 9.6  & 5.1 \\
+    \emph{Base}\textsuperscript{F+S+G}            &              & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 58.0\% & 69.1\% & 83.9\% & 16.1\% & 4.4 & 1.6 \\
 
-    SGDAgent\textsuperscript{base} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 64.4\% & 72.2\% & 89.2\% & 10.8\% & \textbf{2.9}  & 1.4 \\
+    \emph{SGDAgent}\textsuperscript{0} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 64.4\% & 72.2\% & 89.2\% & 10.8\% & \textbf{2.9}  & 1.4 \\
     \hline
-    SGDAgent\textsuperscript{base}+R & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              &              & 69.5\% & \textbf{75.1\%} & 92.6\% & 7.4\% & 3.0 & 1.3 \\
-    SGDAgent\textsuperscript{base}+R+CG & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ &              & 70.7\% & 74.6\% & 94.8\% & 5.2\% & 3.5 & 1.4 \\
-    SGDAgent\textsuperscript{base}+R+T & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              & $\checkmark$ & 70.8\% & 74.1\% & 95.6\% & 4.4\% & 3.1 & 1.2 \\
+    \emph{SGDAgent}\textsuperscript{R} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              &              & 69.5\% & \textbf{75.1\%} & 92.6\% & 7.4\% & 3.0 & 1.3 \\
+    \emph{SGDAgent}\textsuperscript{R+CG} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ &              & 70.7\% & 74.6\% & 94.8\% & 5.2\% & 3.5 & 1.4 \\
+    \emph{SGDAgent}\textsuperscript{R+T} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              & $\checkmark$ & 70.8\% & 74.1\% & 95.6\% & 4.4\% & 3.1 & 1.2 \\
     \hline
-    SGDAgent & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0\%} & 74.2\% & \textbf{98.4\%} & \textbf{1.6\%}  & 3.4  & \textbf{1.0} \\
+    \emph{SGDAgent} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0\%} & 74.2\% & \textbf{98.4\%} & \textbf{1.6\%}  & 3.4  & \textbf{1.0} \\
     \hline
   \end{tabular}%
   }
@@ -593,23 +593,23 @@ These reference positions are consistent with the matched-setting finding that s
 
 Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
 All configurations share the same backbone, candidate answers, and budget.
-Base is the caption-only baseline, superscripts identify enabled index components, and SGDAgent\textsuperscript{base} uses the complete video index without agent control.
-The upper block varies video-index composition and scene-graph hierarchy, while the lower block adds matched combinations of control strategies to SGDAgent\textsuperscript{base}.
+We denote the caption-only baseline by \emph{Base} and the complete-index configuration without agent control by \mbox{\emph{SGDAgent}\textsuperscript{0}}.
+\emph{Base} superscripts list index components, \emph{SGDAgent} superscripts list control strategies, and the plain name denotes the full system.
 
 
 \textbf{Effect of video-index composition and scene-graph hierarchy.}
-The graph-only configuration reaches 58.0\% end-to-end accuracy, 3.2 points above the caption-only Base, while combining captions with the complete scene-graph hierarchy reaches 64.4\% end-to-end accuracy and 72.2\% answered accuracy.
-Starting from the caption-only Base, adding frame-level graphs queried by $FR$ raises end-to-end accuracy from 54.8\% to 59.2\%, and adding segment-level graphs queried by $SR$ further raises it to 62.8\%.
-Adding the global event graph queried by $GR$ reaches 64.4\% while reducing LLM calls from 9.6 to 2.9 and frame-inspection calls from 5.1 to 1.4.
+The graph-only configuration \mbox{\emph{Base}\textsuperscript{F+S+G}} reaches 58.0\% end-to-end accuracy, 3.2 points above the caption-only \emph{Base}.
+Adding the frame-level graph to \emph{Base} yields \mbox{\emph{Base}\textsuperscript{C+F}} and raises end-to-end accuracy from 54.8\% to 59.2\%, while further adding the segment-level graph yields \mbox{\emph{Base}\textsuperscript{C+F+S}} and raises it to 62.8\%.
+Adding the global event graph yields the complete-index configuration \mbox{\emph{SGDAgent}\textsuperscript{0}}, raising end-to-end accuracy to 64.4\% and answered accuracy to 72.2\% while reducing LLM calls from 9.6 to 2.9 and frame-inspection calls from 5.1 to 1.4.
 These results reveal complementary roles: captions provide broad lexical coverage, frame-level and segment-level graphs support structured candidate discovery, and the global event graph primarily improves routing efficiency before visual verification.
 
 
 \textbf{Effect of agent control strategies.}
-Adding query-type routing (R) to SGDAgent\textsuperscript{base} raises answered accuracy from 72.2\% to 75.1\% and the answer rate from 89.2\% to 92.6\%, improving both answer quality and coverage.
-Adding confidence gating (CG) to R raises end-to-end accuracy from 69.5\% to 70.7\% and the answer rate from 92.6\% to 94.8\%, with a small change in answered accuracy from 75.1\% to 74.6\%.
-Adding terminal convergence (T) to R raises the answer rate from 92.6\% to 95.6\% and reduces the FTT rate from 7.4\% to 4.4\%, although answered accuracy decreases from 75.1\% to 74.1\%.
+Adding query-type routing (R) to the no-control configuration \mbox{\emph{SGDAgent}\textsuperscript{0}} yields \mbox{\emph{SGDAgent}\textsuperscript{R}}, raising answered accuracy from 72.2\% to 75.1\% and the answer rate from 89.2\% to 92.6\%.
+Adding confidence gating (CG) to the routing configuration \mbox{\emph{SGDAgent}\textsuperscript{R}} yields \mbox{\emph{SGDAgent}\textsuperscript{R+CG}}, raising end-to-end accuracy from 69.5\% to 70.7\% and the answer rate from 92.6\% to 94.8\%, with answered accuracy changing slightly from 75.1\% to 74.6\%.
+Adding terminal convergence (T) to the routing configuration \mbox{\emph{SGDAgent}\textsuperscript{R}} yields \mbox{\emph{SGDAgent}\textsuperscript{R+T}}, raising the answer rate from 92.6\% to 95.6\% and reducing FTT from 7.4\% to 4.4\%, although answered accuracy decreases from 75.1\% to 74.1\%.
 These comparisons separate their roles: R contributes most to answered accuracy, whereas CG and T primarily recover otherwise unresolved trajectories through evidence escalation and terminal readout.
-Together, the three strategies achieve the best end-to-end accuracy of 73.0\% and answer rate of 98.4\%, with 74.2\% answered accuracy and 1.6\% FTT.
+Enabling all three strategies yields the full \emph{SGDAgent} configuration, which achieves the best end-to-end accuracy of 73.0\% and answer rate of 98.4\%, with 74.2\% answered accuracy and 1.6\% FTT.
 
 % -----------
 %  Experiment 3: Efficiency
@@ -619,7 +619,7 @@ Together, the three strategies achieve the best end-to-end accuracy of 73.0\% an
 Frame-level and segment-level retrieval trade computation for deeper candidate discovery, increasing LLM calls from 3.7 to 9.6 and frame inspections from 1.1 to 5.1.
 The global event graph compresses this search to 2.9 LLM calls and 1.4 frame inspections by routing local retrieval to a smaller temporal scope.
 Control adds modest deliberation (2.9$\to$3.4 LLM calls) but reduces frame inspections (1.4$\to$1.0).
-The full system still uses fewer calls than the caption-only Base (3.7 and 1.1) while reaching 73.0\% end-to-end accuracy.
+The full system still uses fewer calls than the caption-only \emph{Base} (3.7 and 1.1) while reaching 73.0\% end-to-end accuracy.
 The complete design therefore shifts computation from repeated local exploration to global proposal and selective visual verification.
 
 
@@ -636,7 +636,7 @@ Graph retrieval replaces broad caption exploration with coarse-to-fine candidate
 \textbf{Case study: escaping the frame-inspect trap.}\quad
 The question asks: ``Why does the man follow the woman in red after they meet for the third time?'' (correct answer: the woman has his book).
 The question is challenging because the agent must first locate a specific \emph{repeated event} within an hour-long video and then infer the \emph{motivation} behind the subsequent action from an object-possession relation.
-The caption-only Base follows global browse (GB) over the caption index with five subsequent frame inspections, $\mathrm{GB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
+The caption-only \emph{Base} follows global browse (GB) over the caption index with five subsequent frame inspections, $\mathrm{GB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
 Without structured links among the participants, repeated encounter, and carried object, its broad inspections return fragmented evidence.
 This repeated-inspection failure is the \emph{frame-inspect trap}~\cite{deepvideo2025}.
 
