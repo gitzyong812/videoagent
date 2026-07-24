@@ -549,7 +549,8 @@ Table~\ref{tab:main_comparison} positions SGDAgent against published results on 
 Because the methods differ in backbone, caption source, and evaluation protocol, these numbers are reference comparisons rather than controlled evidence of component effectiveness.
 The strict conclusions of this paper therefore rest on the matched-setting LVBench results and ablations in Section~\ref{sec:ablation}.
 
-SGDAgent with \texttt{o4-mini} achieves 73.0\% on LVBench~\cite{lvbench} and 71.2\% on LongVideoBench~\cite{longvideobench2024}, approaching the reported DVD~\cite{deepvideo2025} results with the stronger \texttt{o3} backbone (74.2\% and 71.6\%, respectively).
+With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
+These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} backbone.
 With \texttt{o3}, SGDAgent obtains reported scores of 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
 The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
 These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
