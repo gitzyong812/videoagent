@@ -217,10 +217,8 @@ SGDAgent differs by using a frame-segment-event scene graph as the retrieval ind
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.92\textwidth]{../paper/figures/Graph.pdf}
-  \caption{Hierarchical scene graph representation and bottom-up construction pipeline.
-  (a)~Keyframes are sampled from a long video.
-  (b)~A VLM generates frame-level graphs, while entity alignment maintains identity consistency through a shared video-level registry.
-  (c)~Frame-level graphs capture per-keyframe entity-relation snapshots, segment-level graphs aggregate temporal interactions within sliding windows, and the global event graph organizes high-level event semantics through explicit event edges.}
+  \caption{Hierarchical spatio-temporal scene graph representation and bottom-up construction.
+  Panels (a)--(c) show keyframe sampling, frame-level graph extraction with registry-based entity alignment, and aggregation into segment-level graphs and a global event graph.}
   \label{fig:graph}
 \end{figure*}
 
@@ -321,13 +319,14 @@ In the global event graph, confidence and uncertainty estimates are attached to 
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
-  \caption{Scene graph-driven agent. A long video is converted into a video index comprising frame-level graphs, segment-level graphs, a global event graph, and a caption index. An adaptive reasoning agent searches this index through a propose-verify tool chain within an observe-reason-act loop.}
+  \caption{SGDAgent reasoning workflow.
+  Within an observe-reason-act loop, the agent searches a video index of captions and hierarchical spatio-temporal scene graphs, proposes candidates through graph retrieval, and confirms them through visual inspection.}
   \label{fig:mechanism}
 \end{figure*}
 
 
 \begin{algorithm}[!tb]
-  \caption{SGDAgent: Graph-Driven Reasoning Loop}
+  \caption{SGDAgent graph-driven reasoning loop.}
   \label{alg:search}
   \begin{algorithmic}[1]
   \footnotesize
@@ -447,17 +446,32 @@ The resulting coarse-to-fine cascade qualifies each retrieval hop through contro
 Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 
+\section{Experiments}
+\label{sec:experiments}
+
+% ============================================================
+%  Section 4.1  --  Experimental Setup
+% ============================================================
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\textbf{Dataset.}
+Our primary benchmark is \textbf{LVBench}~\cite{lvbench}, which contains 1{,}549 four-choice video QA questions over long-form videos.
+The system receives a video, a natural-language question, and four candidate answers, and it must return exactly one option.
+Failure to return a valid option is recorded as a failed-to-terminate (FTT) outcome.
+
 % ============================================================
 %  Main Comparison Table -- spans 4 benchmarks
 % ============================================================
 
 \begin{table*}[!tb]
   \centering
-  \caption{Main results on long-video understanding benchmarks.
-  LVBench~\cite{lvbench} and Video-MME (Long)~\cite{videomme2024} target hour-scale videos, LongVideoBench~\cite{longvideobench2024} covers medium-to-long durations, and EgoSchema~\cite{egoschema2023} evaluates egocentric temporal reasoning over 3-minute clips.
-  Methods are grouped into commercial VLMs, open-source VLMs, and video agents.}
+  \caption{Accuracy comparison on four long-video understanding benchmarks.
+  Methods are grouped by family, and results serve as reference comparisons because backbones and evaluation settings differ.}
   \label{tab:main_comparison}
-  \small
+  \footnotesize
+  \scalebox{0.82}{%
   \begin{tabular}{ll cccc}
     \toprule
     & & \textbf{LVBench} & \textbf{LongVideoBench} & \textbf{Video-MME} & \textbf{EgoSchema} \\
@@ -505,23 +519,9 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     SGDAgent
       & o3            & \textbf{75.9} & \textbf{74.0} & \textbf{69.0} & \textbf{77.4} \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}%
+  }
 \end{table*}
-
-\section{Experiments}
-\label{sec:experiments}
-
-% ============================================================
-%  Section 4.1  --  Experimental Setup
-% ============================================================
-
-\subsection{Experimental Setup}
-\label{sec:setup}
-
-\textbf{Dataset.}
-Our primary benchmark is \textbf{LVBench}~\cite{lvbench}, which contains 1{,}549 four-choice video QA questions over long-form videos.
-The system receives a video, a natural-language question, and four candidate answers, and it must return exactly one option.
-Failure to return a valid option is recorded as a failed-to-terminate (FTT) outcome.
 
 \textbf{Implementation details.}
 The reasoning backbone is \texttt{o4-mini} (temperature~0) with a maximum of 15 reasoning steps per question.
@@ -575,8 +575,8 @@ The upper block varies video-index composition and scene-graph hierarchy, while 
 
 \begin{table*}[!tb]
   \centering
-  \caption{Unified matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control strategies on LVBench.
-  FI denotes frame inspection, and call counts are per-question averages.}
+  \caption{Matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control on LVBench.
+  (FTT: failed-to-terminate. FI: frame inspection tool. Call counts are per-question averages.)}
   \label{tab:component_ablation}
   \footnotesize
   \setlength{\tabcolsep}{2.5pt}
@@ -660,8 +660,8 @@ The complete design therefore shifts computation from repeated local exploration
 \begin{figure*}[!tb]
   \centering
    \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
-  \caption{Case study from LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
-  SGDAgent's graph queries progressively narrow the candidates from the global event graph to segment-level and frame-level graphs, guiding a single focused visual inspection to the correct answer.}
+  \caption{Case study on LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
+  Coarse-to-fine scene graph retrieval narrows candidates from events to segments and frames, followed by one visual inspection that confirms the answer.}
   \label{fig:trajectory}
 \end{figure*}
 
