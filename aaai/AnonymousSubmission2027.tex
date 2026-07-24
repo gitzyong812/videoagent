@@ -134,7 +134,7 @@
 
 \begin{abstract}
 Long-form video understanding must locate sparse evidence and reason over long-range spatio-temporal interactions under lossy sampling and limited context.
-Recent agentic approaches build searchable caption databases for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
+Recent agentic approaches build searchable caption as video indexes for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
 We propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
 Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
 Experiments across four benchmarks demonstrate substantial improvements: SGDAgent achieves +18.2\,pp accuracy gain on LVBench with matched settings, and the structured graph index enables lighter backbones to match stronger baselines.
@@ -158,7 +158,7 @@ Agent trajectory analysis further shows that the gains arise from converting ope
 % - Para 2: Current approaches and their limitations -
 
 Long-form video understanding requires semantic analysis and reasoning over hour-scale videos and poses three fundamental challenges: \emph{incomplete coverage} from lossy frame sampling, \emph{imprecise reasoning} over long-range spatio-temporal entity interactions that flat embeddings or text fail to capture, and \emph{imprecise localization} of brief or cross-segment evidence buried in background noise.
-Recent agentic video reasoning approaches~\cite{deepvideo2025,videoagent,drvideo2025} convert videos into caption-centric databases and let LLMs iteratively query them.
+Recent agentic video reasoning approaches~\cite{deepvideo2025,videoagent,drvideo2025} convert videos into caption-centric indexes and let LLMs iteratively query them.
 Yet \emph{the evidence space remains fundamentally unstructured}: flat text and visual embeddings cannot represent high-order spatio-temporal semantics or support traceable retrieval.
 Advances in multi-round retrieval~\cite{videoagent}, grounding-verification pipelines~\cite{videomind}, and multi-granularity toolkits~\cite{videoseek} improve \emph{how the agent searches} without restructuring \emph{what it searches over}.
 
@@ -182,7 +182,7 @@ SGDAgent therefore separates structured localization from visual confirmation wi
 % - Para 5: Results -
 
 These designs yield substantial gains under controlled settings.
-On LVBench~\cite{lvbench}, augmenting the caption database with the three-level graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
+On LVBench~\cite{lvbench}, augmenting the caption index with the three-level graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
 Adding the routing, confidence-gating, and terminal-convergence strategies further raises end-to-end accuracy to 73.0\%, increases the answer rate from 83.5\% to 98.4\%, and reduces the failed-to-terminate (FTT) rate from 16.5\% to 1.6\%.
 Across four benchmarks, SGDAgent with the lighter \texttt{o4-mini} backbone approaches DVD~\cite{deepvideo2025} with the stronger \texttt{o3} backbone on LVBench and LongVideoBench~\cite{longvideobench2024}, although these cross-method results are reference comparisons rather than fully controlled experiments.
 Ablation and trajectory analyses show that segment-level graphs improve candidate discovery, event-level graphs reduce search cost, and the control strategies improve answer quality and convergence.
@@ -236,18 +236,18 @@ SGDAgent complements these approaches with a scene graph hierarchy that proposes
 
 
 This section introduces the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which uses a \emph{hierarchical scene graph representation} to index multi-granular spatio-temporal video semantics and convert open-ended caption search into graph-anchored candidate verification.
-Section~\ref{sec:representation} first defines the \textbf{hierarchical scene graph representation}, which forms the augmented video database $D(V)=\{C(V),\;G^{f},\;G^{s},\;G^{g}\}$.
+Section~\ref{sec:representation} first defines the \textbf{hierarchical scene graph representation}, which forms the video index $D(V)=\{C(V),\;G^{f},\;G^{s},\;G^{g}\}$.
 Section~\ref{sec:construction} then presents the \textbf{bottom-up scene graph construction} that extracts and aggregates the three graph levels offline.
 Finally, Section~\ref{sec:agent} describes the \textbf{scene graph-driven agent}, which runs an observe-reason-act loop under a \emph{propose-verify-answer} paradigm.
 
 \subsection{Hierarchical Scene Graph Representation}
 \label{sec:representation}
 
-SGDAgent organizes video knowledge as a caption database augmented with a three-level spatio-temporal scene graph index (Figure~\ref{fig:graph}(c)):
+SGDAgent organizes video knowledge as a video index comprising a caption index and a three-level spatio-temporal scene graph representation (Figure~\ref{fig:graph}(c)):
 \begin{equation}
   D(V) = \bigl\{C(V),\; G^{f},\; G^{s},\; G^{g}\bigr\},
 \end{equation}
-Here, $C(V)$ is the caption database for open semantic retrieval, $G^{f}=\{G_i^{f}\}_{i=1}^{N}$ is the frame-level graph sequence, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$ is the segment-level graph sequence, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ is the global event graph with event nodes $V^{g}$ and edges $\mathcal{E}^{g}$.
+Here, $C(V)$ is the caption index for open semantic retrieval, $G^{f}=\{G_i^{f}\}_{i=1}^{N}$ is the frame-level graph sequence, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$ is the segment-level graph sequence, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ is the global event graph with event nodes $V^{g}$ and edges $\mathcal{E}^{g}$.
 All three levels share a video-level entity registry $E^{\mathrm{video}}$, in which each entry stores a unique ID, entity type, attributes, description, and temporal span from first to last appearance.
 The registry therefore provides a cross-scale identity anchor.
 
@@ -316,7 +316,7 @@ At the event level, confidence and uncertainty estimates are attached to nodes f
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
-  \caption{Scene graph-driven agent. A long video is converted into a scene-graph-augmented database containing global-, segment-, and frame-level graphs alongside a caption database. An adaptive reasoning agent searches this database through a propose-verify tool chain within an observe-reason-act loop.}
+  \caption{Scene graph-driven agent. A long video is converted into a video index comprising global-, segment-, and frame-level graphs and a caption index. An adaptive reasoning agent searches this index through a propose-verify tool chain within an observe-reason-act loop.}
   \label{fig:mechanism}
 \end{figure*}
 
@@ -326,7 +326,7 @@ At the event level, confidence and uncertainty estimates are attached to nodes f
   \label{alg:search}
   \begin{algorithmic}[1]
   \footnotesize
-  \REQUIRE Database $D(V)=\{C(V), G^f, G^s, G^g\}$, query $q$,
+  \REQUIRE Video index $D(V)=\{C(V), G^f, G^s, G^g\}$, query $q$,
     budget $T$
   \ENSURE Answer $\hat{a}$
   \STATE $H \leftarrow \textsc{InitState}(q)$
@@ -427,7 +427,7 @@ The returned entities and relations remain candidate evidence and cannot serve a
 $FI$ is the only action that returns to raw pixels.
 It consumes a graph-proposed time window, uniformly samples frames within it, and performs question-conditioned visual QA over those frames.
 The resulting evidence is bound to a narrow, graph-localized region and can support the final answer.
-$CB$ instead queries an embedding-indexed caption database and returns a dense natural-language summary of matching clips when the graph index lacks the surface form used by a question.
+$CB$ instead queries the embedding-based caption index and returns a dense natural-language summary of matching clips when the graph index lacks the surface form used by a question.
 Caption backoff supplements candidate discovery but does not validate the correctness of graph-derived claims.
 
 \emph{Controller-signal routing.}\quad
@@ -523,9 +523,9 @@ Frame-level scene graphs (Stage~1) are extracted by prompting \texttt{gpt-4.1} o
 Segment-level graphs (Stage~2) use 30-second sliding windows with 5-second overlap.
 Local visual verification is performed by \texttt{gpt-4.1-mini}, with a budget of 50~frames per \texttt{frame\_inspect} call.
 Graph retrieval returns at most 5 event-level, 6 segment-level, and 8 frame-level candidates.
-Building the graph database for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while Stage~3 event construction takes approximately 121 seconds.
-The database is constructed once and reused across all questions.
-To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, video database, candidate answer set, and budget limits.
+Building the scene graph index for all 103 LVBench videos takes approximately 7.94 hours of wall-clock time with four parallel workers, while Stage~3 event construction takes approximately 121 seconds.
+The video index is constructed once and reused across all questions.
+To ensure a fair matched-setting comparison, all internally compared methods share the same reasoning backbone, frame-inspection VLM, caption source, video index, candidate answer set, and budget limits.
 All methods are permitted to produce FTT outcomes.
 
 \textbf{Evaluation metrics.}
@@ -571,8 +571,8 @@ To isolate the contribution of each component under controlled conditions, Table
   \end{tabular*}
 \end{table}
 
-\textbf{Effect of graph-augmented database.}
-Combining the caption database with the scene graph index (SGDAgent-base) raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
+\textbf{Effect of graph augmentation.}
+Combining the caption index with the scene graph index (SGDAgent-base) raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
 The full system adds the control strategies and reaches 73.0\% end-to-end accuracy with a 98.4\% answer rate.
 Using scene graphs alone (\emph{SG only}) is weaker than the combined configuration: its end-to-end accuracy exceeds caption-only by 3.2 points, and its answered accuracy of 69.1\% remains below the 72.2\% of SGDAgent-base.
 The gain therefore comes from a complementary combination in which captions preserve broad semantic coverage and graphs contract the search space into candidate regions for visual verification.
@@ -627,7 +627,7 @@ Stage~3 therefore contributes primarily as an efficiency layer rather than an ac
 \begin{table}[!tb]
   \centering
   \caption{Effect of control strategies.
-  SGDAgent-base uses the graph-augmented database with all three graph levels but no control strategies.}
+  SGDAgent-base uses the graph-augmented video index with all three graph levels but no control strategies.}
   \label{tab:strategy}
   \small
   \setlength{\tabcolsep}{3pt}
@@ -727,7 +727,7 @@ This demonstrates that gains stem from restructuring search itself rather than f
 
 \section{Conclusion}
 
-This paper presents SGDAgent, which restructures long-form video understanding by augmenting caption databases with hierarchical spatio-temporal scene graphs.
+This paper presents SGDAgent, which restructures long-form video understanding through a video index that combines captions with hierarchical spatio-temporal scene graphs.
 Its core components are a three-level scene graph representation connected through a shared entity registry, a bottom-up construction pipeline, and a graph-driven agent that follows the propose-verify-answer paradigm.
 Under matched LVBench settings~\cite{lvbench}, augmenting captions with the graph index raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
 The routing, confidence-gating, and terminal-convergence strategies further raise end-to-end accuracy to 73.0\% and the answer rate to 98.4\%.
