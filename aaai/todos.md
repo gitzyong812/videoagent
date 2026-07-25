@@ -106,6 +106,9 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] 关键模型分工和构建时间已加入 Implementation Details，低层参数已按篇幅要求移除。
 - [x] 正文已停止使用 Stage 1–3，并明确 `GR / SR / FR` 与三个图层的对应关系。
 - [x] Caption index 已说明沿用 DVD 的构建和 embedding-based retrieval 设置，案例中的 `GB` 已统一为 `CB`。
+- [x] 指标定义、FTT 关系和基于原始计数的一位小数舍入规则已补齐。
+- [x] Caption backoff、三个正式图层名称及 visual verification 与 frame inspection 的层级关系已统一。
+- [x] EGAgent BibTeX 已按 ACL Anthology 补齐页码、完整会议名、publisher、URL 和 DOI。
 
 - [ ] **补齐 o3 runs 的实现配置。**
   - Implementation Details 只定义了 o4-mini。
@@ -135,24 +138,11 @@ The following tasks remain deferred or incomplete in the current revision.
   - 当前只有一个 case study，不能证明 gains 的来源。
   - 性能归因应来自 matched ablation，trajectory case 只能 illustrate 机制。
 
-- [ ] **补齐指标定义和舍入规则。**
-  - 应明确 `e2e_acc = correct / all`、`ans_acc = correct / answered`、`answer rate = answered / all` 和 `answer rate = 1 - FTT`。
-  - 各百分比应注明从原始计数独立计算并保留一位小数。
-
 - [ ] **补齐关键方法定义。**
   - 说明 `S_lex + S_soft + S_temp` 的归一化或权重。
   - 给出 weak-match、localize-only、controller signals 和 confidence threshold 的最小定义。
   - Entity registry 的正式字段缺少 alignment 使用的 `name`。
   - Global event node tuple 缺少 Quality Control 中声称保留的 confidence 和 uncertainty。
-
-- [ ] **统一剩余术语。**
-  - `caption fallback` 与 `caption backoff` 尚未完全统一。
-  - `frame-segment-event scene graph` 应统一为三个正式图层名称。
-  - `visual verification`、`frame inspection` 和结尾的 `pixel-level verification` 需要明确层级关系。
-
-- [ ] **补齐 EGAgent 的 BibTeX 元数据。**
-  - 应补充 pages `46575--46602`、完整 booktitle、publisher、URL 和 DOI `10.18653/v1/2026.acl-long.2161`。
-  - 来源：[ACL Anthology](https://aclanthology.org/2026.acl-long.2161/)。
 
 ### P1：图文问题清单
 
