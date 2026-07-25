@@ -423,39 +423,43 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     \midrule
     \multicolumn{6}{l}{\textit{Commercial VLMs}} \\
     Gemini-1.5-Pro~\cite{gemini15}
-      & Gemini        & 33.1 & 64.0 & 58.6 & -   \\
+      & Gemini        & 33.1 & 64.0 & 67.4 & -   \\
+    Gemini-2.0-Flash~\cite{gemini15}
+      & Gemini        & 48.3 & - & 63.0 & 71.2   \\
     GPT-4o~\cite{gpt4o}
-      & GPT-4o        & 48.9 & 66.7 & 60.9 & 70.4 \\
+      & GPT-4o        & 48.9 & 66.7 & 65.3 & 70.4 \\
     OpenAI o3~\cite{o3}
-      & o3            & 57.1 & 67.5 & 60.6 & 63.2 \\
+      & o3            & 57.1 & 67.5 & 64.7 & 63.2 \\
     Gemini-2.5-Pro~\cite{gemini25}
       & Gemini        & 67.4 & -   & -   & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Open-Source VLMs}} \\
+    % mPLUG-Owl3~\cite{} & 78B           & 43.5 & 59.8 & 50.1  & -   \\
+    InternVL2.5-78B~\cite{internvl}
+      & 78B           & 43.6 & 63.6 & 62.6  & -   \\
+    % AdaRETAKE~\cite{} & 72B           & 53.3 & 67.0 & 65.0 & -   \\
     Qwen2.5-VL-72B~\cite{qwen}
       & 72B           & 47.7 & 60.7 & -   & -   \\
-    InternVL2.5-78B~\cite{internvl}
-      & 78B           & 43.6 & 63.6 & -   & -   \\
     Seed1.5-VL-Thinking~\cite{seed}
-      & Seed-VL       & 64.6 & -   & -   & -   \\
+      & Seed-VL       & 64.6 & -   & 63.9  & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Video Agents}} \\
     VideoAgent~\cite{videoagent}
       & -            & 29.3 & -   & -   & 63.2 \\
-    MR.~Video~\cite{mrvideo}
-      & Gemini-Flash  & 60.8 & -   & 61.8 & 73.0 \\
     VideoMind~\cite{videomind}
       & 7B            & 40.8 & -   & -   & -   \\
+    MR.~Video~\cite{mrvideo}
+      & Gemini-Flash  & 60.8 & -   & 61.8 & 73.0 \\
     VideoSeek~\cite{videoseek}
       & GPT-5         & 68.4 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
-      & o4-mini       & 70.2 & -   & -   & -   \\
+      & o4-mini (reasoning) / o3 (tool)      & 70.2 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
       & o3            & 74.2 & 71.6 & 67.3 & 76.6 \\
     \midrule
     \multicolumn{6}{l}{\textit{Ours}} \\
     SGDAgent
-      & o4-mini       & 73.0 & 71.2 & 65.1 & 73.9 \\
+      & o4-mini (reasoning) / o3 (tool)      & 73.0 & 71.2 & 65.1 & 73.9 \\
     SGDAgent
       & o3            & \textbf{75.9} & \textbf{74.0} & \textbf{69.0} & \textbf{77.4} \\
     \bottomrule
