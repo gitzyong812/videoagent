@@ -64,9 +64,6 @@ The following tasks remain deferred or incomplete in the current revision.
   - Algorithm 1 将 `ConfidenceGate` 整体标为 CG。
   - 关闭 CG 后如何继续保证 graph claim 经过 `FI` 尚未定义。
 
-- [ ] **Algorithm 1 没有定义 R、CG 和 T 关闭后的基础流程。**
-  - 算法当前无条件执行三项策略，但 Table 2 将它们作为独立开关。
-  - 需要补充无 R 的 action selection、无 CG 的 finish rule 和无 T 的 budget exhaustion 行为。
 
 - [ ] **Strategy R 直接调用 FI 时没有合法窗口。**
   - `FrameInspect` 接口需要 `window`，正文还称其检查 graph-proposed window。
@@ -87,7 +84,7 @@ The following tasks remain deferred or incomplete in the current revision.
   - Figure 1–2 的 Helvetica、Times 和 Courier 字体没有嵌入最终 PDF。
   - Figure 3 的绝大部分内部文字缩放后低于 9pt。
 
-- [ ] **存在两个不触发 undefined warning 的空 Section 引用。**
+- [x] **存在两个不触发 undefined warning 的空 Section 引用。**
   - `AnonymousSubmission2027.tex:406` 渲染为 `Section evaluates ...`。
   - `AnonymousSubmission2027.tex:578` 渲染为 `in Section.`。
   - 应直接写 `the Ablation Study`，不要修改 AAAI 模板设置。

@@ -403,7 +403,6 @@ As shown in Algorithm~\ref{alg:search}, controller signals encode match quality,
 \textbf{Strategy~CG} (confidence gating) prevents answering under \emph{localize-only} or \emph{weak-match} signals, sends coarse candidates to narrow-window visual inspection, and redirects weak graph results to $CB$ when appropriate.
 The finish gate accepts graph-derived claims only when supported by qualified $FI$ evidence.
 \textbf{Strategy~T} (terminal convergence) returns the best-supported option from the accumulated trace when the step budget $B$ is exhausted, reducing FTT outcomes.
-Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 \begin{table*}[!tb]
   \centering
@@ -574,8 +573,7 @@ We therefore inspect a small subset and find that salient entities, relations, a
 \label{sec:results}
 
 Table~\ref{tab:main_comparison} reports our SGDAgent runs on four benchmarks alongside published results.
-Cross-method comparisons are for reference because settings differ, while component attribution relies on the matched LVBench ablations in Section~\ref{sec:ablation}.
-
+Cross-method comparisons are for reference because settings differ, while component attribution relies on the matched LVBench ablations.
 With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
 These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} reasoning model.
 Our \texttt{o3} runs achieve 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
@@ -587,8 +585,6 @@ These reference positions are consistent with the matched-setting finding that s
 % ============================================================
 
 \subsection{Ablation Study}
-\label{sec:ablation}
-
 
 Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
 All configurations share the same reasoning model, candidate answers, and budget.
