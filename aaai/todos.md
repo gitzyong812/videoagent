@@ -32,15 +32,13 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] DVD 的 Video-MME `67.3` 和 EgoSchema `76.6` 已修正，旧的 `68.6 / 78.0` 不再错误用于这两列。
 - [x] Abstract、Main Results 和 Conclusion 已将 graph index 与 control strategies 的端到端收益拆分为 `54.8 → 64.4 → 73.0`。
 
-- [ ] **Table 1 的 Video-MME 基线数据错位。**
-  - Gemini-1.5-Pro、GPT-4o 和 OpenAI o3 当前的 `58.6 / 60.9 / 60.6` 实为 LongVideoBench `Val, Long` 数据。
-  - Video-MME `Long, w/o sub` 应核为 `67.4 / 65.3 / 64.7`。
-  - InternVL2.5 和 Qwen2.5-VL 在同一来源中的 Video-MME 数据为 `62.6 / 63.9`，需要统一补齐或留空规则。
+- [x] **Table 1 的 Video-MME 基线数据错位已修复。**
+  - Gemini-1.5-Pro、GPT-4o 和 OpenAI o3 已修正为 Video-MME `Long, w/o sub` 的 `67.4 / 65.3 / 64.7`。
+  - InternVL2.5 和 Seed1.5-VL-Thinking 已补入同一来源中的 `62.6 / 63.9`，其余未报告结果统一留空。
   - 来源：[DVD 原论文 Table 3](https://papers.neurips.cc/paper_files/paper/2025/file/8190b210e9808e54ee16263b673a847d-Paper-Conference.pdf)。
 
-- [ ] **Table 1 的 `DVD, o4-mini, 70.2` 配置标注错误。**
-  - `70.2` 来自 DVD Table 4 的 `LVBench w/ transcripts`。
-  - 该设置的 reasoning model 是 o4-mini，但 Frame Inspect 使用 o3，不能仅标为普通 `o4-mini, LVBench full`。
+- [x] **Table 1 的 `DVD, o4-mini, 70.2` 配置标注已修复。**
+  - 该行已标明 `w/ transcripts`，并将模型配置写为 o4-mini reasoning 与 o3 frame inspection。
 
 - [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
   - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
@@ -119,7 +117,7 @@ The following tasks remain deferred or incomplete in the current revision.
 
 - [ ] **补齐 o3 runs 的实现配置。**
   - Implementation Details 只定义了 o4-mini。
-  - 需要说明 o3 是否仅替换 reasoning backbone，以及其他组件是否完全相同。
+  - 需要说明 o3 是否仅替换 reasoning model，以及其他组件是否完全相同。
 
 - [ ] **澄清 `7.94 hours` 和 `121 seconds` 的统计范围。**
   - 当前主文没有说明它们是 103 个 LVBench 视频的总 wall-clock time，还是单视频时间。

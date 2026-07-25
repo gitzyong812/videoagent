@@ -139,7 +139,7 @@ Long-form video understanding must locate sparse evidence and reason over long-r
 Recent agentic approaches build video captions into searchable indexes for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
 We propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
 Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
-Across four benchmarks, SGDAgent remains competitive with stronger-backbone baselines.
+Across four benchmarks, SGDAgent remains competitive with baselines using stronger reasoning models.
 Under matched LVBench settings, adding the scene-graph hierarchy to the caption index raises end-to-end accuracy from 54.8\% to 64.4\%, and the three control strategies further raise it to 73.0\%.
 Agent trajectory analysis further shows that the gains arise from converting open retrieval into graph-anchored candidate verification.
 \end{abstract}
@@ -187,7 +187,7 @@ SGDAgent therefore separates structured localization from visual confirmation wi
 These designs yield substantial gains under controlled settings.
 On LVBench~\cite{lvbench}, augmenting the caption index with the scene-graph hierarchy raises end-to-end accuracy from 54.8\% to 64.4\% and answered accuracy from 65.7\% to 72.2\%.
 Adding the routing, confidence-gating, and terminal-convergence strategies further raises end-to-end accuracy to 73.0\%, increases the answer rate from 83.5\% to 98.4\%, and reduces the failed-to-terminate (FTT) rate from 16.5\% to 1.6\%.
-Across four benchmarks, SGDAgent with the lighter \texttt{o4-mini} backbone approaches DVD~\cite{deepvideo2025} with the stronger \texttt{o3} backbone on LVBench and LongVideoBench~\cite{longvideobench2024}, although these cross-method results are reference comparisons rather than fully controlled experiments.
+Across four benchmarks, SGDAgent with the lighter \texttt{o4-mini} reasoning model approaches DVD~\cite{deepvideo2025} with the stronger \texttt{o3} reasoning model on LVBench and LongVideoBench~\cite{longvideobench2024}, although these cross-method results are reference comparisons rather than fully controlled experiments.
 Ablation and trajectory analyses show that frame-level and segment-level graphs progressively improve candidate discovery, the global event graph primarily reduces search cost, and the control strategies improve answer quality and convergence.
 
 % - Para 6: Contributions -
@@ -408,14 +408,14 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 \begin{table*}[!tb]
   \centering
   \caption{Accuracy comparison on four long-video understanding benchmarks.
-  Methods are grouped by family, and results serve as reference comparisons because backbones and evaluation settings differ.}
+  Methods are grouped by family, and results serve as reference comparisons because model setups and evaluation settings differ.}
   \label{tab:main_comparison}
-  \footnotesize
-  \scalebox{0.82}{%
+  \small
+  \scalebox{0.88}{%
   \begin{tabular}{ll cccc}
     \toprule
     & & \textbf{LVBench} & \textbf{LongVideoBench} & \textbf{Video-MME} & \textbf{EgoSchema} \\
-    \textbf{Method} & \textbf{Backbone}
+    \textbf{Method} & \textbf{Model setup}
     & \textit{full}
     & \textit{Val, overall}
     & \textit{Long, w/o sub}
@@ -423,33 +423,33 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     \midrule
     \multicolumn{6}{l}{\textit{Commercial VLMs}} \\
     Gemini-1.5-Pro~\cite{gemini15}
-      & Gemini        & 33.1 & 64.0 & 67.4 & -   \\
+      & -             & 33.1 & 64.0 & 67.4 & -   \\
     Gemini-2.0-Flash~\cite{gemini15}
-      & Gemini        & 48.3 & - & 63.0 & 71.2   \\
+      & -             & 48.3 & - & 63.0 & 71.2   \\
     GPT-4o~\cite{gpt4o}
-      & GPT-4o        & 48.9 & 66.7 & 65.3 & 70.4 \\
+      & -             & 48.9 & 66.7 & 65.3 & 70.4 \\
     OpenAI o3~\cite{o3}
-      & o3            & 57.1 & 67.5 & 64.7 & 63.2 \\
+      & -             & 57.1 & 67.5 & 64.7 & 63.2 \\
     Gemini-2.5-Pro~\cite{gemini25}
-      & Gemini        & 67.4 & -   & -   & -   \\
+      & -             & 67.4 & -   & -   & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Open-Source VLMs}} \\
     % mPLUG-Owl3~\cite{} & 78B           & 43.5 & 59.8 & 50.1  & -   \\
     InternVL2.5-78B~\cite{internvl}
-      & 78B           & 43.6 & 63.6 & 62.6  & -   \\
+      & -             & 43.6 & 63.6 & 62.6  & -   \\
     % AdaRETAKE~\cite{} & 72B           & 53.3 & 67.0 & 65.0 & -   \\
     Qwen2.5-VL-72B~\cite{qwen}
-      & 72B           & 47.7 & 60.7 & -   & -   \\
+      & -             & 47.7 & 60.7 & -   & -   \\
     Seed1.5-VL-Thinking~\cite{seed}
-      & Seed-VL       & 64.6 & -   & 63.9  & -   \\
+      & -             & 64.6 & -   & 63.9  & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Video Agents}} \\
     VideoAgent~\cite{videoagent}
       & -            & 29.3 & -   & -   & 63.2 \\
     VideoMind~\cite{videomind}
-      & 7B            & 40.8 & -   & -   & -   \\
+      & 7B model      & 40.8 & -   & -   & -   \\
     MR.~Video~\cite{mrvideo}
-      & Gemini-Flash  & 60.8 & -   & 61.8 & 73.0 \\
+      & Gemini Flash  & 60.8 & -   & 61.8 & 73.0 \\
     VideoSeek~\cite{videoseek}
       & GPT-5         & 68.4 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
@@ -561,7 +561,7 @@ Global event clustering uses a maximum temporal gap of 12~seconds, relation- and
 Visual verification uses \texttt{gpt-4.1-mini} with at most 50~frames per call, while $GR$, $SR$, and $FR$ return up to 5, 6, and 8 candidates, respectively.
 Building the LVBench scene graph index takes about 7.94 hours with four workers, including about 121 seconds for global event graph construction.
 The video index is constructed once and reused across all questions.
-Matched LVBench configurations share the backbone, frame-inspection VLM, captions, answer choices, and budgets, varying only index composition, scene-graph hierarchy, and agent control.
+Matched LVBench configurations share the reasoning model, frame-inspection VLM, captions, answer choices, and budgets, varying only index composition, scene-graph hierarchy, and agent control.
 
 \textbf{Evaluation metrics.}
 We report end-to-end accuracy over all questions, answered accuracy, answer rate, and failed-to-terminate (FTT) rate.
@@ -582,10 +582,10 @@ Table~\ref{tab:main_comparison} reports our SGDAgent runs on four benchmarks alo
 Cross-method comparisons are for reference because settings differ, while component attribution relies on the matched LVBench ablations in Section~\ref{sec:ablation}.
 
 With \texttt{o4-mini}, SGDAgent achieves 73.0\% on LVBench and 71.2\% on LongVideoBench.
-These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} backbone.
+These results approach the reported DVD~\cite{deepvideo2025} scores of 74.2\% and 71.6\%, respectively, obtained with the stronger \texttt{o3} reasoning model.
 Our \texttt{o3} runs achieve 75.9\% on LVBench, 74.0\% on LongVideoBench, 69.0\% on Video-MME Long~\cite{videomme2024}, and 77.4\% on EgoSchema~\cite{egoschema2023}.
 The corresponding DVD results are 74.2\%, 71.6\%, 67.3\%, and 76.6\%.
-These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning backbone, but they are not used to isolate the source of the gain.
+These reference positions are consistent with the matched-setting finding that structured candidate proposal can complement the reasoning model, but they are not used to isolate the source of the gain.
 
 % ============================================================
 %  Section 4.3  --  Ablation Study
@@ -596,7 +596,7 @@ These reference positions are consistent with the matched-setting finding that s
 
 
 Table~\ref{tab:component_ablation} isolates the effects of video-index composition, scene-graph hierarchy, and agent control under matched LVBench settings.
-All configurations share the same backbone, candidate answers, and budget.
+All configurations share the same reasoning model, candidate answers, and budget.
 We denote the caption-only baseline by \emph{Base} and the complete-index configuration without agent control by \mbox{\emph{SGDAgent}\textsuperscript{0}}.
 \emph{Base} superscripts list index components, \emph{SGDAgent} superscripts list control strategies, and the plain name denotes the full system.
 
@@ -656,7 +656,7 @@ This trajectory supports the ablation finding that the hierarchy improves reason
 \section{Conclusion}
 
 SGDAgent combines captions with hierarchical spatio-temporal scene graphs to localize candidates and verifies them through targeted visual inspection.
-Across four benchmarks, it remains competitive with agents using stronger reasoning backbones.
+Across four benchmarks, it remains competitive with agents using stronger reasoning models.
 On matched LVBench settings~\cite{lvbench}, the graph index raises end-to-end accuracy from 54.8\% to 64.4\%, and agent control further raises it to 73.0\%.
 Ablations show that frame-level and segment-level graphs improve candidate discovery, while the global event graph primarily reduces search cost.
 
