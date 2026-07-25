@@ -473,46 +473,48 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 \begin{table*}[!tb]
   \centering
-  \label{tab:component_ablation}
-  \footnotesize
-  \setlength{\tabcolsep}{2.5pt}
-  \renewcommand{\arraystretch}{1.12}
-  \resizebox{\textwidth}{!}{%
-  \begin{tabular}{l|cccccccc|cccccc}
-    \hline
-    \multirow{2}{*}{Configuration} &
-    \multirow{2}{*}{\shortstack{Caption\\index (C)}} &
-    \multicolumn{3}{c}{Scene-graph hierarchy} &
-    {} &
-    \multicolumn{3}{c|}{Agent control strategies} &
-    \multirow{2}{*}{\shortstack{End-to-end\\accuracy ($\uparrow$)}} &
-    \multirow{2}{*}{\shortstack{Answered\\accuracy ($\uparrow$)}} &
-    \multirow{2}{*}{\shortstack{Answer\\rate ($\uparrow$)}} &
-    \multirow{2}{*}{\shortstack{FTT\\rate ($\downarrow$)}} &
-    \multirow{2}{*}{\shortstack{Avg. LLM\\calls ($\downarrow$)}} &
-    \multirow{2}{*}{\shortstack{Avg. FI\\calls ($\downarrow$)}} \\
-    \cline{3-5}\cline{7-9}
-    & & F & S & G &
-    \rule{0pt}{5.0ex} & R & CG & T & & & & & & \\
-    \hline
-    \emph{Base}       & $\checkmark$ &              &              &              & {} &              &              &              & 54.8\% & 65.7\% & 83.5\% & 16.5\% & 3.7  & 1.1 \\
-    \emph{Base}\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              & {} &              &              &              & 59.2\% & 69.0\% & 85.8\% & 14.2\% & 4.9  & 2.4 \\
-    \emph{Base}\textsuperscript{C+F+S} & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & {} &              &              &              & 62.8\% & 72.0\% & 87.2\% & 12.8\% & 9.6  & 5.1 \\
-    \emph{Base}\textsuperscript{F+S+G}            &              & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 58.0\% & 69.1\% & 83.9\% & 16.1\% & 4.4 & 1.6 \\
-
-    \emph{SGDAgent}\textsuperscript{0} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} &              &              &              & 64.4\% & 72.2\% & 89.2\% & 10.8\% & \textbf{2.9}  & 1.4 \\
-    \hline
-    \emph{SGDAgent}\textsuperscript{R} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              &              & 69.5\% & \textbf{75.1\%} & 92.6\% & 7.4\% & 3.0 & 1.3 \\
-    \emph{SGDAgent}\textsuperscript{R+CG} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ &              & 70.7\% & 74.6\% & 94.8\% & 5.2\% & 3.5 & 1.4 \\
-    \emph{SGDAgent}\textsuperscript{R+T} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ &              & $\checkmark$ & 70.8\% & 74.1\% & 95.6\% & 4.4\% & 3.1 & 1.2 \\
-    \hline
-    \emph{SGDAgent} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & {} & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0\%} & 74.2\% & \textbf{98.4\%} & \textbf{1.6\%}  & 3.4  & \textbf{1.0} \\
-    \hline
-  \end{tabular}%
-  }
+  \small
+  \setlength{\tabcolsep}{2pt}
+  \renewcommand{\arraystretch}{1.10}
+  \begin{tabular}{@{}lc ccc@{\hspace{6pt}}ccc@{\hspace{6pt}}cccccc@{}}
+    \toprule
+    \multirow{2}{*}{\textbf{Configuration}} &
+    \multirow{2}{*}{\shortstack{\textbf{Caption}\\\textbf{(C)}}} &
+    \multicolumn{3}{c}{\shortstack{\textbf{Scene-graph}\\\textbf{hierarchy}}} &
+    \multicolumn{3}{c}{\shortstack{\textbf{Agent control}\\\textbf{strategies}}} &
+    \multicolumn{6}{c}{\shortstack{\textbf{Metrics}\\\strut}} \\
+    \cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(l){9-14}
+    & &
+    \makebox[0.18in][c]{\textbf{F}} &
+    \makebox[0.18in][c]{\textbf{S}} &
+    \makebox[0.18in][c]{\textbf{G}} &
+    \makebox[0.18in][c]{\textbf{R}} &
+    \makebox[0.18in][c]{\textbf{CG}} &
+    \makebox[0.18in][c]{\textbf{T}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{End-to-end}\\\textbf{acc.}\textsuperscript{($\uparrow$)}}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{Answered}\\\textbf{acc.}\textsuperscript{($\uparrow$)}}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{Answer}\\\textbf{rate}\textsuperscript{($\uparrow$)}}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{FTT}\\\textbf{rate}\textsuperscript{($\downarrow$)}}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{Avg. LLM}\\\textbf{calls}\textsuperscript{($\downarrow$)}}} &
+    \makebox[0.60in][c]{\shortstack{\textbf{Avg. FI}\\\textbf{calls}\textsuperscript{($\downarrow$)}}} \\
+    \midrule
+    \emph{Base}       & $\checkmark$ &              &              &              &              &              &              & 54.8 & 65.7 & 83.5 & 16.5 & 3.7  & 1.1 \\
+    \emph{Base}\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              &              &              &              & 59.2 & 69.0 & 85.8 & 14.2 & 4.9  & 2.4 \\
+    \emph{Base}\textsuperscript{C+F+S} & $\checkmark$ & $\checkmark$ & $\checkmark$ &              &              &              &              & 62.8 & 72.0 & 87.2 & 12.8 & 9.6  & 5.1 \\
+    \emph{Base}\textsuperscript{F+S+G} &              & $\checkmark$ & $\checkmark$ & $\checkmark$ &              &              &              & 58.0 & 69.1 & 83.9 & 16.1 & 4.4 & 1.6 \\
+    \emph{SGDAgent}\textsuperscript{0} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ &              &              &              & 64.4 & 72.2 & 89.2 & 10.8 & \textbf{2.9}  & 1.4 \\
+    \midrule
+    \emph{SGDAgent}\textsuperscript{R} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ &              &              & 69.5 & \textbf{75.1} & 92.6 & 7.4 & 3.0 & 1.3 \\
+    \emph{SGDAgent}\textsuperscript{R+CG} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & 70.7 & 74.6 & 94.8 & 5.2 & 3.5 & 1.4 \\
+    \emph{SGDAgent}\textsuperscript{R+T} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ &              & $\checkmark$ & 70.8 & 74.1 & 95.6 & 4.4 & 3.1 & 1.2 \\
+    \midrule
+    \emph{SGDAgent} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0} & 74.2 & \textbf{98.4} & \textbf{1.6}  & 3.4  & \textbf{1.0} \\
+    \bottomrule
+  \end{tabular}
   \caption{Matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control on LVBench.
   C denotes the caption index; F, S, and G denote frame-level, segment-level, and global event graphs; R, CG, and T denote query-type routing, confidence gating, and terminal convergence.
-  Accuracy and rate values are percentages; failed-to-terminate (FTT), large language model (LLM) and frame-inspection (FI) call counts are per-question averages.}
+  FTT denotes the failed-to-terminate rate; accuracy and rate values are percentages; large language model (LLM) and frame-inspection (FI) call counts are per-question averages.}
+  \label{tab:component_ablation}
 \end{table*}
 
 
