@@ -45,6 +45,9 @@ The following tasks remain deferred or incomplete in the current revision.
   - Table 2 使用缩写表头，并在表格下方的 caption 中统一解释。
   - 两张表的 caption 均已移至表格下方。
 
+- [x] **帧采样参数的矛盾表述已删除。**
+  - 正文不再同时声称“每 5 秒一帧”和“每视频最多 120 帧”，仅保留 frame-level graph extraction 的模型分工。
+
 - [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
   - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
   - `paper/sg_based_dvd.md:468–651` 记录的是 `GG → SG → SG → SG → GB → FI → FIN`。
@@ -73,10 +76,6 @@ The following tasks remain deferred or incomplete in the current revision.
   - 如果描述 `SGDAgent^0 → full SGDAgent`，answer rate 应为 `89.2 → 98.4`，FTT 应为 `10.8 → 1.6`。
   - 当前 `83.5 → 98.4` 和 `16.5 → 1.6` 是 `Base → full SGDAgent` 的总变化。
 
-- [ ] **“每 5 秒一帧、每视频最多 120 帧、全视频均匀采样”无法同时成立。**
-  - 120 帧按 5 秒间隔最多覆盖 10 分钟，无法解释小时级视频和 24 分钟后的案例证据。
-  - 需要确认实际采用截断还是在完整视频上均匀取最多 120 帧。
-
 - [ ] **技术内容仍进入第 8 页。**
   - 当前 PDF 共 9 页，第 8 页同时包含 Conclusion 和 References。
 
@@ -104,13 +103,9 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] Table 2 所有行均满足 `answer rate + FTT = 100.0%`。
 - [x] Table 2 所有行均满足 `e2e_acc ≈ ans_acc × answer rate`，差异仅来自独立舍入。
 - [x] Table 2 的箭头方向和每列粗体最佳值均正确。
-- [x] Entity alignment 权重、阈值、segment window、event gap、构建时间和候选返回数量已加入 Implementation Details。
+- [x] 关键模型分工和构建时间已加入 Implementation Details，低层参数已按篇幅要求移除。
 - [x] 正文已停止使用 Stage 1–3，并明确 `GR / SR / FR` 与三个图层的对应关系。
-
-- [ ] **补齐 caption index 的构建和检索定义。**
-  - 当前没有说明 caption 模型、采样方式、embedding 模型和检索方式。
-  - 案例中的 Global Browse `GB` 不在工具集合中，也没有说明它与 `CB` 的关系。
-  - 如果仍复用 DVD captions，应在正文或 supplementary 中明确说明。
+- [x] Caption index 已说明沿用 DVD 的构建和 embedding-based retrieval 设置，案例中的 `GB` 已统一为 `CB`。
 
 - [ ] **补齐 o3 runs 的实现配置。**
   - Implementation Details 只定义了 o4-mini。

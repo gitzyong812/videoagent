@@ -548,13 +548,14 @@ LVBench, which contains 1{,}549 questions over 103 long videos, is additionally 
 
 
 \textbf{Implementation details.}
-We use \texttt{o4-mini} at temperature~0 with at most 15 reasoning steps, while \texttt{gpt-4.1} extracts frame-level graphs from one frame every 5~seconds, up to 120 per video.
+We use \texttt{o4-mini} as the reasoning model and \texttt{gpt-4.1} for frame-level graph extraction.
 Entity alignment weights name, description, and type similarity by 0.7, 0.2, and 0.1, respectively, with a merge threshold of 0.78.
 Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
 Global event clustering uses a maximum temporal gap of 12~seconds, relation- and predicate-overlap thresholds of 0.18 and 0.22, and shared entities as an additional merge cue.
 Visual verification uses \texttt{gpt-4.1-mini} with at most 50~frames per call, while $GR$, $SR$, and $FR$ return up to 5, 6, and 8 candidates, respectively.
 Building the LVBench scene graph index takes about 7.94 hours with four workers, including about 121 seconds for global event graph construction.
 The video index is constructed once and reused across all questions.
+As for caption index, we follow DVD~\cite{deepvideo2025} construction and embedding-based retrieval protocol for fair comparison.
 Matched LVBench configurations share the reasoning model, frame-inspection VLM, captions, answer choices, and budgets, varying only index composition, scene-graph hierarchy, and agent control.
 
 \textbf{Evaluation metrics.}
@@ -631,7 +632,7 @@ Graph retrieval replaces broad caption exploration with coarse-to-fine candidate
 \textbf{Case study: escaping the frame-inspect trap.}\quad
 The question asks: ``Why does the man follow the woman in red after they meet for the third time?'' (correct answer: the woman has his book).
 The question is challenging because the agent must first locate a specific \emph{repeated event} within an hour-long video and then infer the \emph{motivation} behind the subsequent action from an object-possession relation.
-The caption-only \emph{Base} follows global browse (GB) over the caption index with five subsequent frame inspections, $\mathrm{GB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
+The caption-only \emph{Base} queries the caption index through $CB$ and performs five subsequent frame inspections, $\mathrm{CB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
 Without structured links among the participants, repeated encounter, and carried object, its broad inspections return fragmented evidence.
 This repeated-inspection failure is the \emph{frame-inspect trap}~\cite{deepvideo2025}.
 
