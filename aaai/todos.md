@@ -40,6 +40,11 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] **Table 1 的 `DVD, o4-mini, 70.2` 配置标注已修复。**
   - 该行已标明 `w/ transcripts`，并将模型配置写为 o4-mini reasoning 与 o3 frame inspection。
 
+- [x] **两张表的字号和 caption 已按 AAAI 规则修复。**
+  - 两张表均使用 `\small`，并已移除整体缩放和小于 9pt 的表头字号。
+  - Table 2 使用缩写表头，并在表格下方的 caption 中统一解释。
+  - 两张表的 caption 均已移至表格下方。
+
 - [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
   - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
   - `paper/sg_based_dvd.md:468–651` 记录的是 `GG → SG → SG → SG → GB → FI → FIN`。
@@ -77,11 +82,6 @@ The following tasks remain deferred or incomplete in the current revision.
 
 - [ ] **技术内容仍进入第 8 页。**
   - 当前 PDF 共 9 页，第 8 页同时包含 Conclusion 和 References。
-
-- [ ] **两张表不符合 AAAI 字号和 caption 规则。**
-  - Table 1 使用 `\footnotesize` 和 `\scalebox{0.82}`。
-  - Table 2 使用 `\footnotesize`、`\resizebox` 和 `\scriptsize` 表头。
-  - AuthorKit 要求表格至少 9pt，禁止整体缩放，并要求 table caption 位于表格下方。
 
 - [ ] **三张图的字体不符合 AAAI 要求。**
   - Figure 1–2 的 Helvetica、Times 和 Courier 字体没有嵌入最终 PDF。

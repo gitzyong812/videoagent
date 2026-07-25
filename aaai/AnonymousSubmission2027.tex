@@ -407,12 +407,9 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 \begin{table*}[!tb]
   \centering
-  \caption{Accuracy comparison on four long-video understanding benchmarks.
-  Methods are grouped by family, and results serve as reference comparisons because model setups and evaluation settings differ.}
-  \label{tab:main_comparison}
   \small
-  \scalebox{0.88}{%
-  \begin{tabular}{ll cccc}
+  \setlength{\tabcolsep}{2.5pt}
+  \begin{tabular}{@{}llcccc@{}}
     \toprule
     & & \textbf{LVBench} & \textbf{LongVideoBench} & \textbf{Video-MME} & \textbf{EgoSchema} \\
     \textbf{Method} & \textbf{Model setup}
@@ -463,8 +460,10 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     SGDAgent
       & o3            & \textbf{75.9} & \textbf{74.0} & \textbf{69.0} & \textbf{77.4} \\
     \bottomrule
-  \end{tabular}%
-  }
+  \end{tabular}
+  \caption{Accuracy comparison on four long-video understanding benchmarks.
+  Methods are grouped by family, and results serve as reference comparisons because model setups and evaluation settings differ.}
+  \label{tab:main_comparison}
 \end{table*}
 
 
@@ -474,8 +473,6 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
 
 \begin{table*}[!tb]
   \centering
-  \caption{Matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control on LVBench.
-  (FTT: failed-to-terminate. FI: frame inspection tool. Call counts are per-question averages.)}
   \label{tab:component_ablation}
   \footnotesize
   \setlength{\tabcolsep}{2.5pt}
@@ -485,7 +482,7 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     \hline
     \multirow{2}{*}{Configuration} &
     \multirow{2}{*}{\shortstack{Caption\\index (C)}} &
-    \multicolumn{3}{c}{Hierarchical spatio-temporal scene graphs} &
+    \multicolumn{3}{c}{Scene-graph hierarchy} &
     {} &
     \multicolumn{3}{c|}{Agent control strategies} &
     \multirow{2}{*}{\shortstack{End-to-end\\accuracy ($\uparrow$)}} &
@@ -495,15 +492,8 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     \multirow{2}{*}{\shortstack{Avg. LLM\\calls ($\downarrow$)}} &
     \multirow{2}{*}{\shortstack{Avg. FI\\calls ($\downarrow$)}} \\
     \cline{3-5}\cline{7-9}
-    & &
-    {\scriptsize\shortstack{Frame-level graph\\(F)}} &
-    {\scriptsize\shortstack{Segment-level graph\\(S)}} &
-    {\scriptsize\shortstack{Global event graph\\(G)}} &
-    \rule{0pt}{5.0ex} &
-    {\scriptsize\shortstack{Query-type\\routing (R)}} &
-    {\scriptsize\shortstack{Confidence\\gating (CG)}} &
-    {\scriptsize\shortstack{Terminal\\convergence (T)}} &
-    & & & & & \\
+    & & F & S & G &
+    \rule{0pt}{5.0ex} & R & CG & T & & & & & & \\
     \hline
     \emph{Base}       & $\checkmark$ &              &              &              & {} &              &              &              & 54.8\% & 65.7\% & 83.5\% & 16.5\% & 3.7  & 1.1 \\
     \emph{Base}\textsuperscript{C+F}  & $\checkmark$ & $\checkmark$ &              &              & {} &              &              &              & 59.2\% & 69.0\% & 85.8\% & 14.2\% & 4.9  & 2.4 \\
@@ -520,6 +510,9 @@ Section~\ref{sec:ablation} evaluates R, CG, and T separately.
     \hline
   \end{tabular}%
   }
+  \caption{Matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control on LVBench.
+  C denotes the caption index; F, S, and G denote frame-level, segment-level, and global event graphs; R, CG, and T denote query-type routing, confidence gating, and terminal convergence.
+  Accuracy and rate values are percentages; failed-to-terminate (FTT), large language model (LLM) and frame-inspection (FI) call counts are per-question averages.}
 \end{table*}
 
 
