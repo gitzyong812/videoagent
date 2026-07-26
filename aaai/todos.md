@@ -56,6 +56,14 @@ The following tasks remain deferred or incomplete in the current revision.
   - 正文改为在需要视觉确认时优先调用 `FI`，不再要求所有 graph-derived claims 必须经过 `FI`。
   - `TerminalReadout(H)` 作为预算耗尽时的高层终止操作保留。
 
+- [x] **存在两个不触发 undefined warning 的空 Section 引用。**
+  - `AnonymousSubmission2027.tex:406` 渲染为 `Section evaluates ...`。
+  - `AnonymousSubmission2027.tex:578` 渲染为 `in Section.`。
+  - 应直接写 `the Ablation Study`，不要修改 AAAI 模板设置。
+
+- [x] **Introduction 中控制策略的比较基线已统一。**
+  - 控制策略现统一比较 `SGDAgent^0 → full SGDAgent`，对应 answer rate `89.2 → 98.4` 和 FTT `10.8 → 1.6`。
+
 - [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
   - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
   - `paper/sg_based_dvd.md:468–651` 记录的是 `GG → SG → SG → SG → GB → FI → FIN`。
@@ -66,10 +74,6 @@ The following tasks remain deferred or incomplete in the current revision.
   - 当前 `GR [23:45–24:40] → SR [23:45–24:15]` 后仍返回 `[35:25–35:30]` 的帧。
   - 这与 `scope` 硬约束和 `FR within a narrow SR scope` 的正文定义冲突。
 
-- [ ] **Introduction 对控制策略的增益仍混用了两个基线。**
-  - 如果描述 `SGDAgent^0 → full SGDAgent`，answer rate 应为 `89.2 → 98.4`，FTT 应为 `10.8 → 1.6`。
-  - 当前 `83.5 → 98.4` 和 `16.5 → 1.6` 是 `Base → full SGDAgent` 的总变化。
-
 - [ ] **技术内容仍进入第 8 页。**
   - 当前 PDF 共 9 页，第 8 页同时包含 Conclusion 和 References。
 
@@ -77,10 +81,6 @@ The following tasks remain deferred or incomplete in the current revision.
   - Figure 1–2 的 Helvetica、Times 和 Courier 字体没有嵌入最终 PDF。
   - Figure 3 的绝大部分内部文字缩放后低于 9pt。
 
-- [x] **存在两个不触发 undefined warning 的空 Section 引用。**
-  - `AnonymousSubmission2027.tex:406` 渲染为 `Section evaluates ...`。
-  - `AnonymousSubmission2027.tex:578` 渲染为 `in Section.`。
-  - 应直接写 `the Ablation Study`，不要修改 AAAI 模板设置。
 
 ### P1：正文、图表和术语一致性
 
