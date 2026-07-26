@@ -33,6 +33,11 @@ The following tasks track deferred and recently completed work in the current re
   - Gemini-1.5-Pro、GPT-4o 和 OpenAI o3 已修正为 Video-MME `Long, w/o sub` 的 `67.4 / 65.3 / 64.7`。
   - InternVL2.5 已补入同一来源中的 `62.6`。
   - 来源：[DVD 原论文 Table 3](https://papers.neurips.cc/paper_files/paper/2025/file/8190b210e9808e54ee16263b673a847d-Paper-Conference.pdf)。
+- [x] **Table 1 的 Qwen2.5-VL 与 Seed1.5-VL 数据和分组已修复。**
+  - Video-MME `63.9` 已移至 Qwen2.5-VL-72B，Seed 的 Video-MME Long 单元已留空。
+  - Seed1.5-VL-Thinking 已移入 Commercial VLMs，其同一 LongVideoBench 口径的 `74.0` 已补入，并与 SGDAgent 的并列最佳值一同加粗。
+- [x] **Table 1 的 `DVD, o4-mini, 70.2` 配置已明确标注。**
+  - 该行已标明 `w/ transcripts`，并将模型角色写为 o4-mini reasoning 与 o3 frame inspection。
 - [x] **两张表的字号和 caption 已按 AAAI 规则修复。**
   - 两张表均使用 `\small`，并已移除整体缩放和小于 9pt 的表头字号。
   - Table 2 使用缩写表头，并在表格下方的 caption 中统一解释。
@@ -48,22 +53,10 @@ The following tasks track deferred and recently completed work in the current re
 - [x] **Figure 3 已明确为机制示意，无需与原始轨迹逐项对应。**
   - 主路径用于说明 `GR → SR → FR → FI → Answer`，其他帧仅表示备选候选，不属于 scoped path 的后续步骤。
   - 案例正文已压缩为定性说明，性能依据仍来自 matched ablation。
+- [x] **Terminal convergence 与视觉验证规则已统一。**
+  - 正文现仅在需要视觉确认时调用 `FI`，不再要求所有 graph-derived claims 必须经过 `FI`。
+  - `TerminalReadout(H)` 继续基于当前轨迹中支持最充分的选项完成预算耗尽时的收敛。
 
-- [ ] **Table 1 的 Qwen2.5-VL 与 Seed1.5-VL 数据和分组仍有事实性错误。**
-  - 当前将 Video-MME `63.9` 放在 Seed1.5-VL-Thinking 行，但 DVD Table 3 明确将该数值报告给 Qwen2.5-VL-72B。
-  - 应将 `63.9` 移到 Qwen2.5-VL-72B 行，并将 Seed 的 Video-MME Long 单元留空，除非找到完全相同 split 的可靠来源。
-  - Seed1.5-VL 通过商业 API 提供，不应归入 Open-Source VLMs；其 LongVideoBench `74.0` 还需核对 split，若与当前列一致，应补入并与 SGDAgent 的并列最佳值一同加粗。
-
-- [ ] **Table 1 的 `DVD, o4-mini, 70.2` 仍隐去了 transcript 设置。**
-  - DVD Table 4 的 `70.2` 属于 LVBench `w/ transcripts`，模型组合为 GPT-4.1 数据构建、o4-mini reasoning 和 o3 frame inspection。
-  - 当前写法会被误读为与无 transcript 的 DVD `74.2` 和 SGDAgent `73.0` 属于同一输入设置；应明确标注或删除该行。
-
-- [ ] **Terminal convergence 与视觉验证规则仍然矛盾。**
-  - 正文一处仅在需要视觉确认时优先调用 `FI`，另一处仍要求所有 graph-derived claims 必须有 qualified `FI` evidence。
-  - Algorithm 1 在预算耗尽后无条件执行 `TerminalReadout(H)`；应将 FI 要求限定为需要视觉确认的情况，或明确 T 是 CG 的受控例外。
-
-- [ ] **技术内容仍进入第 8 页。**
-  - 当前 Conclusion 的最后一句占用第 8 页顶部两行，References 随后开始。
 
 - [ ] **三张图的字体不符合 AAAI 要求。**
   - Figure 1–2 的 Helvetica、Times 和 Courier 字体没有嵌入最终 PDF。

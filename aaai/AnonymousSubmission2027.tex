@@ -368,12 +368,12 @@ Caption backoff aids candidate discovery but does not itself visually verify gra
   \STATE $H \leftarrow \mathrm{InitState}(q)$
   \FOR{$t=1,\ldots,B$}
       \STATE $a_t \leftarrow \mathrm{QueryTypeRoute}(\mathrm{LLM}(H),q)$
-        \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[R]}}
+        \hfill \textcolor{blue!60!black}{\small\textbf{[R]}}
       \IF{$a_t \in \{GR,SR,FR\}$}
           \STATE $H \leftarrow \mathrm{GraphRetrieve}(H,a_t,q,\mathcal{I}(V))$
           \IF{$\mathrm{WeakGraphSignal}(H)$}
               \STATE $H \leftarrow \mathrm{CaptionBackoff}(H,q,C(V))$
-                \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[CG]}}
+                \hfill \textcolor{blue!60!black}{\small\textbf{[CG]}}
           \ENDIF
       \ELSIF{$a_t=CB$}
           \STATE $H \leftarrow \mathrm{CaptionBackoff}(H,q,C(V))$
@@ -381,11 +381,11 @@ Caption backoff aids candidate discovery but does not itself visually verify gra
           \STATE $H \leftarrow \mathrm{FrameInspect}(H,q)$
       \ELSIF{$a_t=\mathrm{Answer} \land \mathrm{ConfidenceGate}(H)$}
           \RETURN $\mathrm{Readout}(H)$
-            \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[CG]}}
+            \hfill \textcolor{blue!60!black}{\small\textbf{[CG]}}
       \ENDIF
   \ENDFOR
   \RETURN $\mathrm{TerminalReadout}(H)$
-    \hfill \textcolor{blue!60!black}{\scriptsize\textbf{[T]}}
+    \hfill \textcolor{blue!60!black}{\small\textbf{[T]}}
   \end{algorithmic}
 \end{algorithm}
 
@@ -394,7 +394,7 @@ Caption backoff aids candidate discovery but does not itself visually verify gra
 As shown in Algorithm~\ref{alg:search}, controller signals encode match quality, region granularity, the need for frame inspection, and the recommended next action.
 \textbf{Strategy~R} (query-type routing) sends questions about counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions at $SR$.
 \textbf{Strategy~CG} (confidence gating) prevents answering under \emph{localize-only} or \emph{weak-match} signals, sends coarse candidates to narrow-window frame inspection, and redirects weak graph results to $CB$ when appropriate.
-The finish gate accepts graph-derived claims only when supported by qualified $FI$ evidence.
+The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
 \textbf{Strategy~T} (terminal convergence) returns the best-supported option from the accumulated trace when the step budget $B$ is exhausted, reducing FTT outcomes.
 
 \begin{table*}[!tb]
@@ -421,6 +421,8 @@ The finish gate accepts graph-derived claims only when supported by qualified $F
       & -             & 57.1 & 67.5 & 64.7 & 63.2 \\
     Gemini-2.5-Pro~\cite{gemini25}
       & -             & 67.4 & -   & -   & -   \\
+    Seed1.5-VL-Thinking~\cite{seed}
+      & -             & 64.6 & - & -   & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Open-Source VLMs}} \\
     % mPLUG-Owl3~\cite{} & 78B           & 43.5 & 59.8 & 50.1  & -   \\
@@ -428,9 +430,7 @@ The finish gate accepts graph-derived claims only when supported by qualified $F
       & -             & 43.6 & 63.6 & 62.6  & -   \\
     % AdaRETAKE~\cite{} & 72B           & 53.3 & 67.0 & 65.0 & -   \\
     Qwen2.5-VL-72B~\cite{qwen}
-      & -             & 47.7 & 60.7 & -   & -   \\
-    Seed1.5-VL-Thinking~\cite{seed}
-      & -             & 64.6 & -   & 63.9  & -   \\
+      & -             & 47.7 & 60.7 & 63.9 & -   \\
     \midrule
     \multicolumn{6}{l}{\textit{Video Agents}} \\
     VideoAgent~\cite{videoagent}
@@ -442,7 +442,7 @@ The finish gate accepts graph-derived claims only when supported by qualified $F
     VideoSeek~\cite{videoseek}
       & GPT-5         & 68.4 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
-      & o4-mini (reasoning) / o3 (tool)      & 70.2 & -   & -   & -   \\
+      & o4-mini (reasoning) / o3 (FI)        & 70.2 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
       & o3            & 74.2 & 71.6 & 67.3 & 76.6 \\
     \midrule
