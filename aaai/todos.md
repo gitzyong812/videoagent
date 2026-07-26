@@ -85,10 +85,9 @@ The following tasks track deferred and recently completed work in the current re
 - [x] hierarchy novelty 已收紧为多粒度表征、层级检索与自适应 Agent reasoning 的协同设计，并明确区分 HIG、VideoMindPalace、GraphVideoAgent、EGAgent 和 Vgent。
 - [x] Related Work 已在保留关键引用和差异维度的前提下进一步压缩。
 
-- [ ] **与最接近的 DVD 工作仍缺少直接、准确的定位区分。**
-  - Introduction 将已有 multi-granularity toolkits 概括为只改变搜索而不重构索引，但 DVD 已显式构建 multi-granular video database 并配套多粒度工具。
-  - 应用一至两句明确区别：DVD 主要组织 subjects、clip captions 和 frames，SGDAgent 则将 frame-level、segment-level 和 global event scene graphs 作为统一索引，并以对应 graph retrieval 驱动自适应推理。
-  - 不应否定 DVD 的多粒度索引和 Agent 属性，差异应落在结构化图表征、跨层连接和检索耦合。
+- [x] **与最接近的 DVD 工作已完成直接定位区分。**
+  - Introduction 不再否定已有方法对视频索引和多粒度工具的组织。
+  - Related Work 已明确 DVD 组织 global subjects、clip captions 和 indexed frames，而 SGDAgent 将三层场景图与对应 graph retrieval 紧密耦合。
 
 - [ ] **默认配置和 o3 runs 的模型分工仍不可复现。**
   - Table 1 使用 `o4-mini (reasoning) / o3 (tool)`，但 Implementation Details 没有定义默认 frame-inspection 模型，`tool` 也不是精确角色名。

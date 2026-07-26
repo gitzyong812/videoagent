@@ -221,10 +221,11 @@ SGDAgent instead makes temporal scale explicit in both its offline video index a
 \textbf{Agentic video reasoning.}
 Directly feeding frame or clip tokens to language models~\cite{video-llava2024,videochat2025} is constrained by context length and computation on hour-scale videos.
 LLoVi, Video-of-Thought, VideoRAG, VideoTree, and DrVideo use clip descriptions, stepwise reasoning, retrieval indexes, adaptive trees, and document memory, respectively~\cite{zhang2024simplellm,fei2024videoofthought,videorag2025,videotree2025,drvideo2025}.
-VideoAgent, DVD, and VideoSeek provide iterative frame retrieval, multi-granularity ReAct search, and human-like seeking tools, respectively~\cite{videoagent,deepvideo2025,react2022,videoseek}.
+VideoAgent and VideoSeek provide iterative frame retrieval and tool-guided seeking, respectively~\cite{videoagent,videoseek}.
+DVD~\cite{deepvideo2025} organizes global subjects, clip captions, and indexed frames with adaptive multi-granular tools.
 VideoMind separates localization, verification, and answering, while VCA uses curiosity-driven tree exploration~\cite{videomind,yang2025vca}.
 Other directions include multi-agent systems~\cite{omagent2024}, neuro-symbolic reasoning~\cite{neuro2020,cai2025naver}, and end-to-end post-training on agent trajectories~\cite{team2026kimi,zeng2026glm}.
-Vgent~\cite{vagent2025} links clip nodes through shared entities in a staged graph RAG pipeline, whereas SGDAgent tightly couples a temporally hierarchical index with an iterative agent that selects among $GR$, $SR$, $FR$, $FI$, and $CB$ according to the question and accumulated evidence.
+Vgent~\cite{vagent2025} links clip nodes through shared entities in a staged graph RAG pipeline, whereas SGDAgent tightly couples a temporally structured hierarchical index with an iterative agent that selects among $GR$, $SR$, $FR$, $FI$, and $CB$ according to the question and accumulated evidence.
 
 
 \section{Methodology}
@@ -286,7 +287,7 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
 The bottom-up pipeline extracts frame-level graphs, merges them into segment-level graphs, and organizes the segments into a global event graph (Figure~\ref{fig:graph}(b)).
 
 \textbf{Frame-level graph extraction and entity registration.}
-A VLM extracts typed entities, attributes, and relations from uniformly sampled keyframes.
+A large vision-language model (VLM) extracts typed entities, attributes, and relations from uniformly sampled keyframes.
 Each entity is greedily aligned to $E^{\mathrm{video}}$ using name, description, and type similarity.
 Matched entities are merged, and the rest are registered as new.
 If extraction is empty, neighboring captions provide coarse entities to prevent graph gaps.
@@ -448,7 +449,7 @@ The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
     \midrule
     \multicolumn{6}{l}{\textit{Ours}} \\
     SGDAgent
-      & o4-mini (reasoning) / o3 (tool)      & 73.0 & 71.2 & 65.1 & 73.9 \\
+      & o4-mini (reasoning) / o3 (FI)      & 73.0 & 71.2 & 65.1 & 73.9 \\
     SGDAgent
       & o3            & \textbf{75.9} & \textbf{74.0} & \textbf{69.0} & \textbf{77.4} \\
     \bottomrule
