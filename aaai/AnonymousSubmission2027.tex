@@ -343,27 +343,23 @@ Each retriever computes the three terms on its level-specific scale and sums the
 $S_{\mathrm{lex}}$ scores token overlap over entity names, relation predicates, and region summaries.
 $S_{\mathrm{soft}}$ uses embedding cosine similarity when available and lexical fuzzy matching otherwise.
 $S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
-The $\mathrm{scope}$ argument forwards a coarse time constraint, while provenance pointers link each region to supporting nodes at the next finer level.
+The $\mathrm{scope}$ argument forwards a coarse time constraint, while provenance pointers link each region to supporting nodes at a finer level.
 
-\emph{Frame-level graph retrieval (FR).}
-$FR$ retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
-It returns ranked keyframes with timestamped entity--attribute--relation snapshots.
+\emph{Hierarchical graph retrieval channels.}
+Frame-level graph retrieval \underline{$(FR)$} retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
+It returns ranked keyframes with timestamped entity--attribute--relation snapshots. 
 These timestamps can bound $FI$ to short windows, with the graph content serving as candidate evidence for visual confirmation.
-
-\emph{Segment-level graph retrieval (SR).}
-$SR$ searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe provenance, and controller signals.
+Segment-level graph retrieval \underline{$(SR)$} searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe provenance, and controller signals.
 Its windows feed $FI$ directly or constrain $FR$ when object- or relation-level grounding is needed.
 The signals flag fuzzy matches, overly broad windows, and visual details that the graph cannot resolve.
-
-\emph{Global event graph retrieval (GR).}
-$GR$ searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment provenance.
+Global event graph retrieval \underline{$(GR)$} searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment provenance.
 The selected event span scopes the subsequent $SR$ call to a smaller temporal range.
 For temporal or causal sequences, event edges also determine the traversal order.
 
 
 \emph{Frame inspection (FI) and caption backoff (CB).}
-$FI$ implements visual verification by inspecting raw pixels within a graph-proposed window and returns question-conditioned evidence for the final answer.
-$CB$ queries the embedding-based caption index when graph retrieval lacks the question's surface form.
+\underline{$FI$} implements visual verification by inspecting raw pixels within a graph-proposed window and returns question-conditioned evidence for the final answer.
+\underline{$CB$} queries the embedding-based caption index when graph retrieval lacks the question's surface form.
 Caption backoff aids candidate discovery but does not itself visually verify graph-derived claims.
 
 \begin{algorithm}[!tb]
