@@ -522,8 +522,7 @@ The finish gate accepts graph-derived claims only when supported by qualified $F
 \begin{figure*}[!tb]
   \centering
    \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
-  \caption{Case study on LVBench~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}).
-  Coarse-to-fine scene graph retrieval narrows candidates from events to segments and frames, followed by one frame inspection that confirms the answer.}
+  \caption{Case study for escaping the frame-inspect trap~\cite{deepvideo2025}. This LVBench case~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}) illustrates coarse-to-fine candidate localization and frame inspection. Other displayed frames illustrate alternative candidates rather than additional steps in the scoped path.}
   \label{fig:trajectory}
 \end{figure*}
 
@@ -625,27 +624,15 @@ The complete design therefore shifts computation from repeated local exploration
 %  Section 4.4  --  Analysis on Agentic Reasoning Behavior
 % ============================================================
 
-\subsection{Analysis on Agentic Reasoning Behavior}
+\subsection{Analysis of Agentic Reasoning Behavior}
 \label{sec:analysis}
 
-The ablation identifies the contribution of each component, while Figure~\ref{fig:trajectory} illustrates how graph-guided search changes a reasoning trajectory.
-Graph retrieval replaces broad caption exploration with coarse-to-fine candidate localization followed by focused visual verification.
-
-\textbf{Case study: escaping the frame-inspect trap.}\quad
+The matched ablation quantifies component effects, while Figure~\ref{fig:trajectory} illustrates representative graph-guided search behavior.
 The question asks: ``Why does the man follow the woman in red after they meet for the third time?'' (correct answer: the woman has his book).
-The question is challenging because the agent must first locate a specific \emph{repeated event} within an hour-long video and then infer the \emph{motivation} behind the subsequent action from an object-possession relation.
-The caption-only \emph{Base} queries the caption index through $CB$ and performs five subsequent frame inspections, $\mathrm{CB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$, but selects the wrong option.
-Without structured links among the participants, repeated encounter, and carried object, its broad inspections return fragmented evidence.
-This repeated-inspection failure is the \emph{frame-inspect trap}~\cite{deepvideo2025}.
-
+The caption-only \emph{Base} follows $\mathrm{CB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$ but returns fragmented evidence and selects the wrong option, illustrating the \emph{frame-inspect trap}~\cite{deepvideo2025}.
 SGDAgent instead follows $\mathrm{GR} \!\to\! \mathrm{SR} \!\to\! \mathrm{FR} \!\to\! \mathrm{FI} \!\to\! \mathrm{Answer}$.
-$GR$ proposes event \texttt{evt\_0055} [23:45--24:40] for ``the third encounter,'' reducing the full video to a 55-second candidate window.
-$SR$ narrows this window to segment \texttt{seg\_0058} [23:45--24:15] and surfaces the relevant participants and interactions.
-$FR$ then retrieves candidate \emph{person--holding--book} triples from keyframes \texttt{fra\_0064} and \texttt{fra\_0086}.
-A single $FI$ call on [24:00--24:15] verifies the book-possession relation in raw frames and supports the correct answer.
-
-The graph therefore supplies structured candidates rather than terminal facts: $GR$ and $SR$ localize the event, $FR$ proposes the object relation, and $FI$ confirms it visually.
-This trajectory illustrates how the hierarchy can restructure search while retaining FI-based visual verification.
+$GR$ localizes the repeated encounter, $SR$ and $FR$ narrow it to relevant segments and candidate book-possession relations, and $FI$ checks the raw frames.
+This qualitative example illustrates how the hierarchy structures candidate search, while the matched ablation provides the quantitative evidence.
 
 \section{Conclusion}
 

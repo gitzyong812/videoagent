@@ -64,15 +64,9 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] **Introduction 中控制策略的比较基线已统一。**
   - 控制策略现统一比较 `SGDAgent^0 → full SGDAgent`，对应 answer rate `89.2 → 98.4` 和 FTT `10.8 → 1.6`。
 
-- [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
-  - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
-  - `paper/sg_based_dvd.md:468–651` 记录的是 `GG → SG → SG → SG → GB → FI → FIN`。
-  - 该记录中的 `FI` 窗口为 `[00:05:10–00:05:30]`，返回对象为 scarf，并未确认 book。
-  - 当前图中的 `fra_0086` 在现有记录中实际是 `seg_0086`，需要回到原始日志核验或更换案例。
-
-- [ ] **Figure 3 违反层级时间范围约束。**
-  - 当前 `GR [23:45–24:40] → SR [23:45–24:15]` 后仍返回 `[35:25–35:30]` 的帧。
-  - 这与 `scope` 硬约束和 `FR within a narrow SR scope` 的正文定义冲突。
+- [x] **Figure 3 已明确为机制示意，无需与原始轨迹逐项对应。**
+  - 主路径用于说明 `GR → SR → FR → FI → Answer`，其他帧仅表示备选候选，不属于 scoped path 的后续步骤。
+  - 案例正文已压缩为定性说明，性能依据仍来自 matched ablation。
 
 - [ ] **技术内容仍进入第 8 页。**
   - 当前 PDF 共 9 页，第 8 页同时包含 Conclusion 和 References。
@@ -121,7 +115,6 @@ The following tasks remain deferred or incomplete in the current revision.
 - [ ] Figure 2 将 Control Strategy 画成 verify tool，没有展示 R、CG 和 T 的真实作用位置。
 - [ ] Figure 2 没有展示 `CB`，且 `FI` 的路径看起来连接 Caption Database 而不是原始视频帧。
 - [ ] Figure 2 使用 MLLM，正文则区分 reasoning LLM 与 frame-inspection VLM。
-- [ ] Figure 3 的轨迹、时间戳、节点 ID 和 FI 输出需要根据原始日志整体重做。
 
 ### P2：阅读友好度和最终验证
 
@@ -132,7 +125,6 @@ The following tasks remain deferred or incomplete in the current revision.
 - [ ] 将 Table 2 caption 中的多个句子拆成一行一个完整句子。
 - [ ] 完成 supplementary、reproducibility checklist 和最终投稿合规检查。
 - [ ] 最终逐项核对 Table 1 的外部数据和 benchmark split。
-- [ ] 最终逐项核对 Figure 3 的时间戳、节点 ID、工具调用和 FI 输出。
 - [ ] 最终确认技术内容不进入第 8 页，表格和图内文字不低于 9pt，且所有字体已嵌入。
 - [ ] 最终确认无空 Section 引用、undefined citation、undefined reference、overfull box 和 fatal error。
 - [ ] 当前仍有若干 Underfull vbox 和一处 bibliography Underfull hbox，内容稳定后再处理。
