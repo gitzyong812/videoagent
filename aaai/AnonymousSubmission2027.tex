@@ -213,8 +213,8 @@ SGDAgent instead makes temporal scale explicit in both its offline video index a
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.92\textwidth]{../paper/figures/Graph.png}
-  \caption{Hierarchical spatio-temporal scene graph representation and bottom-up construction.
-  Panels (a)--(c) show keyframe sampling, frame-level graph extraction with registry-based entity alignment, and aggregation into segment-level graphs and a global event graph.}
+  \caption{Overview of the hierarchical spatio-temporal scene graph representation and its bottom-up construction.
+  Panel (a) shows the long video input, panel (b) the construction pipeline, and panel (c) the frame-level, segment-level, and global event graphs linked by a shared entity registry.}
   \label{fig:graph}
 \end{figure*}
 
@@ -277,7 +277,7 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
   \centering
   \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.png}
   \caption{SGDAgent reasoning framework.
-  Within an observe-reason-act loop, the agent searches a video index of captions and hierarchical spatio-temporal scene graphs, proposes candidates through graph retrieval, and confirms them through frame inspection.}
+  Within the observe-reason-act loop, the agent adaptively selects graph retrieval at global, segment, or frame granularity, caption backoff, or frame inspection over the video index and raw frames.}
   \label{fig:mechanism}
 \end{figure*}
 
@@ -455,7 +455,7 @@ The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
     \bottomrule
   \end{tabular}
   \caption{Accuracy comparison on four long-video understanding benchmarks.
-  Methods are grouped by family, and results serve as reference comparisons because model setups and evaluation settings differ.}
+  Methods are grouped by family, and results serve as reference comparisons because model setups and evaluation settings differ. (FI: frame-inspection.)}
   \label{tab:main_comparison}
 \end{table*}
 
@@ -504,9 +504,9 @@ The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
     \emph{SGDAgent} & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{73.0} & 74.2 & \textbf{98.4} & \textbf{1.6}  & 3.4  & \textbf{1.0} \\
     \bottomrule
   \end{tabular}
-  \caption{Matched-setting ablation of video-index composition, scene-graph hierarchy, and agent control on LVBench.
+  \caption{Matched-setting LVBench ablations of video-index composition, scene-graph hierarchy, and agent control.
   C denotes the caption index; F, S, and G denote frame-level, segment-level, and global event graphs; R, CG, and T denote query-type routing, confidence gating, and terminal convergence.
-  FTT denotes the failed-to-terminate rate; accuracy and rate values are percentages; large language model (LLM) and frame-inspection (FI) call counts are per-question averages.}
+  FTT denotes the failed-to-terminate rate; accuracy and rates are percentages, while large language model (LLM) and frame-inspection (FI) calls are per-question averages.}
   \label{tab:component_ablation}
 \end{table*}
 
@@ -515,7 +515,8 @@ The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
 \begin{figure*}[!tb]
   \centering
    \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
-  \caption{Case study for escaping the frame-inspect trap~\cite{deepvideo2025}. This LVBench case~\cite{lvbench} (qid: \texttt{q01CUy\_gwdU\_\_121}) illustrates coarse-to-fine candidate localization and frame inspection. Other displayed frames illustrate alternative candidates rather than additional steps in the scoped path.}
+  \caption{An LVBench case~\cite{lvbench} illustrates how SGDAgent escapes the frame-inspect trap~\cite{deepvideo2025} (qid: \texttt{q01CUy\_gwdU\_\_121}).
+  The trajectory shows coarse-to-fine localization followed by frame inspection.}
   \label{fig:trajectory}
 \end{figure*}
 
