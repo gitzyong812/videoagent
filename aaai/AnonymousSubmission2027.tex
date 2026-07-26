@@ -191,7 +191,7 @@ Matched ablations show that frame-level and segment-level graphs improve candida
 
 % - Para 6: Contributions -
 
-In summary, we contribute (1)~a \textbf{temporally hierarchical scene-graph video index} comprising frame-level graphs, segment-level graphs, and a global event graph linked through a shared entity registry and cross-level evidence links; (2)~\textbf{coupled multi-granularity retrieval and agentic reasoning} that maps $FR$, $SR$, and $GR$ to the three graph levels and combines adaptive retrieval with caption backoff, frame inspection, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control.
+In summary, we contribute (1)~a \textbf{temporally hierarchical scene-graph video index} comprising frame-level graphs, segment-level graphs, and a global event graph linked through a shared entity registry and cross-level evidence links; (2)~\textbf{coupled multi-granularity retrieval and agentic reasoning} that maps $FR$, $SR$, and $GR$ to the three graph levels and combines adaptive retrieval with caption backoff, frame inspection, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control strategies.
 
 
 
@@ -204,7 +204,7 @@ Methods expand usable context through longer windows, compression, or hierarchie
 These approaches reduce input or search cost, but sparse cross-segment evidence remains difficult to organize within compressed or flat representations.
 
 \textbf{Scene graph representation.}
-Scene graphs encode visual entities and their spatio-temporal interactions as graph nodes and edges~\cite{xu2017scene,tpt2023}.
+Scene graphs encode visual entities and their spatio-temporal interactions as graph nodes and edges~\cite{xu2017scene}.
 Traditional pipelines~\cite{xu2017scene,motifs2018} have evolved toward open-vocabulary generation with vision-language models~\cite{frompixel2024,vs32023,hyperglm2025}, but cross-segment association and temporal dynamics remain difficult.
 HIG~\cite{hig2024} models the temporal evolution of visual interactivities for video scene-graph generation and related perception tasks, while VideoMindPalace~\cite{videomindpalace2025} organizes people, objects, activity zones, and rooms into an environment-grounded topological graph supplied to an LLM.
 GraphVideoAgent~\cite{graphvideoagent2025} dynamically maintains entity relations to guide frame selection, while EGAgent~\cite{egagent2026} combines temporally annotated entity scene graphs with visual and audio search for longitudinal egocentric video.
@@ -274,7 +274,7 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.75\textwidth]{../paper/figures/workflow.pdf}
+  \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
   \caption{SGDAgent reasoning workflow.
   Within an observe-reason-act loop, the agent searches a video index of captions and hierarchical spatio-temporal scene graphs, proposes candidates through graph retrieval, and confirms them through frame inspection.}
   \label{fig:mechanism}
