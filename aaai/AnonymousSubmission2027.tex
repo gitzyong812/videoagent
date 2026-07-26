@@ -275,8 +275,8 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.pdf}
-  \caption{SGDAgent reasoning workflow.
+  \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.png}
+  \caption{SGDAgent reasoning framework.
   Within an observe-reason-act loop, the agent searches a video index of captions and hierarchical spatio-temporal scene graphs, proposes candidates through graph retrieval, and confirms them through frame inspection.}
   \label{fig:mechanism}
 \end{figure*}
@@ -308,7 +308,7 @@ Lightweight filtering and schema validation suppress noisy entities and relation
 \subsection{Scene Graph-Driven Agent}
 \label{sec:agent}
 
-\subsubsection{Adaptive reasoning agent loop.}
+\subsubsection{Adaptive agentic reasoning loop.}
 Figure~\ref{fig:mechanism} summarizes the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
 At step~$t$, state~$H$ contains the question, retrieved candidates, accumulated evidence, and controller signals.
 The LLM proposes an action, query-type routing maps it to $a_t \in \mathcal{T}$, and the selected tool updates~$H$.

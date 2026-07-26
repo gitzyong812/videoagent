@@ -9,7 +9,7 @@ The following tasks track deferred and recently completed work in the current re
   - 当前 PDF 共 9 页，但 Conclusion 的最后一句仍占用第 8 页顶部两行，References 随后才开始。
 - [ ] Merge or redraw Figures 1 and 2 with consistent vector typography and replace the sports-specific example with a more general one.
   - Figure 1 已更新为高分辨率 PNG，但仍使用体育案例，且部分层级命名和结构表达尚未与正文统一。
-  - Figure 2 尚未重绘。
+  - Figure 2 已更新为高分辨率 PNG，但仍使用体育案例，且控制策略和部分图层名称尚未与正文统一。
 - [ ] Decide whether to add sampling-interval sensitivity, graph-perturbation robustness, and intrinsic graph-quality experiments.
   - 当前仅解释了缺少标准 benchmark 的原因，尚无正式实验，人工检查也未量化。
 
@@ -61,7 +61,7 @@ The following tasks track deferred and recently completed work in the current re
 
 - [ ] **三张图的字体不符合 AAAI 要求。**
   - Figure 1 已改为 `4487 × 2662` 的高分辨率 PNG，不再涉及图内字体嵌入，但按 `0.92\textwidth` 缩放后，多数内部文字仍低于 9pt。
-  - Figure 2 的 Helvetica、Times 和 Courier 字体没有嵌入最终 PDF。
+  - Figure 2 已改为 `2762 × 1697` 的高分辨率 PNG，不再涉及图内字体嵌入，但按 `0.8\textwidth` 缩放后，多数内部文字仍低于 9pt。
   - Figure 3 的绝大部分内部文字缩放后低于 9pt。
   - Algorithm 1 的策略标签使用 `\scriptsize`，实际为 7pt，也应恢复到至少 9pt。
 
@@ -130,12 +130,15 @@ The following tasks track deferred and recently completed work in the current re
 
 - [x] Figure 1 中 `Praising Prompt Library`、`Blude jersey`、`Pereson 1` 和 `Scene Graph Constrion` 等拼写错误已修复。
 - [x] Figure 1 已使用 `Contains` 连接展示 frame、segment 和 global 三层之间的跨层关联。
+- [x] Figure 2 已将 `Hierarchical Graph Database` 和 `Caption Database` 统一为 `Hierarchical Scene Graph Index` 和 `Caption Index`。
+- [x] Figure 2 已补入 `Caption Backoff (CB)`，并将 `Frame Inspect (FI)` 连接到原始视频帧。
 - [ ] Figure 1 的顶层仍是普通 entity-relation graph，未展示正文定义的 unit/group event nodes 和 event-to-event edges。
 - [ ] Figure 1 应将层级统一为 `Frame-Level Graph`、`Segment-Level Graph` 和 `Global Event Graph`，并将 `Entity Reference`、`Entity Register` 和 `Video Entity Registry` 收敛为 `Registry-Based Entity Alignment` 与 `Shared Entity Registry`。
-- [ ] Figure 2 使用 `Global-Level Graph`、`Hierarchical Graph Database` 和 `Caption Database`，与正文的 video index 术语不一致。
-- [ ] Figure 2 将 Control Strategy 画成 verify tool，没有展示 R、CG 和 T 的真实作用位置。
-- [ ] Figure 2 没有展示 `CB`，且 `FI` 的路径看起来连接 Caption Database 而不是原始视频帧。
-- [ ] Figure 2 使用 MLLM，正文则区分 reasoning LLM 与 frame-inspection VLM。
+- [ ] Figure 2 应将 `Global-Level Graph/Retrieval` 统一为 `Global Event Graph/Retrieval`，并将另外两个检索工具统一为 `Segment-Level Graph Retrieval` 和 `Frame-Level Graph Retrieval`。
+- [ ] Figure 2 已移除独立的 Control Strategy 工具框，但仍未展示 R、CG 和 T 在 action routing、confidence gating 和 terminal readout 中的作用位置。
+- [ ] Figure 2 将 CB 放在 `Verify` 分组中，但 CB 是 caption retrieval/backoff 通道，不承担视觉验证；FI 才是按需执行的视觉检查。
+- [ ] Figure 2 顶部使用 `VLM`，正文则由 reasoning LLM 选择动作，并由 frame-inspection VLM 执行 FI。
+- [ ] Figure 2 的 `GR → SR → FR` 容易被理解为固定流水线，需要明确这些虚线表示可选的逐层细化，Agent 也可直接选择任意检索粒度。
 
 ### P2：阅读友好度和最终验证
 
