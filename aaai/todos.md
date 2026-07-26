@@ -1,25 +1,22 @@
 # AAAI-27 Deferred Tasks
 
-The following tasks remain deferred or incomplete in the current revision.
+The following tasks track deferred and recently completed work in the current revision.
 
+- [x] Reassess the novelty claim for the hierarchical representation, the paper title, and the ordering of contributions.
+  - 核心定位已统一为 temporally hierarchical scene-graph video index、level-specific retrieval tools 与 adaptive agentic reasoning 的协同设计。
+  - 标题保持不变，仅修正 `Long-Form`；贡献顺序保持 hierarchy index、coupled retrieval and reasoning、evaluation。
 - [ ] Compress the main paper to the AAAI-27 limit of seven technical-content pages, with pages eight and nine reserved for references.
   - 当前第 8 页顶部仍有 Analysis 的最后一句和完整 Conclusion。
-- [ ] Reassess the novelty claim for the hierarchical representation, the paper title, and the ordering of contributions.
-  - 与 HIG、VideoMindPalace、EGAgent 和 Vgent 的差异仍需收紧。
 - [ ] Merge or redraw Figures 1 and 2 with consistent vector typography and replace the sports-specific example with a more general one.
-  - Figure 1–2 尚未重绘，Figure 3 也需要根据真实轨迹重做。
+  - Figure 1–2 尚未重绘
 - [ ] Decide whether to add sampling-interval sensitivity, graph-perturbation robustness, and intrinsic graph-quality experiments.
   - 当前仅解释了缺少标准 benchmark 的原因，尚无正式实验，人工检查也未量化。
-- [ ] Decide whether the caption-free result is sufficiently verified and documented for inclusion.
-  - 当前 `Base^{F+S+G}` 只关闭独立 caption index，不能视为严格 caption-free。
-- [ ] Complete the supplementary material, reproducibility checklist, and final submission-compliance audit.
-  - Supplementary 暂不纳入当前主稿审查，待主稿定稿后统一处理。
 
 # 论文逻辑与表述一致性审查结果
 
 ## 审查状态
 
-最后审查时间：2026-07-25。
+最后审查时间：2026-07-26。
 
 - `[x]` 表示当前主稿已完成。
 - `[ ]` 表示仍需处理。
@@ -97,18 +94,15 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] `54.8 → 64.4` 已统一归因于在 caption-only baseline 上加入 hierarchical graph retrieval channels。
 - [x] 单案例已统一用于说明搜索机制，性能归因仅来自 matched ablations。
 - [x] 检索评分的尺度与权重、entity registry 的 canonical name，以及 event node 的 confidence 和 uncertainty 字段已补齐。
-
-- [ ] **收紧 hierarchy novelty 和最相关工作对比。**
-  - Intro 已承认 HIG、VideoMindPalace、GraphVideoAgent、EGAgent 和 Vgent。
-  - 随后又笼统声称现有工作只关注 frame-level 或 segment-level local relations，前后存在张力。
-  - 应重点比较 index organization、retrieval granularity、online update、visual verification 和任务范围。
+- [x] hierarchy novelty 已收紧为多粒度表征、层级检索与自适应 Agent reasoning 的协同设计，并明确区分 HIG、VideoMindPalace、GraphVideoAgent、EGAgent 和 Vgent。
+- [x] Related Work 已在保留关键引用和差异维度的前提下进一步压缩。
 
 ### P1：图文问题清单
 
 只记录问题，不在本轮修改图片：
 
 - [ ] Figure 1 的顶层仍是普通 entity-relation graph，不是正文定义的 global event graph。
-- [ ] Figure 1 没有展示 unit/group event nodes、event-to-event edges 和 provenance。
+- [ ] Figure 1 没有展示 unit/group event nodes、event-to-event edges 和 evidence links。
 - [ ] Figure 1 仍有 `Praising Prompt Library`、`Blude jersey`、`Pereson 1` 和 `Scene Graph Constrion` 等拼写错误。
 - [ ] Figure 1 的 `Global-level`、`Entity Index`、`Entity Register` 和 `Video Entity Registry` 命名不统一。
 - [ ] Figure 2 使用 `Global-Level Graph`、`Hierarchical Graph Database` 和 `Caption Database`，与正文的 video index 术语不一致。
@@ -119,8 +113,8 @@ The following tasks remain deferred or incomplete in the current revision.
 ### P2：阅读友好度和最终验证
 
 - [x] 当前主稿可以完整编译，无 undefined citation、undefined reference、overfull box 或 fatal error。
+- [x] 标题中的 `Long-form` 已修正为符合 Title Case 的 `Long-Form`。
 
-- [ ] 将标题中的 `Long-form` 改为符合 Title Case 的 `Long-Form`。
 - [ ] 将 Intro 中同一源码行的 `Firstly / Then / Finally` 三句拆成一行一个完整句子。
 - [ ] 将 Table 2 caption 中的多个句子拆成一行一个完整句子。
 - [ ] 完成 supplementary、reproducibility checklist 和最终投稿合规检查。

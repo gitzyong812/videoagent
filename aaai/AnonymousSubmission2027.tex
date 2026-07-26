@@ -92,7 +92,7 @@
 % nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
 % articles, conjunctions, and prepositions are lower case unless they
 % directly follow a colon or long dash
-\title{SGDAgent: Hierarchical Spatio-Temporal Scene Graph-Driven Agent for Structured Long-form Video Understanding}
+\title{SGDAgent: Hierarchical Spatio-Temporal Scene Graph-Driven Agent for Structured Long-Form Video Understanding}
 \author{
     Anonymous Submission
 }
@@ -136,9 +136,9 @@
 
 \begin{abstract}
 Long-form video understanding must locate sparse evidence and reason over long-range spatio-temporal interactions under lossy sampling and limited context.
-Recent agentic approaches build video captions into searchable indexes for iterative querying, but flat text and embeddings provide limited entity-relational structure and retrieval traceability.
-In this work, we propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which converts open-ended caption search into structured candidate verification.
-Specifically, we (1)~design a hierarchical spatio-temporal scene graph structure for fine-grained video semantics representation, (2)~build a bottom-up construction pipeline to generate such scene graphs, and (3)~design a scene graph-driven agent following a propose-verify-answer paradigm with graph-based retrieval tools to search video content in a structured way.
+Recent agentic approaches build video captions into searchable indexes for iterative querying, but flat text and embeddings provide limited support for structured retrieval across temporal scales.
+In this work, we propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which co-designs a temporally hierarchical scene-graph video index and adaptive multi-granularity retrieval for structured long-video reasoning.
+The index connects frame-level graphs, segment-level graphs, and a global event graph through a shared entity registry, while corresponding retrieval tools let the agent adapt its search granularity before targeted frame inspection.
 Across four benchmarks, SGDAgent remains competitive with baselines using stronger reasoning models.
 Under matched LVBench settings, adding hierarchical graph retrieval channels to the caption-only baseline raises end-to-end accuracy from 54.8\% to 64.4\%, and the three control strategies further raise it to 73.0\%.
 Agent trajectory analysis further illustrates how graph-anchored candidate verification restructures the search process.
@@ -164,23 +164,22 @@ Long-form video understanding requires reasoning over hour-scale content and fac
 Recent agentic approaches~\cite{deepvideo2025,videoagent,drvideo2025} convert videos into caption-centric indexes that LLMs query iteratively.
 However, \emph{the evidence space remains fundamentally unstructured}: flat text and visual embeddings provide limited support for high-order spatio-temporal semantics and traceable retrieval.
 Multi-round retrieval~\cite{videoagent}, grounding-verification pipelines~\cite{videomind}, and multi-granularity toolkits~\cite{videoseek} improve how the agent searches without restructuring what it searches over.
+Long-video evidence spans multiple temporal scales, motivating representation and retrieval mechanisms organized at corresponding granularities.
 
 % - Para 3: Scene graphs as structured representation -
 
-Scene graphs encode visual entities and their spatio-temporal interactions as graph nodes and edges~\cite{scenegraph1,tpt2023}.
-They provide the entity-level and relational grounding that flat representations lack.
+Scene graphs encode visual entities and their spatio-temporal interactions as nodes and edges, providing entity-level and relational grounding~\cite{scenegraph1,tpt2023}.
 Their structured form supports compact semantic modeling, explicit relational constraints, and precise retrieval through graph search~\cite{scenegraph1,scenegraph2,qiu2025step}.
-Prior work has explored hierarchical interlacement graphs for video scene graph generation~\cite{hig2024}, topological semantic graphs for long-video reasoning~\cite{videomindpalace2025}, and entity-relation graphs for agentic frame selection~\cite{graphvideoagent2025,egagent2026}.
-Other methods convert video frames into textual descriptions or simpler structured representations and build large-model agents for visual reasoning~\cite{fei2024videoofthought,videoagent,omagent2024,vagent2025,deepvideo2025,drvideo2025}.
-However, two gaps prevent their direct application to long-form video QA\@.
-First, existing methods focus on frame-level or segment-level local relations, lacking unified cross-scale hierarchical organization to capture both instantaneous details and cross-segment causal chains~\cite{tpt2023,vagent2025}.
-Second, existing graph-aware systems either target graph generation, feed a graph directly to an LLM, or use a dynamic entity graph for frame selection, whereas SGDAgent uses a three-level scene graph as the primary retrieval index in a propose-verify-answer loop~\cite{hig2024,videomindpalace2025,graphvideoagent2025,egagent2026,vagent2025}.
+Prior work has explored hierarchical interlacement graphs for video scene graph generation~\cite{hig2024}, topological semantic graphs for long-video reasoning~\cite{videomindpalace2025}, dynamic entity-relation graphs for agentic frame selection~\cite{graphvideoagent2025}, and entity scene graphs for cross-modal agentic search~\cite{egagent2026}.
+These approaches differ in their representation objectives and retrieval mechanisms rather than simply in whether they use graphs or hierarchy.
+We therefore treat the hierarchy as an active video index whose levels define corresponding retrieval operations.
+This representation-retrieval coupling lets an agent adapt its search granularity before targeted frame inspection.
 
 % - Para 4: Our method -- representation + agent workflow -
 
-In this work, we present the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which transforms open-ended caption search into structured, graph-guided candidate verification.
+In this work, we present the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which transforms open-ended caption search into structured, adaptive multi-granularity retrieval.
 Its bottom-up offline pipeline constructs and indexes frame-level graphs, segment-level graphs, and a global event graph through a shared entity registry.
-During reasoning, graph retrieval proposes candidate regions and targeted frame inspection verifies them before answering, separating structured localization from visual confirmation.
+During reasoning, the corresponding $FR$, $SR$, and $GR$ tools let the agent adapt its search granularity before targeted frame inspection.
 
 % - Para 5: Results -
 
@@ -192,7 +191,7 @@ Matched ablations show that frame-level and segment-level graphs improve candida
 
 % - Para 6: Contributions -
 
-In summary, we contribute (1)~a \textbf{hierarchical spatio-temporal scene graph representation} comprising frame-level graphs, segment-level graphs, and a global event graph connected through a shared entity registry and constructed by a bottom-up offline pipeline; (2)~a \textbf{scene graph-driven agent} that combines graph-guided candidate proposal, visual verification, caption backoff, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control.
+In summary, we contribute (1)~a \textbf{temporally hierarchical scene-graph video index} comprising frame-level graphs, segment-level graphs, and a global event graph linked through a shared entity registry and cross-level evidence links; (2)~\textbf{coupled multi-granularity retrieval and agentic reasoning} that maps $FR$, $SR$, and $GR$ to the three graph levels and combines adaptive retrieval with caption backoff, frame inspection, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control.
 
 
 
@@ -200,19 +199,16 @@ In summary, we contribute (1)~a \textbf{hierarchical spatio-temporal scene graph
 \label{sec:related}
 
 \textbf{Long-video understanding.}
-Vision foundation models and multimodal large language models have advanced short-clip understanding~\cite{radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,caba2015activitynet}, but hour-scale videos still present three persistent challenges: large temporal spans, complex spatio-temporal interactions, and sparse critical evidence.
-Long videos require discontinuous sampling~\cite{deepvideo2025} or token compression~\cite{wang2025adaretake}, which can lose detail~\cite{lvbench,longvideobench2024}, while text descriptions cannot explicitly capture long-range entity dependencies~\cite{zhang2024simplellm} and agents must progressively locate fleeting evidence~\cite{videoagent,omagent2024}.
-Existing methods either extend context through longer windows, token compression, or hierarchical representations~\cite{gemini15,qwen,internvl,seed,radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,longvu2025,shu2025video,apollo2025}, or retrieve evidence through selective sampling and agentic search~\cite{deepvideo2025,mrvideo,videoseek,zhang2024simplellm,videorag2025,videotree2025,drvideo2025,yang2025vca}.
-These approaches reduce input scale or search cost, but sparse evidence must still be located within compressed or selectively sampled representations.
-SGDAgent instead augments captions with a scene graph index that grounds candidate proposal in entities, relations, and temporal constraints.
+Vision foundation models and multimodal large language models advance short-clip understanding, but hour-scale videos still strain context, temporal reasoning, and sparse-evidence localization~\cite{radford2021CLIP,li2022GLIP,llava2023,video-llava2024,bai2025qwen3vl,caba2015activitynet,lvbench,longvideobench2024}.
+Methods expand usable context through longer windows, compression, or hierarchies~\cite{gemini15,qwen,internvl,seed,longvu2025,shu2025video,apollo2025,wang2025adaretake}, or retrieve evidence through selective sampling and agentic search~\cite{deepvideo2025,mrvideo,videoseek,zhang2024simplellm,videorag2025,videotree2025,drvideo2025,yang2025vca,videoagent,omagent2024}.
+These approaches reduce input or search cost, but sparse cross-segment evidence remains difficult to organize within compressed or flat representations.
 
 \textbf{Scene graph representation.}
 Scene graphs encode visual entities and their spatio-temporal interactions as graph nodes and edges~\cite{xu2017scene,tpt2023}.
-Traditional detect-then-classify pipelines~\cite{xu2017scene,motifs2018} have evolved toward open-vocabulary generation with vision-language models~\cite{frompixel2024,vs32023,hyperglm2025}, although cross-segment association and temporal dynamics remain challenging.
-HIG~\cite{hig2024} models hierarchical interlacement for video scene graph generation, while VideoMindPalace~\cite{videomindpalace2025} organizes long-video observations into an environment-grounded topological graph that is supplied to an LLM for reasoning.
-GraphVideoAgent~\cite{graphvideoagent2025} maintains a dynamic entity-relation graph to guide frame selection, and EGAgent~\cite{egagent2026} combines temporally annotated entity scene graphs with structured visual and audio search over very long egocentric videos.
-Together, these studies establish graph structure as useful for generation, memory organization, and evidence search in long videos.
-SGDAgent differs by using frame-level graphs, segment-level graphs, and a global event graph as the retrieval index of a propose-verify-answer agent, where graph retrieval localizes candidates and targeted frame inspection confirms the facts.
+Traditional pipelines~\cite{xu2017scene,motifs2018} have evolved toward open-vocabulary generation with vision-language models~\cite{frompixel2024,vs32023,hyperglm2025}, but cross-segment association and temporal dynamics remain difficult.
+HIG~\cite{hig2024} models the temporal evolution of visual interactivities for video scene-graph generation and related perception tasks, while VideoMindPalace~\cite{videomindpalace2025} organizes people, objects, activity zones, and rooms into an environment-grounded topological graph supplied to an LLM.
+GraphVideoAgent~\cite{graphvideoagent2025} dynamically maintains entity relations to guide frame selection, while EGAgent~\cite{egagent2026} combines temporally annotated entity scene graphs with visual and audio search for longitudinal egocentric video.
+SGDAgent instead makes temporal scale explicit in both its offline video index and retrieval interface, linking frame-level graphs, segment-level graphs, and a global event graph through shared entity identity and cross-level evidence links so the agent can select the appropriate granularity.
 
 \begin{figure*}[!tb]
   \centering
@@ -224,20 +220,20 @@ SGDAgent differs by using frame-level graphs, segment-level graphs, and a global
 
 \textbf{Agentic video reasoning.}
 Directly feeding frame or clip tokens to language models~\cite{video-llava2024,videochat2025} is constrained by context length and computation on hour-scale videos.
-Text-centered methods address this limitation through joint clip descriptions in LLoVi~\cite{zhang2024simplellm}, retrieval-augmented indexing in VideoRAG~\cite{videorag2025}, query-adaptive hierarchies in VideoTree~\cite{videotree2025}, or progressively refined document memory in DrVideo~\cite{drvideo2025}.
-Interactive approaches include multi-round frame retrieval in VideoAgent~\cite{videoagent}, ReAct-based search over a multi-granularity database in DVD~\cite{deepvideo2025,react2022}, and human-like seeking tools in VideoSeek~\cite{videoseek}.
-VideoMind~\cite{videomind} separates localization, verification, and answering, VCA~\cite{yang2025vca} uses curiosity-driven tree exploration, and Vgent~\cite{vagent2025} performs graph-structured retrieval and reasoning.
+LLoVi, Video-of-Thought, VideoRAG, VideoTree, and DrVideo use clip descriptions, stepwise reasoning, retrieval indexes, adaptive trees, and document memory, respectively~\cite{zhang2024simplellm,fei2024videoofthought,videorag2025,videotree2025,drvideo2025}.
+VideoAgent, DVD, and VideoSeek provide iterative frame retrieval, multi-granularity ReAct search, and human-like seeking tools, respectively~\cite{videoagent,deepvideo2025,react2022,videoseek}.
+VideoMind separates localization, verification, and answering, while VCA uses curiosity-driven tree exploration~\cite{videomind,yang2025vca}.
 Other directions include multi-agent systems~\cite{omagent2024}, neuro-symbolic reasoning~\cite{neuro2020,cai2025naver}, and end-to-end post-training on agent trajectories~\cite{team2026kimi,zeng2026glm}.
-These agents improve navigation flexibility, but vary in whether retrieved evidence is explicitly structured and independently verified.
-SGDAgent complements these approaches with retrieval over a scene-graph index to propose entity- and temporally grounded candidates for subsequent visual verification.
+Vgent~\cite{vagent2025} links clip nodes through shared entities in a staged graph RAG pipeline, whereas SGDAgent tightly couples a temporally hierarchical index with an iterative agent that selects among $GR$, $SR$, $FR$, $FI$, and $CB$ according to the question and accumulated evidence.
 
 
 \section{Methodology}
 \label{sec:method}
 
 
-SGDAgent converts open-ended caption search into graph-guided candidate localization followed by visual verification.
-We first define and construct its hierarchical spatio-temporal scene graph index, then present the agent design.
+SGDAgent operationalizes this coupling through a temporally hierarchical scene-graph video index and an adaptive reasoning agent.
+Frame-level graphs, segment-level graphs, and the global event graph correspond to $FR$, $SR$, and $GR$, creating a direct interface between representation granularity and agent search.
+We first define and construct the index, then present the coupled retrieval and control design.
 
 \subsection{Hierarchical Scene Graph Representation}
 \label{sec:representation}
@@ -272,7 +268,7 @@ Each event node $n_k \in V^{g}$ is
   n_k = (P_k,\; R_k,\;
   [t_k^{\mathrm{s}}, t_k^{\mathrm{e}}],\; S_k,\; F_k,\; \sigma_k,\; \gamma_k,\; u_k),
 \end{equation}
-$P_k$ and $R_k$ contain participants and salient relations, $[t_k^{\mathrm{s}},t_k^{\mathrm{e}}]$ is the event interval, $S_k$ and $F_k$ provide segment and frame provenance, $\sigma_k$ is the summary, and $\gamma_k$ and $u_k$ are confidence and uncertainty estimates.
+$P_k$ and $R_k$ contain participants and salient relations, $[t_k^{\mathrm{s}},t_k^{\mathrm{e}}]$ is the event interval, $S_k$ and $F_k$ are segment and frame evidence links, $\sigma_k$ is the summary, and $\gamma_k$ and $u_k$ are confidence and uncertainty estimates.
 Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode \texttt{before}, \texttt{overlaps}, \texttt{entity-\allowbreak carryover}, \texttt{same-\allowbreak thread}, and \texttt{parent-\allowbreak child} relations.
 
 
@@ -297,7 +293,7 @@ If extraction is empty, neighboring captions provide coarse entities to prevent 
 
 \textbf{Segment-level graph merging.}
 Frame-level graphs are merged within overlapping temporal windows.
-Matching triples form temporally grounded relations while preserving provenance and cross-window links.
+Matching triples form temporally grounded relations while retaining cross-window evidence links.
 
 \textbf{Global event graph construction.}
 Temporally adjacent and semantically overlapping segments are clustered into events.
@@ -322,7 +318,7 @@ If the step budget~$B$ is exhausted, terminal readout returns the best-supported
 The agent acts over the tool chain $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \mathrm{Answer}\}$.
 $GR$, $SR$, and $FR$ query the global event, segment-level, and frame-level graphs to propose candidates at progressively finer granularity.
 The frame-inspection tool $FI$ verifies candidates against raw frames, while caption backoff $CB$ provides a complementary text channel.
-Each graph query returns ranked regions, provenance pointers, and controller signals for confidence-aware descent and verification.
+Each graph query returns ranked regions, evidence links, and controller signals for confidence-aware descent and verification.
 
 The tool interfaces are
 \[
@@ -343,16 +339,16 @@ Each retriever computes the three terms on its level-specific scale and sums the
 $S_{\mathrm{lex}}$ scores token overlap over entity names, relation predicates, and region summaries.
 $S_{\mathrm{soft}}$ uses embedding cosine similarity when available and lexical fuzzy matching otherwise.
 $S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
-The $\mathrm{scope}$ argument forwards a coarse time constraint, while provenance pointers link each region to supporting nodes at a finer level.
+The $\mathrm{scope}$ argument forwards a coarse time constraint, while evidence links connect each region to supporting nodes at a finer level.
 
 \emph{Hierarchical graph retrieval channels.}
 Frame-level graph retrieval \underline{$(FR)$} retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
 It returns ranked keyframes with timestamped entity--attribute--relation snapshots. 
 These timestamps can bound $FI$ to short windows, with the graph content serving as candidate evidence for visual confirmation.
-Segment-level graph retrieval \underline{$(SR)$} searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe provenance, and controller signals.
+Segment-level graph retrieval \underline{$(SR)$} searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe evidence links, and controller signals.
 Its windows feed $FI$ directly or constrain $FR$ when object- or relation-level grounding is needed.
 The signals flag fuzzy matches, overly broad windows, and visual details that the graph cannot resolve.
-Global event graph retrieval \underline{$(GR)$} searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment provenance.
+Global event graph retrieval \underline{$(GR)$} searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment evidence links.
 The selected event span scopes the subsequent $SR$ call to a smaller temporal range.
 For temporal or causal sequences, event edges also determine the traversal order.
 
@@ -632,7 +628,7 @@ This qualitative example illustrates how the hierarchy structures candidate sear
 
 \section{Conclusion}
 
-SGDAgent combines captions with hierarchical spatio-temporal scene graphs to localize candidates and verifies them through targeted frame inspection.
+SGDAgent couples a temporally hierarchical scene-graph video index with level-specific retrieval and adaptive agentic reasoning for structured long-video understanding.
 Across four benchmarks, it remains competitive with agents using stronger reasoning models.
 On matched LVBench settings~\cite{lvbench}, adding hierarchical graph retrieval channels to the caption-only baseline raises end-to-end accuracy from 54.8\% to 64.4\%, and agent control further raises it to 73.0\%.
 Ablations show that frame-level and segment-level graphs improve candidate discovery, while the global event graph primarily reduces search cost.
