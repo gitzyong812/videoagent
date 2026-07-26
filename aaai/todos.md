@@ -98,39 +98,16 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] 指标定义、FTT 关系和基于原始计数的一位小数舍入规则已补齐。
 - [x] Caption backoff、三个正式图层名称及 visual verification 与 frame inspection 的层级关系已统一。
 - [x] EGAgent BibTeX 已按 ACL Anthology 补齐页码、完整会议名、publisher、URL 和 DOI。
-
-- [ ] **补齐 o3 runs 的实现配置。**
-  - Implementation Details 只定义了 o4-mini。
-  - 需要说明 o3 是否仅替换 reasoning model，以及其他组件是否完全相同。
-
-- [ ] **澄清 `7.94 hours` 和 `121 seconds` 的统计范围。**
-  - 当前主文没有说明它们是 103 个 LVBench 视频的总 wall-clock time，还是单视频时间。
-
-- [ ] **将 `graph-only configuration` 改为更准确的表述。**
-  - Frame-level graph 包含 aligned caption `c_i`，空图还会使用 neighboring captions。
-  - `Base^{F+S+G}` 只能称为 `without the standalone caption index` 或 `graph-index-only retrieval setting`。
-
-- [ ] **相应收紧 `54.8 → 64.4` 的归因边界。**
-  - 该对比说明加入 graph retrieval channels 的收益。
-  - 它不能证明图构建过程完全不依赖 caption semantics。
+- [x] o3 runs 已明确为 reasoning、frame inspection 和 frame-level graph extraction 均使用 `o3`，其余设置不变。
+- [x] `Base^{F+S+G}` 已改称不使用独立 caption index 的配置，不再称为 `graph-only`。
+- [x] `54.8 → 64.4` 已统一归因于在 caption-only baseline 上加入 hierarchical graph retrieval channels。
+- [x] 单案例已统一用于说明搜索机制，性能归因仅来自 matched ablations。
+- [x] 检索评分的尺度与权重、entity registry 的 canonical name，以及 event node 的 confidence 和 uncertainty 字段已补齐。
 
 - [ ] **收紧 hierarchy novelty 和最相关工作对比。**
   - Intro 已承认 HIG、VideoMindPalace、GraphVideoAgent、EGAgent 和 Vgent。
   - 随后又笼统声称现有工作只关注 frame-level 或 segment-level local relations，前后存在张力。
   - 应重点比较 index organization、retrieval granularity、online update、visual verification 和任务范围。
-
-- [ ] **补足 limitations。**
-  - 当前只解释了缺少标准 intrinsic benchmark，没有承认 sparse sampling miss 和 graph-error propagation。
-  - `a small subset` 和 `generally preserved` 没有样本量、检查规则或比例，应量化或明确降级为非定量 sanity check。
-
-- [ ] **降低单案例的证据强度。**
-  - 当前只有一个 case study，不能证明 gains 的来源。
-  - 性能归因应来自 matched ablation，trajectory case 只能 illustrate 机制。
-
-- [ ] **补齐正文中的关键评分和数据结构定义。**
-  - 说明 `S_lex + S_soft + S_temp` 的归一化或权重。
-  - Entity registry 的正式字段缺少 alignment 使用的 `name`。
-  - Global event node tuple 缺少 Quality Control 中声称保留的 confidence 和 uncertainty。
 
 ### P1：图文问题清单
 
