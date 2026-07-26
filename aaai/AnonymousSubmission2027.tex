@@ -315,7 +315,7 @@ Lightweight filtering and schema validation suppress noisy entities and relation
 Figure~\ref{fig:mechanism} summarizes the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
 At step~$t$, state~$H$ contains the question, retrieved candidates, accumulated evidence, and controller signals.
 The LLM proposes an action, query-type routing maps it to $a_t \in \mathcal{T}$, and the selected tool updates~$H$.
-A final answer is accepted only after confidence gating, and any graph-derived claim requires qualified visual evidence from $FI$.
+Confidence gating accepts a proposed answer when its support is sufficient and prioritizes $FI$ when visual confirmation is needed.
 If the step budget~$B$ is exhausted, terminal readout returns the best-supported option from the trajectory.
 
 \subsubsection{Tool chain.}
@@ -357,12 +357,12 @@ The signals flag fuzzy matches, overly broad windows, and visual details that th
 \emph{Frame-level graph retrieval (FR).}
 $FR$ retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
 It returns ranked keyframes with timestamped entity--attribute--relation snapshots.
-These timestamps bound $FI$ to short windows, while the graph content remains candidate evidence until visually confirmed.
+These timestamps can bound $FI$ to short windows, with the graph content serving as candidate evidence for visual confirmation.
 
 \emph{Frame inspection (FI) and caption backoff (CB).}
 $FI$ implements visual verification by inspecting raw pixels within a graph-proposed window and returns question-conditioned evidence for the final answer.
 $CB$ queries the embedding-based caption index when graph retrieval lacks the question's surface form.
-Caption backoff aids candidate discovery but cannot validate graph-derived claims.
+Caption backoff aids candidate discovery but does not itself visually verify graph-derived claims.
 
 \begin{algorithm}[!tb]
   \caption{SGDAgent reasoning loop with control strategies: query-type routing (R), confidence gating (CG), and terminal convergence (T).}

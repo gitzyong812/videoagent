@@ -13,7 +13,7 @@ The following tasks remain deferred or incomplete in the current revision.
 - [ ] Decide whether the caption-free result is sufficiently verified and documented for inclusion.
   - 当前 `Base^{F+S+G}` 只关闭独立 caption index，不能视为严格 caption-free。
 - [ ] Complete the supplementary material, reproducibility checklist, and final submission-compliance audit.
-  - 当前 supplementary 含 placeholder 数据，checklist 仍有 34 处未填写。
+  - Supplementary 暂不纳入当前主稿审查，待主稿定稿后统一处理。
 
 # 论文逻辑与表述一致性审查结果
 
@@ -24,6 +24,7 @@ The following tasks remain deferred or incomplete in the current revision.
 - `[x]` 表示当前主稿已完成。
 - `[ ]` 表示仍需处理。
 - 本轮只更新问题状态，没有修改论文正文和实验数字。
+- Supplementary 暂不纳入本轮审查范围。
 
 ## 重点审查内容
 
@@ -48,6 +49,13 @@ The following tasks remain deferred or incomplete in the current revision.
 - [x] **帧采样参数的矛盾表述已删除。**
   - 正文不再同时声称“每 5 秒一帧”和“每视频最多 120 帧”，仅保留 frame-level graph extraction 的模型分工。
 
+- [x] **Algorithm 1 按高层伪代码审查。**
+  - 非关键执行细节不再单独列为待办，仅保留与正文规则直接冲突的问题。
+
+- [x] **Terminal convergence 和 CG 与视觉验证的硬约束冲突已消除。**
+  - 正文改为在需要视觉确认时优先调用 `FI`，不再要求所有 graph-derived claims 必须经过 `FI`。
+  - `TerminalReadout(H)` 作为预算耗尽时的高层终止操作保留。
+
 - [ ] **Figure 3 和正文案例与现有轨迹记录不一致。**
   - 当前论文写成 `GR → SR → FR → FI → Answer`，并称 `FI` 在 `[24:00–24:15]` 确认了 book。
   - `paper/sg_based_dvd.md:468–651` 记录的是 `GG → SG → SG → SG → GB → FI → FIN`。
@@ -57,20 +65,6 @@ The following tasks remain deferred or incomplete in the current revision.
 - [ ] **Figure 3 违反层级时间范围约束。**
   - 当前 `GR [23:45–24:40] → SR [23:45–24:15]` 后仍返回 `[35:25–35:30]` 的帧。
   - 这与 `scope` 硬约束和 `FR within a narrow SR scope` 的正文定义冲突。
-
-- [ ] **Terminal convergence 可能绕过视觉验证。**
-  - 正文要求 graph-derived claims 必须由合格的 `FI` 证据支持。
-  - Algorithm 1 的 `TerminalReadout(H)` 却在预算耗尽后无条件返回，也没有保留证据不足时的 FTT。
-  - Supplementary 中的 gate relaxation、forced finish 和 hard choice extraction 与主文规则直接冲突。
-
-- [ ] **可消融的 CG 与不可绕过的视觉证据规则没有分开。**
-  - Algorithm 1 将 `ConfidenceGate` 整体标为 CG。
-  - 关闭 CG 后如何继续保证 graph claim 经过 `FI` 尚未定义。
-
-
-- [ ] **Strategy R 直接调用 FI 时没有合法窗口。**
-  - `FrameInspect` 接口需要 `window`，正文还称其检查 graph-proposed window。
-  - count、color 和 OCR 问题从初始状态直接进入 `FI` 时没有候选时间范围。
 
 - [ ] **Introduction 对控制策略的增益仍混用了两个基线。**
   - 如果描述 `SGDAgent^0 → full SGDAgent`，answer rate 应为 `89.2 → 98.4`，FTT 应为 `10.8 → 1.6`。
@@ -87,11 +81,6 @@ The following tasks remain deferred or incomplete in the current revision.
   - `AnonymousSubmission2027.tex:406` 渲染为 `Section evaluates ...`。
   - `AnonymousSubmission2027.tex:578` 渲染为 `in Section.`。
   - 应直接写 `the Ablation Study`，不要修改 AAAI 模板设置。
-
-- [ ] **当前 `paper/appendix.tex` 不能作为 AAAI supplementary 提交。**
-  - 文件仍使用 ACM MM 模板和旧的 Stage-1/2/3、graph database、Strategy G 术语。
-  - `paper/appendix.tex:124–128` 明确说明 per-category 结果由比例缩放得到，属于 placeholder 数据。
-  - 表号、章节号、控制逻辑和主文引用均未与当前版本对齐。
 
 ### P1：正文、图表和术语一致性
 
@@ -138,9 +127,8 @@ The following tasks remain deferred or incomplete in the current revision.
   - 当前只有一个 case study，不能证明 gains 的来源。
   - 性能归因应来自 matched ablation，trajectory case 只能 illustrate 机制。
 
-- [ ] **补齐关键方法定义。**
+- [ ] **补齐正文中的关键评分和数据结构定义。**
   - 说明 `S_lex + S_soft + S_temp` 的归一化或权重。
-  - 给出 weak-match、localize-only、controller signals 和 confidence threshold 的最小定义。
   - Entity registry 的正式字段缺少 alignment 使用的 `name`。
   - Global event node tuple 缺少 Quality Control 中声称保留的 confidence 和 uncertainty。
 
