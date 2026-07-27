@@ -393,10 +393,10 @@ Caption backoff aids candidate discovery but does not itself visually verify gra
 
 \subsubsection{Agent control strategies.}
 As shown in Algorithm~\ref{alg:search}, controller signals encode match quality, region granularity, the need for frame inspection, and the recommended next action.
-\textbf{Strategy~R} (query-type routing) sends questions about counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions at $SR$.
-\textbf{Strategy~CG} (confidence gating) prevents answering under \emph{localize-only} or \emph{weak-match} signals, sends coarse candidates to narrow-window frame inspection, and redirects weak graph results to $CB$ when appropriate.
+The query-type routing strategy \underline{$(R)$} sends questions about counts, colors, and on-screen text directly to $FI$, routes causal and plot-level questions through $GR$, and starts localization questions at $SR$.
+The confidence gating strategy \underline{$(CG)$} prevents answering under \emph{localize-only} or \emph{weak-match} signals, sends coarse candidates to narrow-window frame inspection, and redirects weak graph results to $CB$ when appropriate.
 The finish gate uses qualified $FI$ evidence when visual confirmation is needed.
-\textbf{Strategy~T} (terminal convergence) returns the best-supported option from the accumulated trace when the step budget $B$ is exhausted, reducing FTT outcomes.
+The terminal convergence strategy \underline{$(T)$} returns the best-supported option from the accumulated trace when the step budget $B$ is exhausted, reducing FTT outcomes.
 
 \begin{table*}[!tb]
   \centering
