@@ -138,7 +138,7 @@
 Long-form video understanding must locate sparse evidence and reason over long-range spatio-temporal interactions under lossy sampling and limited context.
 Recent agentic approaches build video captions into searchable indexes for iterative querying, but flat text and embeddings provide limited support for structured retrieval across temporal scales.
 In this work, we propose the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which co-designs a temporally hierarchical scene-graph video index and adaptive multi-granularity retrieval for structured long-video reasoning.
-The index connects frame-level graphs, segment-level graphs, and a global event graph through a shared entity registry, while corresponding retrieval tools let the agent adapt its search granularity before targeted frame inspection.
+The index connects frame-level graphs, segment-level graphs, and a global event graph through cross-level temporal containment and a shared entity registry, while corresponding retrieval tools let the agent adapt its search granularity before targeted frame inspection.
 Across four benchmarks, SGDAgent remains competitive with baselines using stronger reasoning models.
 Under matched LVBench settings, adding hierarchical graph retrieval channels to the caption-only baseline raises end-to-end accuracy from 54.8\% to 64.4\%, and the three control strategies further raise it to 73.0\%.
 Agent trajectory analysis further illustrates how graph-anchored candidate verification restructures the search process.
@@ -178,7 +178,7 @@ This representation-retrieval coupling lets an agent adapt its search granularit
 % - Para 4: Our method -- representation + agent workflow -
 
 In this work, we present the \textbf{S}cene \textbf{G}raph-\textbf{D}riven Agent (SGDAgent), which transforms open-ended caption search into structured, adaptive multi-granularity retrieval.
-Its bottom-up offline pipeline constructs and indexes frame-level graphs, segment-level graphs, and a global event graph through a shared entity registry.
+Its bottom-up offline pipeline constructs frame-level graphs, aggregates them into segment-level graphs, and abstracts the segments into a global event graph, with temporal containment linking the three levels and a shared entity registry maintaining cross-scale identity.
 During reasoning, the corresponding $FR$, $SR$, and $GR$ tools let the agent adapt its search granularity before targeted frame inspection.
 
 % - Para 5: Results -
@@ -191,7 +191,7 @@ Matched ablations show that frame-level and segment-level graphs improve candida
 
 % - Para 6: Contributions -
 
-In summary, we contribute (1)~a \textbf{temporally hierarchical scene-graph video index} comprising frame-level graphs, segment-level graphs, and a global event graph linked through a shared entity registry and cross-level evidence links; (2)~\textbf{coupled multi-granularity retrieval and agentic reasoning} that maps $FR$, $SR$, and $GR$ to the three graph levels and combines adaptive retrieval with caption backoff, frame inspection, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control strategies.
+In summary, we contribute (1)~a \textbf{tree-structured hierarchical scene-graph video index} comprising frame-level graphs, segment-level graphs, and a global event graph organized by temporal containment and aligned through a shared entity registry; (2)~\textbf{coupled multi-granularity retrieval and agentic reasoning} that maps $FR$, $SR$, and $GR$ to the three graph levels and combines adaptive retrieval with caption backoff, frame inspection, and uncertainty-aware control; and (3)~\textbf{comprehensive evaluation} on four benchmarks, including matched-setting ablations that separate the effects of video-index composition, scene-graph hierarchy, and agent control strategies.
 
 
 
@@ -208,13 +208,13 @@ Scene graphs encode visual entities and their spatio-temporal interactions as gr
 Traditional pipelines~\cite{xu2017scene,motifs2018} have evolved toward open-vocabulary generation with vision-language models~\cite{frompixel2024,vs32023,hyperglm2025}, but cross-segment association and temporal dynamics remain difficult.
 HIG~\cite{hig2024} models the temporal evolution of visual interactivities for video scene-graph generation and related perception tasks, while VideoMindPalace~\cite{videomindpalace2025} organizes people, objects, activity zones, and rooms into an environment-grounded topological graph supplied to an LLM.
 GraphVideoAgent~\cite{graphvideoagent2025} dynamically maintains entity relations to guide frame selection, while EGAgent~\cite{egagent2026} combines temporally annotated entity scene graphs with visual and audio search for longitudinal egocentric video.
-SGDAgent instead makes temporal scale explicit in both its offline video index and retrieval interface, linking frame-level graphs, segment-level graphs, and a global event graph through shared entity identity and cross-level evidence links so the agent can select the appropriate granularity.
+SGDAgent instead makes temporal scale explicit in both its offline video index and retrieval interface, linking frame-level graphs, segment-level graphs, and a global event graph through temporal containment, shared entity identity, and cross-level evidence links so the agent can select the appropriate granularity.
 
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.92\textwidth]{../paper/figures/Graph.png}
   \caption{Overview of the hierarchical spatio-temporal scene graph representation and its bottom-up construction.
-  Panel (a) shows the long video input, panel (b) the construction pipeline, and panel (c) the frame-level, segment-level, and global event graphs linked by a shared entity registry.}
+  Panel (a) shows the long video input, panel (b) the construction pipeline, and panel (c) the frame-level, segment-level, and global event graphs linked by temporal containment, with cross-level entities aligned through a shared registry.}
   \label{fig:graph}
 \end{figure*}
 
@@ -239,19 +239,20 @@ We first define and construct the index, then present the coupled retrieval and 
 \subsection{Hierarchical Scene Graph Representation}
 \label{sec:representation}
 
-SGDAgent represents a video $V$ with a caption index and a three-level spatio-temporal scene graph hierarchy (Figure~\ref{fig:graph}(c)):
+SGDAgent represents a video $V$ with a caption index and a three-level tree-structured spatio-temporal scene-graph hierarchy (Figure~\ref{fig:graph}(c)):
 \begin{equation}
-  \mathcal{I}(V) = \bigl\{C(V),\; G^{f},\; G^{s},\; G^{g}\bigr\},
+  \mathcal{I}(V) = \bigl\{C(V),\; E^{\mathrm{video}},\; G^{f},\; G^{s},\; G^{g}\bigr\},
 \end{equation}
-$C(V)$ is the caption index, while $G^{f}=\{G_i^{f}\}_{i=1}^{N}$, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$, and $G^{g}=(V^{g},\,\mathcal{E}^{g})$ denote the frame-level, segment-level, and global event graphs, respectively.
-All graph levels share an entity registry $E^{\mathrm{video}}$ that stores each entity's ID, canonical name, type, attributes, description, and temporal span for cross-scale identity alignment.
+$C(V)$ is the caption index, while $G^{f}=\{G_i^{f}\}_{i=1}^{N}$, $G^{s}=\{G_j^{s}\}_{j=1}^{M}$, and $G^{g}=(E^{g},\,R^{g})$ are the frame-level, segment-level, and global event graphs, respectively.
+Temporal \texttt{contains} links treat frame and segment graphs as semantic units at the next level, while the shared registry $E^{\mathrm{video}}$ stores each entity's ID, canonical name, type, attributes, description, and temporal span for cross-scale alignment.
 
 \textbf{Frame-level graph.}
 Each frame-level graph captures an entity-relation snapshot at a single keyframe:
 \begin{equation}
   G_i^{f} = (E_i^{f},\; R_i^{f},\; t_i,\; c_i),
 \end{equation}
-$E_i^{f} \subseteq E^{\mathrm{video}}$ contains visible entities, $R_i^{f}$ contains triples $(s,p,o)$ with $s,o \in E_i^{f}$, $t_i$ is the timestamp, and $c_i$ is the aligned caption.
+$E_i^{f} \subseteq E^{\mathrm{video}}$ contains visible entities, while $R_i^{f}$ contains spatial-relation and instantaneous-state triples $(s,p,o)$ with $s,o \in E_i^{f}$.
+$t_i$ and $c_i$ are the timestamp and aligned caption.
 
 \textbf{Segment-level graph.}
 Each segment-level graph aggregates entity interactions over a short temporal window:
@@ -259,18 +260,18 @@ Each segment-level graph aggregates entity interactions over a short temporal wi
   G_j^{s} = (E_j^{s},\; R_j^{s},\;
   [t_j^{\mathrm{s}}, t_j^{\mathrm{e}}],\; F_j,\; s_j),
 \end{equation}
-$E_j^{s}$ contains active entities, $R_j^{s}$ contains temporal relations, $[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the segment interval, $F_j$ contains supporting frame IDs, and $s_j$ is the summary.
+$E_j^{s} \subseteq E^{\mathrm{video}}$ contains active entities, while $R_j^{s}$ captures short-term actions, interactions, and temporal relations.
+$[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the segment interval, $F_j$ contains supporting frame-graph IDs, and $s_j$ is the summary.
 Each relation $(s,p,o,t_{\mathrm{start}},t_{\mathrm{end}},\mathcal{F})$ is grounded by its temporal extent and supporting frames.
 
 \textbf{Global event graph.}
-The global event graph $G^{g}=(V^{g},\,\mathcal{E}^{g})$ organizes higher-level event semantics over segments.
-Each event node $n_k \in V^{g}$ is
+The global event graph abstracts video-wide high-order semantics:
 \begin{equation}
-  n_k = (P_k,\; R_k,\;
-  [t_k^{\mathrm{s}}, t_k^{\mathrm{e}}],\; S_k,\; F_k,\; \sigma_k,\; \gamma_k,\; u_k),
+  G^{g}=(E^{g},\,R^{g}), \qquad E^{g}\subseteq E^{\mathrm{video}}.
 \end{equation}
-$P_k$ and $R_k$ contain participants and salient relations, $[t_k^{\mathrm{s}},t_k^{\mathrm{e}}]$ is the event interval, $S_k$ and $F_k$ are segment and frame evidence links, $\sigma_k$ is the summary, and $\gamma_k$ and $u_k$ are confidence and uncertainty estimates.
-Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode \texttt{before}, \texttt{overlaps}, \texttt{entity-\allowbreak carryover}, \texttt{same-\allowbreak thread}, and \texttt{parent-\allowbreak child} relations.
+$E^{g}$ contains entities participating in global events.
+$R^{g}$ contains high-order event, state-evolution, temporal, and causal predicates over them, grounded in one or more time-bounded event regions.
+Cross-level \texttt{contains} links connect it to supporting segment graphs in the hypergraph skeleton.
 
 
 \begin{figure*}[!tb]
@@ -284,25 +285,23 @@ Nodes are typed as \emph{unit events} or \emph{group events}, while edges encode
 \subsection{Bottom-up Scene Graph Construction}
 \label{sec:construction}
 
-The bottom-up pipeline extracts frame-level graphs, merges them into segment-level graphs, and organizes the segments into a global event graph (Figure~\ref{fig:graph}(b)).
+The bottom-up pipeline extracts frame-level graphs, merges them into segment-level graphs, and abstracts their states and actions into global event and causal relations (Figure~\ref{fig:graph}(b)).
 
 \textbf{Frame-level graph extraction and entity registration.}
-A large vision-language model (VLM) extracts typed entities, attributes, and relations from uniformly sampled keyframes.
-Each entity is greedily aligned to $E^{\mathrm{video}}$ using name, description, and type similarity.
-Matched entities are merged, and the rest are registered as new.
-If extraction is empty, neighboring captions provide coarse entities to prevent graph gaps.
+A vision-language model (VLM) incrementally parses uniformly sampled keyframes, using preceding frame graphs and $E^{\mathrm{video}}$ as context.
+The prompt guides it to extract entities, attributes, and relations before greedy identity alignment based on name, description, and type similarity.
+Matched records are merged, unmatched entities are registered, and neighboring captions help retry empty parses.
 
 \textbf{Segment-level graph merging.}
-Frame-level graphs are merged within overlapping temporal windows.
-Matching triples form temporally grounded relations while retaining cross-window evidence links.
+Within overlapping windows, the VLM analyzes each clip and its frame graphs to extract entity trajectories, actions, and temporal relations.
+Evidence from overlapping regions is used to merge or link actions continuing across adjacent segments.
 
 \textbf{Global event graph construction.}
-Temporally adjacent and semantically overlapping segments are clustered into events.
-Long or discontinuous clusters are split into unit events and organized into group events.
-Temporal, entity-continuity, thread, and hierarchy links form the global event graph.
+Temporally adjacent and semantically overlapping segments are grouped into candidate event regions.
+A global-level prompt guides the VLM to abstract frame states and segment actions into high-order event, state-evolution, temporal, and causal relations linked to participating entities and supporting subgraphs.
 
 \textbf{Quality control.}
-Lightweight filtering and schema validation suppress noisy entities and relations, while global event nodes retain confidence and uncertainty estimates for downstream gating.
+Lightweight filtering and schema validation suppress noisy entities and relations, while global event graphs retain confidence and uncertainty estimates for downstream gating.
 
 
 \subsection{Scene Graph-Driven Agent}
@@ -340,7 +339,7 @@ Each retriever computes the three terms on its level-specific scale and sums the
 $S_{\mathrm{lex}}$ scores token overlap over entity names, relation predicates, and region summaries.
 $S_{\mathrm{soft}}$ uses embedding cosine similarity when available and lexical fuzzy matching otherwise.
 $S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
-The $\mathrm{scope}$ argument forwards a coarse time constraint, while evidence links connect each region to supporting nodes at a finer level.
+The $\mathrm{scope}$ argument forwards a coarse time constraint, while evidence links connect each region to supporting subgraphs at a finer level.
 
 \emph{Hierarchical graph retrieval channels.}
 Frame-level graph retrieval \underline{$(FR)$} retrieves object-level details such as attributes, identity, counts, and spatial relations within a narrow $SR$ scope.
@@ -349,9 +348,9 @@ These timestamps can bound $FI$ to short windows, with the graph content serving
 Segment-level graph retrieval \underline{$(SR)$} searches segment-level graphs globally or within a $GR$ scope and returns ranked windows, temporal triples, keyframe evidence links, and controller signals.
 Its windows feed $FI$ directly or constrain $FR$ when object- or relation-level grounding is needed.
 The signals flag fuzzy matches, overly broad windows, and visual details that the graph cannot resolve.
-Global event graph retrieval \underline{$(GR)$} searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked event windows with inter-event relations and segment evidence links.
+Global event graph retrieval \underline{$(GR)$} searches the full global event graph for causal, plot-level, or video-spanning questions and returns ranked time-grounded event subgraphs with high-order event, temporal, or causal relations and segment evidence links.
 The selected event span scopes the subsequent $SR$ call to a smaller temporal range.
-For temporal or causal sequences, event edges also determine the traversal order.
+For temporal or causal sequences, the corresponding relation paths also determine the traversal order.
 
 
 \emph{Frame inspection (FI) and caption backoff (CB).}
@@ -364,7 +363,7 @@ Caption backoff aids candidate discovery but does not itself visually verify gra
   \label{alg:search}
   \begin{algorithmic}[1]
   \footnotesize
-  \REQUIRE Video index $\mathcal{I}(V)=\{C(V),G^f,G^s,G^g\}$, query $q$, step budget $B$
+  \REQUIRE Video index $\mathcal{I}(V)=\{C(V),E^{\mathrm{video}},G^f,G^s,G^g\}$, query $q$, step budget $B$
   \ENSURE Answer $\hat{a}$
   \STATE $H \leftarrow \mathrm{InitState}(q)$
   \FOR{$t=1,\ldots,B$}
@@ -625,7 +624,7 @@ The matched ablation quantifies component effects, while Figure~\ref{fig:traject
 The question asks: ``Why does the man follow the woman in red after they meet for the third time?'' (correct answer: the woman has his book).
 The caption-only \emph{Base} follows $\mathrm{CB} \!\to\! \mathrm{FI}^{\times 5} \!\to\! \mathrm{Answer}$ but returns fragmented evidence and selects the wrong option, illustrating the \emph{frame-inspect trap}~\cite{deepvideo2025}.
 SGDAgent instead follows $\mathrm{GR} \!\to\! \mathrm{SR} \!\to\! \mathrm{FR} \!\to\! \mathrm{FI} \!\to\! \mathrm{Answer}$.
-$GR$ localizes the repeated encounter, $SR$ and $FR$ narrow it to relevant segments and candidate book-possession relations, and $FI$ checks the raw frames.
+$GR$ retrieves the global repeated-encounter region and its entity-relation path, $SR$ and $FR$ narrow the search to relevant segments and candidate book-possession relations, and $FI$ checks the raw frames.
 This qualitative example illustrates how the hierarchy structures candidate search, while the matched ablation provides the quantitative evidence.
 
 \section{Conclusion}
