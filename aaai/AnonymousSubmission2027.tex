@@ -212,10 +212,12 @@ SGDAgent instead makes temporal scale explicit in both its offline video index a
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.92\textwidth]{../paper/figures/Graph.png}
+  \includegraphics[width=0.9\textwidth]{../paper/figures/Graph.png}
+  \vspace{-0.1in}
   \caption{Overview of the hierarchical spatio-temporal scene graph representation and its bottom-up construction.
   Panel (a) shows the long video input, panel (b) the construction pipeline, and panel (c) the frame-level, segment-level, and global event graphs linked by temporal containment, with cross-level entities aligned through a shared registry.}
   \label{fig:graph}
+  \vspace{-0.1in}
 \end{figure*}
 
 \textbf{Agentic video reasoning.}
@@ -277,9 +279,11 @@ Cross-level \texttt{contains} links connect it to supporting segment graphs in t
 \begin{figure*}[!tb]
   \centering
   \includegraphics[width=0.8\textwidth]{../paper/figures/workflow.png}
+  \vspace{-0.1in}
   \caption{SGDAgent reasoning framework.
   Within the observe-reason-act loop, the agent adaptively selects graph retrieval at global, segment, or frame granularity, caption backoff, or frame inspection over the video index and raw frames.}
   \label{fig:mechanism}
+  \vspace{-0.1in}
 \end{figure*}
 
 \subsection{Bottom-up Scene Graph Construction}
@@ -514,9 +518,11 @@ The terminal convergence strategy \underline{$(T)$} returns the best-supported o
 \begin{figure*}[!tb]
   \centering
    \includegraphics[width=0.9\textwidth]{../paper/figures/Case.pdf}
+  %  \vspace{-0.1in}
   \caption{An LVBench case~\cite{lvbench} illustrates how SGDAgent escapes the frame-inspect trap~\cite{deepvideo2025} (qid: \texttt{q01CUy\_gwdU\_\_121}).
   The trajectory shows coarse-to-fine localization followed by frame inspection.}
   \label{fig:trajectory}
+  \vspace{-0.1in}
 \end{figure*}
 
 
