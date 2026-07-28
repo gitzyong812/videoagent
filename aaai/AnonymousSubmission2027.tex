@@ -252,19 +252,19 @@ Temporal \texttt{contains} links treat frame and segment graphs as semantic unit
 \textbf{Frame-level graph.}
 Each frame-level graph captures an entity-relation snapshot at a single keyframe:
 \begin{equation}
-  G_i^{f} = (E_i^{f},\; R_i^{f},\; t_i,\; c_i),
+  G_i^{f} = (E_i^{f},\; R_i^{f},\; t_i),
 \end{equation}
 $E_i^{f} \subseteq E^{\mathrm{video}}$ contains visible entities, while $R_i^{f}$ contains triples $(s,p,o)$ describing spatial relations and instantaneous states, with $s,o \in E_i^{f}$.
-$t_i$ and $c_i$ are the timestamp and aligned caption.
+$t_i$ is the timestamp.
 
 \textbf{Segment-level graph.}
 Each segment-level graph aggregates entity interactions over a short temporal window:
 \begin{equation}
   G_j^{s} = (E_j^{s},\; R_j^{s},\;
-  [t_j^{\mathrm{s}}, t_j^{\mathrm{e}}],\; F_j,\; s_j),
+  [t_j^{\mathrm{s}}, t_j^{\mathrm{e}}],\; F_j),
 \end{equation}
 $E_j^{s} \subseteq E^{\mathrm{video}}$ contains active entities, while $R_j^{s}$ captures short-term actions, interactions, and temporal relations.
-$[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the segment interval, $F_j$ contains supporting frame-level graph IDs, and $s_j$ is the summary.
+$[t_j^{\mathrm{s}},t_j^{\mathrm{e}}]$ is the segment interval, and $F_j$ contains supporting frame-level graph IDs.
 Each relation $(s,p,o,t_{\mathrm{start}},t_{\mathrm{end}},\mathcal{F})$ is grounded by its temporal extent and supporting frames.
 
 \textbf{Global event graph.}
@@ -295,7 +295,8 @@ The bottom-up pipeline extracts frame-level graphs, merges them into segment-lev
 \textbf{Frame-level graph extraction and entity registration.}
 A vision-language model (VLM) incrementally parses uniformly sampled keyframes, using preceding frame graphs and $E^{\mathrm{video}}$ as context.
 The prompt guides it to extract entities, attributes, and relations before greedy identity alignment based on name, description, and type similarity.
-Matched records are merged, unmatched entities are registered, and neighboring captions support retries when parsing returns empty results.
+Matched records are merged and unmatched entities are registered.
+When parsing returns empty results, neighboring captions from $C(V)$ are used only as auxiliary retry context.
 
 \textbf{Segment-level graph merging.}
 Within overlapping windows, the VLM analyzes each clip and its frame graphs to extract entity trajectories, actions, and temporal relations.
@@ -341,7 +342,7 @@ All three graph retrievers share a common scorer that ranks a candidate region $
   S_{\mathrm{soft}}(w,q) \;+\; S_{\mathrm{temp}}(w,q).
 \end{equation}
 Each retriever computes the three terms on its level-specific scale and sums them with unit outer weights without additional cross-term normalization.
-$S_{\mathrm{lex}}$ scores token overlap over entity names, relation predicates, and region summaries.
+$S_{\mathrm{lex}}$ scores token overlap over entity names, attributes, and relation predicates.
 $S_{\mathrm{soft}}$ uses embedding cosine similarity when available and fuzzy lexical matching otherwise.
 $S_{\mathrm{temp}}$ matches explicit time spans and relative temporal cues in $q$.
 The $\mathrm{scope}$ argument forwards a coarse time constraint, while evidence links connect each region to supporting subgraphs at a finer level.
