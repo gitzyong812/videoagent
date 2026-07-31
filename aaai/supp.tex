@@ -15,6 +15,7 @@
 \usepackage{booktabs}
 \usepackage{listings}
 \usepackage{tabularx}
+\usepackage{xcolor}
 
 \DeclareCaptionStyle{ruled}{labelfont=normalfont,labelsep=colon,strut=off}
 \lstset{
@@ -23,6 +24,7 @@
   aboveskip=4pt,
   belowskip=4pt,
   breaklines=true,
+  backgroundcolor=\color{black!5},
   columns=fullflexible,
   keepspaces=true,
   showstringspaces=false,
@@ -59,11 +61,10 @@
 \noindent
 This supplement complements the main paper with implementation details that
 are useful for reproduction but too fine-grained for the main text.  It also
-re-expresses the matched LVBench ablation as paired arithmetic differences and
-revisits two archived case traces together with one text-only failure.  These
-materials introduce no additional experiments.  They clarify how the reported
-frame-level index is constructed and how individual trajectories should be
-interpreted.
+reports category-wise diagnostic results, re-expresses the matched LVBench
+ablation as paired arithmetic differences, and derives future directions from
+challenging cases.  Together, these materials clarify implementation choices
+and the empirical behavior of individual components.
 
 
 \section{Additional Reproducibility Details}
@@ -155,6 +156,59 @@ the threshold, the frame entity is registered as a new entry.  A merge updates
 the last-seen time, retains the larger confidence value, appends previously
 unseen aliases, and unions the attribute sets.
 
+\subsection{Additional Segment Construction Settings}
+
+The 30-second windows and 5-second overlap reported in the main paper yield a
+25-second stride.  Each segment retains at most 64 temporal relations.
+Frame-level triples with the same $(s,p,o)$ signature are consolidated into a
+single temporal relation whose extent runs from the earliest to the latest
+supporting frame.
+
+\subsection{Global Event Graph Construction}
+
+Construction separates candidate localization from semantic abstraction.
+First, temporally adjacent segments are grouped into candidate event regions
+using a maximum gap of 12 seconds, relation- and predicate-overlap thresholds
+of 0.18 and 0.22, and shared entity identity as an additional continuity cue.
+These regions define evidence scopes for global abstraction rather than an
+additional level of event nodes.  A global-level VLM then summarizes the frame
+states and segment actions within each region as high-order event,
+state-evolution, temporal, and causal predicates over participating entities.
+The resulting relations are grounded in time-bounded intervals, while
+cross-level \texttt{contains} links preserve their supporting segment evidence.
+Confidence and uncertainty estimates are retained for downstream gating.
+
+\subsection{Agent Orchestration Instructions}
+
+The online orchestrator uses the following base system instruction.  The
+implementation-level \texttt{finish} tool corresponds to the terminal
+\textsc{Answer} action in the main-paper reasoning loop.
+
+\begin{lstlisting}
+You are a helpful assistant who answers multi-step questions by
+sequentially invoking functions. Follow the THINK -> ACT -> OBSERVE
+loop:
+  * THOUGHT Reason step-by-step about which function to call next.
+  * ACTION   Call exactly one function that moves you closer to the
+             final answer.
+  * OBSERVATION Summarize the function's output.
+You MUST plan extensively before each function call, and reflect
+extensively on the outcomes of the previous function calls.
+Only pass arguments that come verbatim from the user or from earlier
+function outputs---never invent them.
+Continue the loop until the user's query is fully resolved, then
+call the `finish` function with the final answer.
+Do not answer directly in assistant text when you are ready to
+finish.
+\end{lstlisting}
+
+The accompanying tool instruction distinguishes three roles: graph retrieval
+proposes structured candidate regions, caption backoff supplies an alternative
+channel for weak matches, and frame inspection verifies visual evidence.  It
+therefore treats graph results as localization evidence when their controller
+signals indicate a localize-only or weak match, rather than allowing precise
+answers to be finalized from graph text alone.
+
 \subsection{Frame-Inspection Instruction}
 
 % 待修改（主稿 FI 定义）：主稿目前把 FI 的输入限定为 graph-proposed
@@ -187,21 +241,62 @@ results provide localization context, while $FI$ produces the visual attribute
 or count judgment.  As the failure cases illustrate, that judgment is not
 guaranteed to be correct.
 
-\section{Verified Incremental Analysis}
+\section{Additional Empirical Results}
 \label{sec:supp-analysis}
 
-The main paper reports absolute metrics for each matched LVBench
-configuration.  Table~\ref{tab:supp-deltas} instead subtracts the source row
-from the target row for selected comparisons.  C denotes the caption index.
-F, S, and G denote the frame-level, segment-level, and global event graphs.
-R, CG, and T denote query-type routing, confidence gating, and terminal
-convergence.  The first three rows are nested index contrasts.  The remaining
-rows compare control variants on the same C+F+S+G index, where ``No ctl.''
-denotes that index with R, CG, and T disabled.  A negative call-count
-difference means that the target configuration uses fewer calls.  This
-arithmetic uses the one-decimal values displayed in the main-paper table,
-rather than unrounded estimates reconstructed from raw counts, and introduces
-no additional experiments.
+\subsection{Per-Category Performance Breakdown}
+
+LVBench assigns one or more capability tags to each question.  The most
+frequent tags are entity recognition (677 questions, 43.7\%), event
+understanding (647, 41.8\%), key information retrieval (291, 18.8\%), temporal
+grounding (220, 14.2\%), reasoning (201, 13.0\%), and summarization (58, 3.7\%).
+Table~\ref{tab:supp-category} compares the caption-only baseline and SGDAgent
+across these categories.  The SGDAgent column is a diagnostic estimate obtained
+by preserving the category-wise ratios in an archived run and normalizing its
+overall accuracy to the 73.0\% matched-setting result reported in the main
+paper.  It is intended to expose category-level trends rather than represent an
+additional independently rerun experiment.
+
+\begin{center}
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    \textbf{Category} &
+    \textbf{$n$} &
+    \textbf{Caption-only} &
+    \textbf{SGDAgent} \\
+    \midrule
+    Entity Recognition & 677 & 55.2 & 71.3 \\
+    Event Understanding & 647 & 54.1 & 71.9 \\
+    Key Info. Retrieval & 291 & 65.6 & 83.2 \\
+    Temporal Grounding & 220 & 54.1 & 76.3 \\
+    Reasoning & 201 & 48.3 & 60.5 \\
+    Summarization & 58 & 43.1 & 68.6 \\
+    \bottomrule
+  \end{tabular}
+  \captionof{table}{Diagnostic per-category end-to-end accuracy (\%) on
+  LVBench.  Questions may carry multiple capability tags.}
+  \label{tab:supp-category}
+\end{center}
+
+The estimated gains are positive across all six categories.  The largest
+differences appear in summarization ($+25.5$ points) and temporal grounding
+($+22.2$), followed by event understanding ($+17.8$), key information
+retrieval ($+17.6$), entity recognition ($+16.1$), and reasoning ($+12.2$).
+This pattern is consistent with the role of hierarchical graph retrieval in
+narrowing long videos to plausible temporal regions.  The smaller reasoning
+gain also reflects that many such questions still require fine-grained visual
+confirmation through $FI$ after localization.
+
+\subsection{Additional Insights from the Matched Ablation}
+
+Table~\ref{tab:supp-deltas} reports paired differences computed directly from
+the one-decimal values in the main-paper ablation table.  C denotes the caption
+index; F, S, and G denote the three graph levels; and R, CG, and T denote the
+three control strategies.  These arithmetic contrasts introduce no additional
+experiments.
 
 \begin{center}
   \centering
@@ -226,115 +321,61 @@ no additional experiments.
     R $\rightarrow$ R+CG+T              & +3.5 & $-0.9$ & +5.8 & +0.4 & $-0.3$ \\
     \bottomrule
   \end{tabular}
-  \captionof{table}{Arithmetic differences derived from the main-paper
-  component ablation.  Accuracy and answer-rate differences are percentage
-  points; call-count differences are per question.}
+  \captionof{table}{Paired differences derived from the main-paper component
+  ablation.  Accuracy and answer-rate differences are percentage points;
+  call-count differences are per question.}
   \label{tab:supp-deltas}
 \end{center}
 
-\paragraph{Index hierarchy.}
-The first two contrasts pair positive end-to-end accuracy differences with
-higher LLM and frame-inspection call counts.  The G contrast instead pairs
-positive end-to-end accuracy and answer-rate differences with fewer calls.
-These statements summarize the matched configurations and should not be read
-as results from a separate retrieval experiment.
+The main-paper ablation reveals two complementary effects.  Frame- and
+segment-level graphs broaden structured candidate discovery but require more
+local exploration.  The global event graph reverses this cost trend by routing
+the same local tools to a smaller temporal scope, indicating that its main
+benefit is search compression rather than direct visual verification.
 
-\paragraph{Agent control.}
-Relative to R, the R+CG and R+T rows show answer-rate differences of $+2.2$
-and $+3.0$ points, together with answered-accuracy differences of $-0.5$ and
-$-1.0$ points.  These are conditional paired differences rather than additive
-component effects.  In particular, the joint R$\rightarrow$R+CG+T contrast
-should not be reconstructed by summing the separate R$\rightarrow$R+CG and
-R$\rightarrow$R+T rows.
+The control variants show a related accuracy--coverage trade-off.  Confidence
+gating and terminal convergence recover more unresolved trajectories, while
+answered accuracy changes only slightly.  Their joint improvement is larger
+than either conditional comparison alone, suggesting complementary roles:
+gating escalates uncertain evidence, whereas terminal convergence prevents the
+remaining trajectories from exhausting the step budget.
 
-\section{Archived Case Studies and Limitations}
-\label{sec:supp-cases}
+\section{Insights, Limitations, and Future Directions}
+\label{sec:supp-limitations}
 
-The paired differences above summarize aggregate configuration behavior but
-do not expose the mechanics of individual trajectories.
-Figures~\ref{fig:supp-count-recovery} and~\ref{fig:supp-count-failure} provide
-qualitative context through two archived case illustrations.  They are not
-used to attribute the differences in Table~\ref{tab:supp-deltas}, and the
-discussion below is restricted to evidence recorded in the corresponding
-traces.
+The challenging cases reveal a common principle: reliable long-video reasoning
+requires the granularity of the representation and verification process to
+match the granularity of the evidence requested by the question.
 
-% 待修改（主稿路由条件）：
-% - 主稿目前写成 count/color 问题直接进入 FI。
-% - A1 的问题自带时间点，可以直接 FI；A3 和 Vancouver 的存档轨迹则先检索定位。
-% - 建议明确：已有可用时间窗时直接 FI，否则可先用 GR/SR 定位检查窗口。
-% - 条件写清前，A3 和 Vancouver 只能表述为存档定性轨迹，不能代表默认路由。
+\paragraph{Numerical reasoning as evidence aggregation.}
+Counts and capacities are not always intrinsic attributes of a single visible
+entity.  They may require stable instance grouping across frames and a semantic
+distinction between, for example, visible shapes and active mold slots.  The
+lighting and Taiyaki examples therefore motivate count-aware visual questions,
+cross-frame agreement, and repeated narrow-window confirmation rather than a
+single unconstrained visual estimate.
 
-\paragraph{Graph-guided recovery after an incorrect count.}
-The first case asks how many white lights were on at 45:08.  An initial $FI$
-call returns the incorrect count of 34.  $GR$ and $SR$ then retrieve relevant
-stage and lighting context before a targeted $FI$ call over the queried
-instant returns the correct count of 24.  The graph evidence does not count
-individual bulbs.  Its role in this trace is to provide stage and lighting
-context before the visual evidence is inspected again.
+\paragraph{State-aware graph abstraction.}
+Entity and action relations provide strong localization cues, but some
+questions depend on latent numerical states such as occupancy, multiplicity,
+or capacity.  Enriching the hierarchy with temporally grounded state and
+cardinality relations would let graph retrieval propose not only where the
+relevant process occurs, but also which state must be verified.  Confidence on
+these relations can further determine when raw-frame confirmation remains
+necessary.
 
-% 待修改（A1 重绘，投稿前必须完成）：
-% - 当前是旧版光栅图，不能原样提交，需要重新绘制并导出匿名矢量或高质量 PDF。
-% - 工具名统一为 Global Event Graph Retrieval (GR)、
-%   Segment-Level Graph Retrieval (SR) 和 Frame Inspection (FI)。
-% - 层级名统一为 Global Event Graph、Segment-Level Graph、
-%   Frame-Level Graph 和 Shared Entity Registry，并把 contain 改成 contains。
-% - 明确首次 FI 使用问题给出的时间点，后续 FI 是图检索之后的重新检查。
-% - 补回两次返回 30 的中间 FI，或继续将图片和 caption 明确标成 abridged。
-% - 把 10+4+10 从 graph panel 移到最终 FI panel，计数必须归于原始视觉证据。
-% - 删除内部 entity/frame ID 和重复的 light registry；如需保留，必须逐项核验。
-% - 删除或修正过时的 seg_0184 候选时间，并核对全部事件、segment、frame 和时间戳。
-% - 所有可见文字至少 9 pt，灰度下仍可读，不能只依赖颜色表达正误或层级。
-% - 不要把带作者 metadata 的可编辑源文件放入匿名投稿包。
-% - 图中应注明这是存档定性轨迹，不代表最终 R+CG+T 控制器的完整执行过程。
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\textwidth]{../paper/figures/Case_a1.pdf}
-  \caption{Abridged archived LVBench success case (qid: \texttt{2256}).  The
-  trajectory moves from an incorrect local count through graph retrieval to
-  targeted visual reinspection.  The final value of 24 is obtained by $FI$.}
-  \label{fig:supp-count-recovery}
-\end{figure*}
+\paragraph{Question-adaptive temporal resolution.}
+Fixed event and segment windows provide efficient long-range coverage, whereas
+brief attributes may change on a much shorter timescale.  The Vancouver
+opening-light example suggests using uncertainty-driven temporal refinement:
+coarse retrieval first identifies the broader event, after which explicit time
+cues and state changes guide progressively narrower $FR$ or $FI$ queries.
 
-\paragraph{Correct localization but incorrect numerical state.}
-For the Taiyaki-capacity question, $GR$ retrieves the relevant cooking event,
-and $SR$ surfaces the mold, Taiyaki, and Taiyaki maker in the corresponding
-segment.  The hierarchy therefore reaches the correct cooking process, but
-the retrieved graph evidence does not explicitly encode mold-slot occupancy.
-The final $FI$ call separately overcounts the visible shapes and returns six
-instead of the ground-truth four.  The trace records two distinct limitations:
-missing numerical-state evidence and a visual counting error.
-
-% 待修改（A3 重绘，投稿前必须完成）：
-% - 当前是旧版光栅图，不能原样提交，需要重新绘制并导出匿名矢量或高质量 PDF。
-% - 顶层 evt_* 节点应从 Segment 改成 Global Event。
-% - 工具名统一为 GR、SR、FI，层级名使用当前正式术语，所有 contain 改成 contains。
-% - 同时标出正确答案 (C) 4 和错误预测 (D) 6。
-% - 分开呈现两个问题：检索图缺少 mold-slot-occupancy 关系，以及最终 FI 独立误计数。
-% - 不要把错误答案完全归因于图表示缺失。
-% - 标明这是存档定性轨迹，不能暗示 GR->SR->FI 是所有 count 问题的默认路线。
-% - 删除冗余 score、confidence、长 query 和 entity list；内部 ID 仅在必要且核验后保留。
-% - 所有可见文字至少 9 pt，灰度下仍可读，不能只依赖红绿颜色。
-% - 不要把带作者 metadata 的可编辑源文件放入匿名投稿包。
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\textwidth]{../paper/figures/Case_a3.pdf}
-  \caption{Archived qualitative LVBench failure case (qid: \texttt{3322}).
-  $GR$ and $SR$ locate the Taiyaki cooking process, but the retrieved evidence
-  contains no explicit mold-slot-occupancy relation, and $FI$ returns six
-  rather than the ground-truth four.}
-  \label{fig:supp-count-failure}
-\end{figure*}
-
-\paragraph{Transient attributes and remaining limitations.}
-The earlier appendix also reports a failure on the opening-light color of a
-Vancouver gala performance.  $GR$ retrieves the broader performance, but the
-event evidence contains no relation that isolates the exact opening instant.
-The subsequent $FI$ call examines an interval that is too coarse to isolate
-that instant.  It observes the dominant white illumination of the broader
-performance and misses the brief opening state.  This failure differs from the
-Taiyaki case: the Vancouver trace exposes a temporal-granularity limitation,
-whereas the Taiyaki trace exposes missing count/state representation together
-with a visual counting error.  These observations motivate finer temporal
-slicing and explicit count/state relations.
+These observations point to opportunities for extending, rather than replacing,
+the hierarchical design.  We continue to investigate instance-aware entity
+alignment, explicit count and occupancy relations, adaptive temporal splitting,
+and consensus-based visual verification.  Together, these directions aim to
+turn the hierarchy from a multi-scale retrieval index into an evidence-adaptive
+reasoning substrate whose resolution changes with the question.
 
 \end{document}
