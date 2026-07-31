@@ -2,9 +2,11 @@ from __future__ import annotations
 
 # Adapted from https://github.com/peterroelants/annotated-docs
 
+import ast
 import inspect
+import typing
 from collections.abc import Callable
-from typing import Any, Final, TypedDict, TypeVar
+from typing import Any, Final, TypedDict, TypeVar, get_type_hints
 
 try:
     from typing import Required
@@ -23,6 +25,53 @@ class FunctionJSONSchema(TypedDict, total=False):
     name: Required[str]
     description: str
     parameters: dict[str, Any]
+
+
+class _Pep604ToUnion(ast.NodeTransformer):
+    def visit_BinOp(self, node: ast.BinOp):
+        node = self.generic_visit(node)
+        if not isinstance(node.op, ast.BitOr):
+            return node
+        return ast.copy_location(
+            ast.Subscript(
+                value=ast.Attribute(
+                    value=ast.Name(id="typing", ctx=ast.Load()),
+                    attr="Union",
+                    ctx=ast.Load(),
+                ),
+                slice=ast.Tuple(elts=[node.left, node.right], ctx=ast.Load()),
+                ctx=ast.Load(),
+            ),
+            node,
+        )
+
+
+def _evaluate_annotation(annotation: Any, globalns: dict[str, Any]) -> Any:
+    if not isinstance(annotation, str):
+        return annotation
+    expression = ast.parse(annotation, mode="eval")
+    expression = _Pep604ToUnion().visit(expression)
+    ast.fix_missing_locations(expression)
+    namespace = dict(globalns)
+    namespace["typing"] = typing
+    resolved = eval(compile(expression, "<annotation>", "eval"), namespace)
+    return type(None) if resolved is None else resolved
+
+
+def _resolved_type_hints(func: Callable) -> dict[str, Any]:
+    try:
+        return get_type_hints(
+            func,
+            globalns=func.__globals__,
+            include_extras=True,
+        )
+    except TypeError as exc:
+        if "unsupported operand type" not in str(exc):
+            raise
+    return {
+        name: _evaluate_annotation(annotation, func.__globals__)
+        for name, annotation in func.__annotations__.items()
+    }
 
 
 def as_json_schema(func: Callable) -> FunctionJSONSchema:
@@ -59,16 +108,23 @@ def get_parameter_model(func: Callable) -> pydantic.BaseModel:
     """
     Return a Pydantic model for the parameters of the given function.
     """
+    type_hints = _resolved_type_hints(func)
     field_definitions: dict[str, tuple[Any, Any]] = {}
     for name, obj in inspect.signature(func).parameters.items():
-        if obj.annotation == inspect.Parameter.empty:
+        # The database object is injected by SGDCoreAgent and must never be
+        # exposed as a JSON argument for the model to construct.
+        if name == "database":
+            continue
+        annotation = type_hints.get(name)
+        if annotation is None:
             raise ValueError(
-                f"`{func.__name__}` parameter `{name!s}` has no annotation, please provide an notation to be able to generate the function specification."
+                f"`{func.__name__}` parameter `{name!s}` has no annotation; "
+                "provide one to generate the function specification."
             )
         if obj.default == inspect.Parameter.empty:
-            field_definitions[name] = (obj.annotation, pydantic.Field(...))
+            field_definitions[name] = (annotation, pydantic.Field(...))
         else:
-            field_definitions[name] = (obj.annotation, obj.default)
+            field_definitions[name] = (annotation, obj.default)
     _model_name = ""  # Empty model name
     return pydantic.create_model(_model_name, **field_definitions)  # type: ignore
 
@@ -92,8 +148,8 @@ def get_returns_model(func: Callable) -> pydantic.BaseModel:
     """
     Return a Pydantic model for the returns of the given function.
     """
-    return_annotation = inspect.signature(func).return_annotation
-    if return_annotation == inspect.Signature.empty:
+    return_annotation = _resolved_type_hints(func).get("return")
+    if return_annotation is None:
         raise ValueError(
             f"`{func.__name__}` has no return annotation, please provide an annotation to be able to generate the function specification."
         )

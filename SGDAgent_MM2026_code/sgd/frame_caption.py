@@ -35,18 +35,17 @@ TRANSCRIPT_PLACEHOLDER
 
 Output template:
 {
-  "clip_start_time": CLIP_START_TIME,
-  "clip_end_time": CLIP_END_TIME,
+  "clip_start_time": "CLIP_START_TIME",
+  "clip_end_time": "CLIP_END_TIME",
   "subject_registry": {
-    <subject_i>: {
-      "name": <fill with short identity if name is unknown>,
-      "appearance": <list of appearance descriptions>,
-      "identity": <list of identity descriptions>,
-      "first_seen": <timestamp>
-    },
-    ...
+    "subject_1": {
+      "name": "short identity or role",
+      "appearance": ["appearance detail"],
+      "identity": ["identity detail"],
+      "first_seen": "HH:MM:SS"
+    }
   },
-  "clip_description": <smooth and detailed natural narration of the video clip>
+  "clip_description": "smooth and detailed natural narration of the video clip"
 }
 """
 
@@ -97,7 +96,7 @@ def gather_frames_from_time_ranges(
 
 def gather_clip_frames(
     video_frame_folder, clip_secs: int, subtitle_file_path: str = None
-) -> Dict[str, Dict]:
+) -> List[Tuple[str, Dict]]:
     # Fix possible typo in the earlier list-comprehension and gather frames again
     frame_files = sorted(
         [f for f in os.listdir(video_frame_folder) if f.startswith("frame") and f.endswith(".jpg")],
@@ -206,6 +205,28 @@ def parse_srt_to_dict(srt_path: str) -> Dict[str, str]:
 # --------------------------------------------------------------------------- #
 #                        LLM wrappers (single clip)                           #
 # --------------------------------------------------------------------------- #
+def _validate_caption_payload(
+    payload: object,
+    clip_start_time: str,
+    clip_end_time: str,
+) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("Caption response must be a JSON object.")
+    clip_description = payload.get("clip_description")
+    if not isinstance(clip_description, str) or not clip_description.strip():
+        raise ValueError("Caption response is missing a non-empty `clip_description`.")
+    subject_registry = payload.get("subject_registry")
+    if not isinstance(subject_registry, dict):
+        raise ValueError("Caption response is missing an object-valued `subject_registry`.")
+
+    normalized = dict(payload)
+    normalized["clip_start_time"] = clip_start_time
+    normalized["clip_end_time"] = clip_end_time
+    normalized["clip_description"] = clip_description.strip()
+    normalized["subject_registry"] = subject_registry
+    return normalized
+
+
 def _caption_clip(task: Tuple[str, Dict], caption_ckpt_folder) -> Tuple[str, dict]:
     """LLM call for one clip. Returns (timestamp_key, parsed_json)."""
     timestamp, info = task
@@ -221,33 +242,48 @@ def _caption_clip(task: Tuple[str, Dict], caption_ckpt_folder) -> Tuple[str, dic
         "CLIP_START_TIME", clip_start_time).replace(
         "CLIP_END_TIME", clip_end_time)
 
-    if os.path.exists(os.path.join(caption_ckpt_folder, f"{timestamp}.json")):
-        # If the caption already exists, skip processing
-        with open(os.path.join(caption_ckpt_folder, f"{timestamp}.json"), "r") as f:
-            return timestamp, json.load(f)
+    checkpoint_path = os.path.join(caption_ckpt_folder, f"{timestamp}.json")
+    if os.path.exists(checkpoint_path):
+        try:
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            return timestamp, _validate_caption_payload(
+                cached,
+                clip_start_time,
+                clip_end_time,
+            )
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
 
     tries = 3
     while tries:
         tries -= 1
-        resp = call_openai_model_with_tools(
+        response = call_openai_model_with_tools(
             send_messages,
             endpoints=config.AOAI_CAPTION_VLM_ENDPOINT_LIST,
             model_name=config.AOAI_CAPTION_VLM_MODEL_NAME,
             return_json=True,
             image_paths=files,
             api_key=config.OPENAI_API_KEY,
-        )["content"]
-        if resp is None:
+        )
+        if not isinstance(response, dict):
+            continue
+        resp = response.get("content")
+        if not isinstance(resp, str) or not resp.strip():
             continue
         try:
-            assert isinstance(resp, str), f"Response must be a JSON string instead of {type(resp)}:{resp}."
-            parsed = json.loads(resp)
-            parsed["clip_description"] += f"\n\nTranscript during this video clip: {transcript}." # add transcript to description
-            resp = json.dumps(parsed)
-            with open(os.path.join(caption_ckpt_folder, f"{timestamp}.json"), "w") as f:
-                f.write(resp)
+            parsed = _validate_caption_payload(
+                json.loads(resp),
+                clip_start_time,
+                clip_end_time,
+            )
+            parsed["clip_description"] += (
+                f"\n\nTranscript during this video clip: {transcript}."
+            )
+            with open(checkpoint_path, "w", encoding="utf-8") as f:
+                json.dump(parsed, f, ensure_ascii=False)
             return timestamp, parsed
-        except json.JSONDecodeError:
+        except (TypeError, ValueError, json.JSONDecodeError):
             continue
     return timestamp, {}  # give up
 
@@ -269,18 +305,23 @@ def merge_subject_registries(registries: List[dict]) -> dict:
     tries = 3
     while tries:
         tries -= 1
-        resp = call_openai_model_with_tools(
+        response = call_openai_model_with_tools(
             send_messages,
             endpoints=config.AOAI_CAPTION_VLM_ENDPOINT_LIST,
             model_name=config.AOAI_CAPTION_VLM_MODEL_NAME,
             return_json=True,
             api_key=config.OPENAI_API_KEY,
-        )["content"]
-        if resp is None:
+        )
+        if not isinstance(response, dict):
+            continue
+        resp = response.get("content")
+        if not isinstance(resp, str) or not resp.strip():
             continue
         try:
-            return json.loads(resp)
-        except json.JSONDecodeError:
+            merged = json.loads(resp)
+            if isinstance(merged, dict):
+                return merged
+        except (TypeError, json.JSONDecodeError):
             continue
     return {}  # fallback
 
@@ -298,13 +339,19 @@ def process_video(
     os.makedirs(caption_ckpt_folder, exist_ok=True)
 
     clips = gather_clip_frames(frame_folder, config.CLIP_SECS, subtitle_file_path)
+    if not clips:
+        raise ValueError(f"No decoded video frames found in {frame_folder}.")
 
     caption_clip = functools.partial(
         _caption_clip,
         caption_ckpt_folder=caption_ckpt_folder,
     )
     # ---------------- Parallel captioning --------------- #
-    with mp.Pool(16) as pool:
+    worker_count = max(
+        1,
+        min(int(getattr(config, "CAPTION_WORKERS", 16)), len(clips)),
+    )
+    with mp.Pool(processes=worker_count) as pool:
         results = list(
             tqdm(
                 pool.imap_unordered(caption_clip, clips),
@@ -316,13 +363,29 @@ def process_video(
     # ---------------- Save per-clip JSON ---------------- #
     partial_registries = []
     frame_captions = {}
+    failed_clips = []
     results = sorted(results, key=lambda x: float(x[0].split("_")[0]))
     for ts, parsed in results:
-        if parsed:
+        if isinstance(parsed, dict):
+            description = parsed.get("clip_description")
+            registry = parsed.get("subject_registry")
+        else:
+            description = None
+            registry = None
+        if isinstance(description, str) and isinstance(registry, dict):
             frame_captions[ts] = {
-                "caption": parsed["clip_description"],
+                "caption": description,
             }
-            partial_registries.append(parsed["subject_registry"])
+            partial_registries.append(registry)
+        else:
+            failed_clips.append(ts)
+
+    if failed_clips:
+        failed_preview = ", ".join(failed_clips[:8])
+        raise RuntimeError(
+            f"Caption generation failed for {len(failed_clips)} clip(s): "
+            f"{failed_preview}. No captions.json was written."
+        )
 
     # ---------------- Merge subject registries ---------- #
     merged_registry = merge_subject_registries(partial_registries)

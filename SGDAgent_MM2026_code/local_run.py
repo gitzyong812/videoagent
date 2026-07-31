@@ -40,6 +40,27 @@ def _find_existing_raw_video(video_id: str) -> str | None:
     return None
 
 
+def _answer_from_messages(messages) -> str | None:
+    if not messages:
+        return None
+    terminal = messages[-1]
+    if not isinstance(terminal, dict) or terminal.get("role") != "assistant":
+        return None
+    tool_calls = terminal.get("tool_calls") or []
+    if tool_calls and any(
+        call.get("function", {}).get("name") != "finish"
+        for call in tool_calls
+    ):
+        return None
+    try:
+        answer = extract_answer(terminal)
+    except (KeyError, TypeError, ValueError):
+        return None
+    if isinstance(answer, str) and answer.strip():
+        return answer.strip()
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run SGDCoreAgent on a video.")
     parser.add_argument("video_path", help="A local video path.")
@@ -92,7 +113,12 @@ def main():
     # Run with question
     print(f"Running agent with question: '{question}'")
     msgs = agent.run(question)
-    print(extract_answer(msgs[-1]))
+    answer = _answer_from_messages(msgs)
+    if answer is None:
+        raise RuntimeError(
+            "The agent returned no usable answer. Review the preceding API and tool errors."
+        )
+    print(answer)
 
 if __name__ == "__main__":
     main()

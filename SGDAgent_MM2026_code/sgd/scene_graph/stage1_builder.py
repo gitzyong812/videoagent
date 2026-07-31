@@ -13,7 +13,7 @@ from sgd.scene_graph.schema import (empty_stage1_graph, safe_load_stage1_graph,
 from sgd.utils import call_openai_model_with_tools
 
 
-# ── G1-lite: entity noise filtering ──────────────────────────────────────────
+# Entity-label filtering used during frame-graph extraction.
 # Entities whose canonical_name (lowercased) is in ENTITY_BLACKLIST are dropped.
 # Entities whose type is not in ALLOWED_ENTITY_TYPES are forced to "object".
 ENTITY_BLACKLIST: set[str] = {

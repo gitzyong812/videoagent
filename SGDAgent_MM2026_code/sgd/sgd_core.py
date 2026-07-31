@@ -14,7 +14,7 @@ from typing import Literal as L
 
 import sgd.config as config
 from sgd.build_database import (clip_search_tool, frame_graph_query_tool,
-                                frame_inspect_tool, global_browse_tool,
+                                frame_inspect_tool, global_event_query_tool,
                                 init_single_video_db, segment_graph_query_tool)
 from sgd.func_call_shema import as_json_schema
 from sgd.func_call_shema import doc as D
@@ -118,6 +118,9 @@ class PolicyState:
     finish_rejections: int = 0
     fi_records: list[dict[str, Any]] = field(default_factory=list)
     clip_records: list[dict[str, Any]] = field(default_factory=list)
+    gr_recommended_scope: str = ""
+    gr_requires_sr: bool = False
+    gr_requires_caption_backoff: bool = False
 
 class StopException(Exception):
     """
@@ -133,11 +136,11 @@ def finish(answer: A[str, D("Answer to the user's question.")]) -> None:
 class SGDCoreAgent:
     def __init__(self, video_db_path, video_caption_path, max_iterations, video_file_root: str | None = None):
         self.tools = [
+            global_event_query_tool,
             segment_graph_query_tool,
             frame_graph_query_tool,
             frame_inspect_tool,
             clip_search_tool,
-            global_browse_tool,
             finish,
         ]
         self.name_to_function_map = {tool.__name__: tool for tool in self.tools}
@@ -220,7 +223,8 @@ Only pass arguments that come verbatim from the user or from earlier function ou
 
 Here are tools you can use to reveal your reasoning process whenever the provided information is insufficient.
 
-• To get a global information about events and main subjects in the video, use `global_browse_tool`.
+• For causal, plot-level, or video-spanning questions, first use `global_event_query_tool` to locate candidate event regions.
+• `global_event_query_tool` is a heuristic region retriever. It does not provide causal relations or answer evidence. After a match, continue with `segment_graph_query_tool` in the recommended scope.
 • To search without a specific timestamp, use `clip_search_tool`.
 • To retrieve structured segment-level temporal evidence, use `segment_graph_query_tool`.
 • To retrieve structured frame-level evidence (entities and relations), use `frame_graph_query_tool`.
@@ -228,6 +232,7 @@ Here are tools you can use to reveal your reasoning process whenever the provide
 • Whenever you are uncertain of an answer after searching, inspect frames in the relevant intervals with `frame_inspect_tool`.
 • After locating an answer in the script, always make a **CONFIRM** with `frame_inspect_tool` query.
 • If visual evidence is ambiguous or yields a non-option attribute, do NOT force the nearest answer option. Gather more evidence first.
+• When `global_event_query_tool` accepts `scope`, preserve an explicit question time range exactly.
 • When a tool accepts `time_reference`, preserve the explicit time range exactly; do not collapse a range into a single timestamp.
 • Your final step must be a call to `finish`; do not reply with the option letter directly in assistant text.
 
@@ -236,11 +241,11 @@ Every result from `segment_graph_query_tool` includes a `controller_signals` fie
 • `localize_only: true` → The graph result tells you WHERE to look, not WHAT the answer is. Use the returned time range as a starting point only. You MUST call `frame_inspect_tool` to visually confirm the answer before calling `finish`. Do NOT call `finish` based on graph text alone.
 • `question_is_fine_detail: true` → The question asks for something the graph cannot reliably answer (color, count, appearance, on-screen text, exact identity). Graph = location hint only. Always follow up with `frame_inspect_tool`.
 • `coarse_window: true` → The matched segment spans ~30 seconds. This is too wide for precise visual verification. Do NOT limit your `frame_inspect_tool` call to only that segment's time range — inspect multiple sub-windows or a broader range.
-• `no_temporal_hit: true` → The graph had no direct keyword match; results are speculative. Re-anchor with `clip_search_tool` or `global_browse_tool` before proceeding.
+• `no_temporal_hit: true` → The graph had no direct keyword match; results are speculative. Re-anchor with `global_event_query_tool` or `clip_search_tool` before proceeding.
 • `recommend_frame_inspect: true` → You must call `frame_inspect_tool` before calling `finish`.
 • `weak_match: true` → Low-confidence match. Treat as a rough hint; verify independently.
 
-You can first use `global_browse_tool` to a global information about this video, then invoke multiple times of these tools to prgressively find the answer.
+For a video-wide question, use the sequence `global_event_query_tool` → `segment_graph_query_tool`, then call `frame_graph_query_tool` or `frame_inspect_tool` when finer evidence is needed. Never call `finish` from a global event result alone.
 
 Based on your observations and tool outputs, provide a concise answer that directly addresses the question. \n
 
@@ -253,7 +258,7 @@ Question: QUESTION_PLACEHOLDER"""
         video_length = add_data['video_length']
         messages[-1]['content'] = messages[-1]['content'].replace("VIDEO_LENGTH", str(video_length))
 
-        # Inject Global Event Index if Stage 2 graph is available
+        # Optional compatibility path for prompt-level timeline injection.
         gei_text = self._build_gei_text(add_data)
         if gei_text:
             # Insert the GEI between the tool instructions and the question
@@ -265,7 +270,7 @@ Question: QUESTION_PLACEHOLDER"""
 
     def _build_gei_text(self, add_data: dict) -> str:
         """Build Global Event Index text from Stage 2 graph if available."""
-        if not bool(getattr(config, "GEI_ENABLED", True)):
+        if not bool(getattr(config, "GEI_PROMPT_INJECTION_ENABLED", False)):
             return ""
         stage2_path = add_data.get("stage2_segment_graph_path")
         if not stage2_path or not os.path.exists(stage2_path):
@@ -476,6 +481,9 @@ Question: QUESTION_PLACEHOLDER"""
 
     def _build_question_policy(self, question: str, question_context: dict[str, Any] | None) -> QuestionPolicy:
         context = self._normalize_question_context(question_context)
+        time_reference = context["time_reference"]
+        if not time_reference and self._extract_time_marks_sec(question):
+            time_reference = self._canonical_time_reference(question)
         qtypes = tuple(q.lower() for q in context["question_type"])
         flags = self._question_token_flags(question)
         fine_detail_like = bool(
@@ -500,11 +508,8 @@ Question: QUESTION_PLACEHOLDER"""
             or fine_detail_like
         )
         requires_repeated_targeted_fi = bool(
-            flags["count"]
-            or (
-                fine_detail_like
-                and bool(getattr(config, "POLICY_REPEAT_TARGETED_FI_FOR_FINE_DETAIL", True))
-            )
+            fine_detail_like
+            and bool(getattr(config, "POLICY_REPEAT_TARGETED_FI_FOR_FINE_DETAIL", False))
         )
 
         targeted_label = "frame-level detail"
@@ -534,20 +539,20 @@ Question: QUESTION_PLACEHOLDER"""
             )
         if targeted_label == "count":
             notes.append(
-                "For count questions, keep the counted group explicit and stable across repeated confirmations. Re-check the same localized moment instead of sweeping across adjacent instants that can change visibility."
+                "For count questions, keep the counted group explicit and inspect the same localized moment instead of sweeping across adjacent instants that can change visibility."
             )
-        if context["time_reference"]:
+        if time_reference:
             notes.append(
                 "Treat the explicit time reference as a hard admissibility constraint for graph hits and terminal evidence."
             )
 
         return QuestionPolicy(
             question_types=qtypes,
-            time_reference=context["time_reference"],
+            time_reference=time_reference,
             video_type=context["video_type"],
             requires_targeted_fi=requires_targeted_fi,
             requires_repeated_targeted_fi=requires_repeated_targeted_fi,
-            requires_time_valid_terminal=bool(context["time_reference"]),
+            requires_time_valid_terminal=bool(time_reference),
             targeted_label=targeted_label,
             notes=notes,
         )
@@ -757,6 +762,17 @@ Question: QUESTION_PLACEHOLDER"""
     ) -> tuple[bool, str]:
         if policy is None or state is None:
             return True, ""
+
+        if state.gr_requires_sr:
+            return (
+                False,
+                "A global event result is only a location hint. Query the recommended range with `segment_graph_query_tool` before `finish`.",
+            )
+        if state.gr_requires_caption_backoff:
+            return (
+                False,
+                "Global event retrieval found no usable region. Use `clip_search_tool` before `finish`.",
+            )
 
         max_rej = int(getattr(config, "POLICY_MAX_FINISH_REJECTIONS", 3))
         if state.finish_rejections >= max_rej:
@@ -1029,7 +1045,7 @@ Question: QUESTION_PLACEHOLDER"""
         return json.dumps(logged_args, ensure_ascii=False, default=str)
 
     def _is_retryable_tool_error(self, tool_name: str, err: Exception) -> bool:
-        if tool_name not in {"frame_inspect_tool", "global_browse_tool", "clip_search_tool"}:
+        if tool_name not in {"frame_inspect_tool", "clip_search_tool"}:
             return False
         low = str(err).lower()
         retry_keywords = (
@@ -1050,7 +1066,7 @@ Question: QUESTION_PLACEHOLDER"""
 
     def _call_tool_with_retries(self, tool_name: str, target_func, args: dict[str, Any]):
         attempts = 1
-        if tool_name in {"frame_inspect_tool", "global_browse_tool", "clip_search_tool"}:
+        if tool_name in {"frame_inspect_tool", "clip_search_tool"}:
             attempts = int(getattr(config, "TOOL_CALL_RETRY_ATTEMPTS", 1))
         delay = float(getattr(config, "TOOL_CALL_RETRY_BASE_DELAY_SEC", 2.0))
 
@@ -1229,6 +1245,26 @@ Question: QUESTION_PLACEHOLDER"""
                 args["time_reference"] = question_policy.time_reference
             elif not str(args.get("time_reference", "")).strip():
                 args["time_reference"] = question_policy.time_reference
+
+        if (
+            name == "global_event_query_tool"
+            and question_policy is not None
+            and question_policy.time_reference
+        ):
+            explicit_ranges = self._parse_time_reference_ranges(
+                question_policy.time_reference
+            )
+            if len(explicit_ranges) == 1 and explicit_ranges[0][1] > explicit_ranges[0][0]:
+                args["scope"] = question_policy.time_reference
+
+        if (
+            name == "segment_graph_query_tool"
+            and policy_state is not None
+            and not (question_policy and question_policy.time_reference)
+            and policy_state.gr_requires_sr
+            and policy_state.gr_recommended_scope
+        ):
+            args["time_reference"] = policy_state.gr_recommended_scope
         
         if "topk" in args and config.OVERWRITE_CLIP_SEARCH_TOPK > 0:
             args["topk"] = config.OVERWRITE_CLIP_SEARCH_TOPK
@@ -1276,9 +1312,32 @@ Question: QUESTION_PLACEHOLDER"""
                                     "reason": analysis.get("reason", ""),
                                 },
                             )
-                    elif question_policy.requires_targeted_fi:
-                        # Merge narrow_window_guidance with G6 controller_signals:
-                        # prefer the more specific controller signal when available.
+                    if name == "segment_graph_query_tool" and policy_state.gr_requires_sr:
+                        parsed_segment = self._parse_tool_json(result) or {}
+                        if not parsed_segment.get("error"):
+                            scope_ranges = self._parse_time_reference_ranges(
+                                policy_state.gr_recommended_scope
+                            )
+                            matched_segments = parsed_segment.get("matched_segments") or []
+                            scope_hit = any(
+                                float(segment.get("t_end", segment.get("t_start", 0.0)))
+                                > scope_start
+                                and float(segment.get("t_start", 0.0)) < scope_end
+                                for segment in matched_segments
+                                if isinstance(segment, dict)
+                                for scope_start, scope_end in scope_ranges
+                            )
+                            policy_state.gr_requires_sr = False
+                            policy_state.gr_recommended_scope = ""
+                            policy_state.gr_requires_caption_backoff = not scope_hit
+                            if not scope_hit:
+                                self._append_guidance_once(
+                                    msgs,
+                                    "Segment retrieval returned no candidate inside the GR scope. "
+                                    "Use `clip_search_tool` before `finish`.",
+                                )
+                    if not analysis.get("reject") and question_policy.requires_targeted_fi:
+                        # Prefer the more specific controller signal when available.
                         if name == "segment_graph_query_tool":
                             _parsed_sg = self._parse_tool_json(result)
                             _cs = (_parsed_sg or {}).get("controller_signals", {})
@@ -1303,7 +1362,7 @@ Question: QUESTION_PLACEHOLDER"""
                         if not _cs_guidance_fired:
                             self._append_guidance_once(msgs, self._narrow_window_guidance(question_policy))
 
-                    # G6: weak_match guidance for non-fine-detail accepted segment_graph results
+                    # Use weak-match guidance for accepted segment-graph results.
                     if name == "segment_graph_query_tool" and not analysis.get("reject") and not _cs_guidance_fired:
                         _parsed_sg = locals().get("_parsed_sg") or self._parse_tool_json(result)
                         _cs = (_parsed_sg or {}).get("controller_signals", {})
@@ -1314,8 +1373,43 @@ Question: QUESTION_PLACEHOLDER"""
                                 "Treat returned segments as rough hints. "
                                 "Verify with `clip_search_tool` or `frame_inspect_tool` before answering.",
                             )
+                elif name == "global_event_query_tool":
+                    parsed_gr = self._parse_tool_json(result) or {}
+                    matched_events = parsed_gr.get("matched_events") or []
+                    signals = parsed_gr.get("controller_signals") or {}
+                    recommended_scope = signals.get("recommended_scope")
+                    if isinstance(recommended_scope, (list, tuple)) and len(recommended_scope) == 2:
+                        recommended_scope = f"{recommended_scope[0]}-{recommended_scope[1]}"
+                    if not isinstance(recommended_scope, str):
+                        recommended_scope = ""
+                    policy_state.gr_recommended_scope = recommended_scope.strip()
+                    policy_state.gr_requires_sr = bool(
+                        matched_events and policy_state.gr_recommended_scope
+                    )
+                    policy_state.gr_requires_caption_backoff = not policy_state.gr_requires_sr
+                    policy_state.graph_backoff_active = False
+                    policy_state.graph_backoff_reason = ""
+                    if policy_state.gr_requires_sr:
+                        weak_note = (
+                            " The match is weak, so treat the range as an overview hint only."
+                            if signals.get("weak_match")
+                            else ""
+                        )
+                        self._append_guidance_once(
+                            msgs,
+                            "Global event retrieval only localized a candidate region. "
+                            f"Call `segment_graph_query_tool` next with time_reference "
+                            f"`{policy_state.gr_recommended_scope}`.{weak_note}",
+                        )
+                    else:
+                        self._append_guidance_once(
+                            msgs,
+                            "Global event retrieval found no usable region in the requested scope. "
+                            "Use `clip_search_tool` as caption backoff; do not infer an answer from the empty result.",
+                        )
                 elif name == "clip_search_tool":
                     improved = self._record_clip_search(policy_state, question_policy, str(result))
+                    policy_state.gr_requires_caption_backoff = False
                     if question_policy.requires_targeted_fi:
                         self._append_guidance_once(msgs, self._narrow_window_guidance(question_policy))
                 elif name == "frame_inspect_tool":
@@ -1334,11 +1428,12 @@ Question: QUESTION_PLACEHOLDER"""
                         )
                     ):
                         self._append_guidance_once(msgs, self._narrow_window_guidance(question_policy))
-                elif name == "global_browse_tool":
-                    policy_state.graph_backoff_active = False
-                self._note_progress(policy_state, name, improved)
+                if name != "global_event_query_tool":
+                    self._note_progress(policy_state, name, improved)
                 window = int(getattr(config, "POLICY_STAGNATION_WINDOW", 3))
                 if (
+                    name != "global_event_query_tool"
+                    and
                     len(policy_state.recent_progress) >= window
                     and not any(policy_state.recent_progress[-window:])
                     and not policy_state.stagnation_prompted
@@ -1619,6 +1714,16 @@ Question: QUESTION_PLACEHOLDER"""
         )
         if forced is not None:
             return forced
+        finalization_ok, finalization_reason = self._finish_policy_status(
+            question,
+            policy,
+            policy_state,
+        )
+        if not finalization_ok:
+            self._append_guidance_once(msgs, finalization_reason)
+            if trace_logger is not None:
+                trace_logger.log_trace_end(status="required_followup_missing")
+            return None
         hard_forced = self._hard_force_single_choice_answer(
             msgs=msgs,
             question=question,
@@ -1813,6 +1918,16 @@ Question: QUESTION_PLACEHOLDER"""
         )
         if forced is not None:
             return
+        finalization_ok, finalization_reason = self._finish_policy_status(
+            question,
+            policy,
+            policy_state,
+        )
+        if not finalization_ok:
+            self._append_guidance_once(msgs, finalization_reason)
+            if trace_logger is not None:
+                trace_logger.log_trace_end(status="required_followup_missing")
+            return
         hard_forced = self._hard_force_single_choice_answer(
             msgs=msgs,
             question=question,
@@ -1833,10 +1948,3 @@ Question: QUESTION_PLACEHOLDER"""
                 return
         if trace_logger is not None:
             trace_logger.log_trace_end(status="max_iterations_reached")
-
-
-def single_run_wrapper(info) -> dict:
-    qid, video_db_path, video_caption_path, question = info
-    agent = SGDCoreAgent(video_db_path, video_caption_path, question)
-    msgs = agent.run()
-    return {qid: msgs}

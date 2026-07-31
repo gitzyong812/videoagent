@@ -1,23 +1,13 @@
-"""Global Event Index (GEI) — lightweight video-level context for prompt injection.
+"""Global Event Index (GEI) — lightweight video-level navigation context.
 
-Unlike Stage 3's global_graph_query_tool (a separate tool with 2800+ lines and
-its own retrieval/cascade pipeline), the GEI is NOT a tool.  It pre-processes
-the Stage 2 segment graph into a compact text summary that is injected into
-the system prompt, giving the orchestrator LLM a birds-eye view of the video
-timeline *before* it calls any tools.
+The GEI deterministically compresses the Stage 2 segment graph into heuristic
+event regions.  It supports prompt injection and a lightweight retrieval layer,
+but it is not a VLM-abstracted global graph and does not contain causal or state
+edges.  Retrieved regions must therefore be verified through finer-level tools.
 
-Design rationale (lessons from Stage 3):
-  1. Zero extra LLM calls — the global context is always available.
-  2. Zero new tools — the orchestrator tool list stays identical.
-  3. No cascade competition — segment_graph_query_tool remains the single
-     source of segment-level evidence.
-  4. Bounded token budget — the summary is capped to stay within a configurable
-     character limit so it never floods the context window.
-
-Key insight from Stage 3 eval: 120 events from 122 segments = zero compression.
-The GEI must compress aggressively (120 segments → 8-12 scene blocks) and
-surface discriminative keywords that help the agent match question terms to
-time regions.
+The GEI uses a bounded region budget to keep the timeline compact while
+surfacing discriminative keywords that help match question terms to time
+regions.
 """
 
 from __future__ import annotations
@@ -35,10 +25,17 @@ from sgd.scene_graph.schema import safe_load_stage2_segment_graph
 # ---------------------------------------------------------------------------
 # Configuration defaults (overridable via sgd.config)
 # ---------------------------------------------------------------------------
-_DEFAULT_MAX_EVENTS = 12  # target scene count; aggressive compression
+_DEFAULT_MAX_EVENTS = 12  # bounded event-region budget
 _DEFAULT_MAX_CHARS = 2400  # hard cap on the text summary length
 _DEFAULT_MERGE_GAP_SEC = 5.0  # merge adjacent segments sharing entities within this gap
 _DEFAULT_MAX_ENTITIES_DISPLAY = 8  # entity continuity entries
+GLOBAL_EVENT_INDEX_VERSION = "gei_event_timeline_v1"
+GLOBAL_EVENT_INDEX_BACKEND = {
+    "kind": "heuristic_segment_clustering",
+    "is_vlm_global_graph": False,
+    "supports_causal_edges": False,
+    "supports_state_edges": False,
+}
 
 # Stop words to filter from discriminative keyword extraction
 _STOP_WORDS: set[str] = {
@@ -132,7 +129,7 @@ def _merge_entity_spans(
 
 
 # ---------------------------------------------------------------------------
-# Segment → Scene block clustering (aggressive compression)
+# Segment → bounded scene-region grouping
 # ---------------------------------------------------------------------------
 
 def _collect_segment_text(seg: dict[str, Any]) -> str:
@@ -239,7 +236,14 @@ def _extract_event_timeline(
     if not segments:
         return []
 
-    sorted_segs = sorted(segments, key=lambda s: float(s.get("t_start", 0)))
+    sorted_segs = sorted(
+        segments,
+        key=lambda s: (
+            float(s.get("t_start", 0)),
+            float(s.get("t_end", s.get("t_start", 0))),
+            str(s.get("segment_id", "")),
+        ),
+    )
 
     # Identify entities too common to be discriminative
     ubiquitous = _identify_ubiquitous_entities(sorted_segs)
@@ -325,6 +329,18 @@ def _extract_event_timeline(
     for idx, cluster in enumerate(clusters):
         t_start = min(float(s.get("t_start", 0)) for s in cluster)
         t_end = max(float(s.get("t_end", 0)) for s in cluster)
+        support_segment_ids = [
+            str(seg.get("segment_id"))
+            for seg in sorted(
+                cluster,
+                key=lambda s: (
+                    float(s.get("t_start", 0)),
+                    float(s.get("t_end", s.get("t_start", 0))),
+                    str(s.get("segment_id", "")),
+                ),
+            )
+            if seg.get("segment_id")
+        ]
 
         # Top entities by frequency within cluster
         entity_counts: dict[str, tuple[str, int]] = {}
@@ -367,11 +383,13 @@ def _extract_event_timeline(
         pred_str = ", ".join(top_preds) if top_preds else "—"
 
         events.append({
+            "event_id": f"gei_evt_{idx + 1:04d}",
             "t_start": t_start,
             "t_end": t_end,
             "entities": entity_str,
             "actions": pred_str,
             "keywords": disc_keywords,
+            "support_segment_ids": support_segment_ids,
             "num_segments": len(cluster),
         })
 
@@ -409,6 +427,17 @@ def _entity_continuity_summary(
 # Public API
 # ---------------------------------------------------------------------------
 
+def _empty_global_event_index(video_id: str = "") -> dict[str, Any]:
+    return {
+        "version": GLOBAL_EVENT_INDEX_VERSION,
+        "video_id": video_id,
+        "backend": dict(GLOBAL_EVENT_INDEX_BACKEND),
+        "event_timeline": [],
+        "entity_continuity": [],
+        "prompt_text": "",
+    }
+
+
 def build_global_event_index(
     stage2_graph: dict[str, Any],
     *,
@@ -419,6 +448,7 @@ def build_global_event_index(
     """Build a Global Event Index from a Stage 2 segment graph.
 
     Returns a dict with:
+      - metadata that identifies the heuristic, non-VLM backend
       - "event_timeline": list of simplified events
       - "entity_continuity": entity appearance spans
       - "prompt_text": pre-formatted text for prompt injection
@@ -437,7 +467,7 @@ def build_global_event_index(
 
     segments = stage2_graph.get("segments", [])
     if not segments:
-        return {"event_timeline": [], "entity_continuity": [], "prompt_text": ""}
+        return _empty_global_event_index(str(stage2_graph.get("video_id", "")))
 
     entity_timeline = _build_entity_timeline(segments)
     events = _extract_event_timeline(segments, merge_gap_sec, max_events)
@@ -446,6 +476,9 @@ def build_global_event_index(
     prompt_text = _format_prompt_text(events, continuity, max_chars)
 
     return {
+        "version": GLOBAL_EVENT_INDEX_VERSION,
+        "video_id": str(stage2_graph.get("video_id", "")),
+        "backend": dict(GLOBAL_EVENT_INDEX_BACKEND),
         "event_timeline": events,
         "entity_continuity": continuity,
         "prompt_text": prompt_text,
@@ -459,7 +492,7 @@ def build_global_event_index_from_path(
     """Load a Stage 2 graph from disk and build the GEI."""
     graph = safe_load_stage2_segment_graph(stage2_graph_path)
     if graph is None:
-        return {"event_timeline": [], "entity_continuity": [], "prompt_text": ""}
+        return _empty_global_event_index()
     return build_global_event_index(graph, **kwargs)
 
 

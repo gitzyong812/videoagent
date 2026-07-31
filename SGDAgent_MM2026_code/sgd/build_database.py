@@ -13,6 +13,7 @@ import sgd.config as config
 from sgd.func_call_shema import doc as D
 from sgd.scene_graph import (ensure_stage1_scene_graph,
                              ensure_stage2_segment_graph,
+                             query_global_event_index_by_path,
                              query_stage1_graph_by_path,
                              query_stage2_segment_graph_by_path)
 from sgd.utils import AzureOpenAIEmbeddingService, call_openai_model_with_tools
@@ -21,10 +22,11 @@ from sgd.utils import AzureOpenAIEmbeddingService, call_openai_model_with_tools
 def frame_inspect_tool(
     database: A[NanoVectorDB, D("The database containing video metadata. Must be an instance of NanoVectorDB.")], 
     question: A[str, D("The specific detailed question to ask about the video content during the specified time ranges. No need to add time ranges in the question.")], 
-    time_ranges_hhmmss: A[list[tuple], D("A list of tuples containing start and end times in HH:MM:SS format. If the time range is longer than 50 seconds, the function samples 50 evenly distributed frames.  Otherwise, it uses all frames within the specified range.")], 
+    time_ranges_hhmmss: A[list[tuple], D("A list of start/end tuples in HH:MM:SS format. The function samples at most 50 frame positions uniformly over the flattened union of these ranges.")],
 ) -> str:
     """
-    Crop the video frames based on the time ranges and ask the model a detailed question about the cropped video clips.
+    Sample at most 50 frame positions across the requested ranges and ask the
+    visual model a detailed question about those frames.
     Returns:
         str: The model's response to the question. If no relevant content is found within the time range,
              returns an error message: "Error: Cannot find corresponding result in the given time range."
@@ -237,6 +239,43 @@ def global_browse_tool(
     return json.dumps({'subject_registry': subject_registry, 'query_related_event': msgs["content"]})
 
 
+def global_event_query_tool(
+        database: A[NanoVectorDB, D("The database containing global event index metadata.")],
+        query: A[str, D("Question or event description used to locate coarse regions across the video.")],
+        scope: A[str | None, D("Optional hard time scope in HH:MM:SS-HH:MM:SS format.")] = None,
+        top_k_events: A[int, D("Maximum number of coarse event regions to return; values above 5 are capped.")] = config.GLOBAL_EVENT_TOPK,
+) -> str:
+    """Locate coarse event regions in the heuristic Global Event Index.
+
+    The returned regions are navigation hints. Use the recommended scope with
+    the segment graph tool before drawing an answer.
+    """
+    assert isinstance(database, NanoVectorDB), "Database must be an instance of NanoVectorDB"
+    graph_path = database.get_additional_data().get("stage2_segment_graph_path")
+    if not graph_path or not os.path.exists(graph_path):
+        return json.dumps(
+            {
+                "error": "The Stage2 segment graph required by the Global Event Index is unavailable.",
+                "matched_events": [],
+                "controller_signals": {
+                    "localize_only": True,
+                    "verification_required": True,
+                    "weak_match": True,
+                    "recommended_next_tool": "clip_search_tool",
+                    "recommended_scope": None,
+                    "causal_relation_available": False,
+                },
+            }
+        )
+    result = query_global_event_index_by_path(
+        stage2_graph_path=graph_path,
+        query=query,
+        scope=scope,
+        top_k=top_k_events,
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
 def frame_graph_query_tool(
         database: A[NanoVectorDB, D("The database containing scene graph metadata.")],
         query: A[str, D("Question or keyword query for frame-level graph retrieval.")],
@@ -344,13 +383,7 @@ def _stage1_graph_candidates(video_caption_json_path: str, existing_path: str | 
     if existing_path:
         candidates.append(os.path.abspath(existing_path))
 
-    captions_dir = os.path.dirname(video_caption_json_path)
-    candidates.extend(
-        [
-            _default_stage1_graph_path(video_caption_json_path),
-            os.path.abspath(os.path.join(captions_dir, "scene_graph_stage1.eval.json")),
-        ]
-    )
+    candidates.append(_default_stage1_graph_path(video_caption_json_path))
 
     deduped = []
     seen = set()
@@ -367,13 +400,7 @@ def _stage2_graph_candidates(stage1_graph_path: str, existing_path: str | None =
     if existing_path:
         candidates.append(os.path.abspath(existing_path))
 
-    graph_dir = os.path.dirname(stage1_graph_path)
-    candidates.extend(
-        [
-            _default_stage2_graph_path(stage1_graph_path),
-            os.path.abspath(os.path.join(graph_dir, "scene_graph_stage2.eval.json")),
-        ]
-    )
+    candidates.append(_default_stage2_graph_path(stage1_graph_path))
 
     deduped = []
     seen = set()
@@ -609,7 +636,8 @@ def preprocess_captions(caption_json_path):
         batch = scripts[i:i+batch_size]
         batched_scripts.append(batch)
     cap2emb_list = []
-    with multiprocessing.Pool(os.cpu_count() // 2) as pool:
+    worker_count = max(1, (os.cpu_count() or 1) // 2)
+    with multiprocessing.Pool(worker_count) as pool:
         with tqdm(total=len(scripts), desc="Embedding captions...") as pbar:
             for result in pool.imap_unordered(
                 single_batch_embedding_task,

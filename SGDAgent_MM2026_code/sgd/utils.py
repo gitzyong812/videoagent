@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import base64
 import copy
+import functools
 import json
-import os
 import random
 import time
-from io import BytesIO
 from mimetypes import guess_type
 
 import cv2
@@ -34,6 +33,27 @@ def _normalize_model_name(model_name: str) -> str:
             print(f"[MODEL] Normalized model name from {model_name!r} to {resolved!r}.")
             _WARNED_MODEL_ALIASES.add(alias_key)
     return resolved
+
+
+def _select_azure_endpoint(endpoints, service_name: str) -> str:
+    if isinstance(endpoints, str):
+        candidates = [endpoints.strip()]
+    elif isinstance(endpoints, (list, tuple)):
+        candidates = [str(item).strip() for item in endpoints]
+    else:
+        raise ValueError(f"{service_name} endpoints must be a string or a list of strings.")
+    candidates = [item.rstrip("/") for item in candidates if item]
+    if not candidates:
+        raise ValueError(
+            f"No Azure endpoint configured for {service_name}. "
+            "Set OPENAI_API_KEY or the corresponding SGD_*_ENDPOINTS variable."
+        )
+    return random.choice(candidates)
+
+
+def _uses_reasoning_token_parameter(model_name: str) -> bool:
+    normalized = model_name.lower()
+    return len(normalized) >= 2 and normalized[0] == "o" and normalized[1].isdigit()
 
 
 def retry_with_exponential_backoff(
@@ -71,6 +91,7 @@ def retry_with_exponential_backoff(
         ]
         return any(k in low for k in retry_keywords)
 
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Initialize variables
         num_retries = 0
@@ -88,8 +109,7 @@ def retry_with_exponential_backoff(
 
                     # Check if max retries has been reached
                     if num_retries > max_retries:
-                        print("Max retries reached. Exiting.")
-                        return None
+                        raise
 
                     # Increment the delay
                     delay *= exponential_base * (1 + jitter * random.random())
@@ -97,8 +117,7 @@ def retry_with_exponential_backoff(
                     # Sleep for the delay
                     time.sleep(delay)
                 else:
-                    print(str(e))
-                    return None
+                    raise
 
     return wrapper
 
@@ -149,25 +168,22 @@ def call_openai_model_with_tools(
             endpoint = f"{endpoint}/v1"
         url = f"{endpoint}/chat/completions"
     else:
+        endpoint = _select_azure_endpoint(endpoints, "chat completions")
         credential = AzureCliCredential()  
         token = credential.get_token('https://cognitiveservices.azure.com/')  
         headers = {  
             "Content-Type": "application/json",  
             'Authorization': 'Bearer ' + token.token  
         }  
-        if isinstance(endpoints, str):
-            endpoint = endpoints
-        elif isinstance(endpoints, list):
-            endpoint = random.choice(endpoints)
-        else:
-            raise ValueError("Endpoints must be a string or a list of strings.")
         url = f"{endpoint}/openai/deployments/{model}/chat/completions?api-version=2025-03-01-preview"
       
     payload = {  
         "model": model,
-        "messages": copy.deepcopy(messages),  
-        # "reasoning_effort": reasoning_effort,
-    }  
+        "messages": copy.deepcopy(messages),
+        "max_completion_tokens": max_tokens,
+    }
+    if not _uses_reasoning_token_parameter(model):
+        payload["temperature"] = temperature
     if return_json:
         payload["response_format"] = {"type": "json_object"}
   
@@ -185,7 +201,12 @@ def call_openai_model_with_tools(
             payload['messages'][-1]['content'].append({"type": "image_url", "image_url": {"url": image_data}})
       
     start_time = time.perf_counter()
-    response = requests.post(url, headers=headers, json=payload, timeout=600)  
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=config.API_TIMEOUT_SECS,
+    )
     latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
   
     if response.status_code != 200:
@@ -250,12 +271,7 @@ class AzureOpenAIEmbeddingService:
                 endpoint = f"{endpoint}/v1"
             url = f"{endpoint}/embeddings"
         else:
-            if isinstance(endpoints, str):
-                endpoint = endpoints
-            elif isinstance(endpoints, list):
-                endpoint = random.choice(endpoints)
-            else:
-                raise ValueError("Endpoints must be a string or a list of strings.")  
+            endpoint = _select_azure_endpoint(endpoints, "embeddings")
             # Define the URL for the embeddings endpoint  
             url = f"{endpoint}/openai/deployments/{model}/embeddings?api-version=2023-05-15"
     
@@ -273,7 +289,12 @@ class AzureOpenAIEmbeddingService:
         }  
   
         # Make the request to the Azure OpenAI service  
-        response = requests.post(url, headers=headers, data=json.dumps(payload))  
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=config.API_TIMEOUT_SECS,
+        )
   
         # Check if the request was successful  
         if response.status_code == 200:  
@@ -314,4 +335,3 @@ def extract_answer(message: dict) -> str | None:
         return content.strip()
     
     return None
-

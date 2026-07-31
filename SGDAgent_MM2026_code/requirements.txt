@@ -4,6 +4,5 @@ tqdm
 nano-vectordb
 azure-identity
 requests
-openai
 pydantic>=2,<3
 typing-extensions>=4.0
