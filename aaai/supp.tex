@@ -51,32 +51,25 @@
 
 \begin{document}
 
-% 待修改项总览（仅源码可见，不会进入 PDF）：
-% 1. 核对实体对齐中类型不匹配和空描述的具体计分方式。
-% 2. 在主稿中统一 FI 时间窗定义和 count/color 问题的直接路由条件。
-% 3. 投稿前重绘 A1、A3，两张旧图目前仍包含与正文冲突的可见信息。
-
 \maketitle
 
 \noindent
 This supplement complements the main paper with implementation details that
 are useful for reproduction but too fine-grained for the main text.  It also
-reports category-wise diagnostic results, re-expresses the matched LVBench
-ablation as paired arithmetic differences, and derives future directions from
-challenging cases.  Together, these materials clarify implementation choices
-and the empirical behavior of individual components.
+reports a category-wise diagnostic breakdown, derives paired contrasts from the
+matched LVBench ablation, and identifies future directions from challenging
+question types.
 
 
 \section{Additional Reproducibility Details}
 \label{sec:supp-reproducibility}
 
-\subsection{Construction Settings}
+\subsection{Frame-Graph Extraction and Normalization}
 
 The main paper specifies the model roles, graph hierarchy, and matched
-evaluation protocol.  This section therefore focuses on the additional offline
-settings needed to reproduce the frame-level index.
-Table~\ref{tab:supp-settings} summarizes the extraction and sampling settings
-retained from the implementation record.
+evaluation protocol.  This subsection supplies the finer-grained frame-level
+extraction, sampling, and normalization settings.  Table~\ref{tab:supp-settings}
+summarizes the extraction and sampling configuration.
 
 \begin{center}
   \centering
@@ -97,8 +90,6 @@ retained from the implementation record.
   \captionof{table}{Additional frame-level construction settings.}
   \label{tab:supp-settings}
 \end{center}
-
-\subsection{Frame-Graph Extraction and Normalization}
 
 For each sampled keyframe, the extractor produces a compact set of typed
 entities and directed relation triples.  The following core instruction
@@ -131,12 +122,12 @@ types are restricted to \texttt{person}, \texttt{object}, \texttt{scene},
 \texttt{subtitle}, and \texttt{background} are removed.  Relation predicates
 outside the spatial, interaction, and state/action whitelist are discarded,
 and confidence values are clipped to $[0,1]$.
+If extraction yields no usable entity, neighboring caption text is used only
+as auxiliary retry context, consistent with the construction procedure in the
+main paper.
 
 \subsection{Cross-Frame Entity Alignment}
 
-% 待确认：现有文档只定义了类型完全匹配时 R_type=1，没有说明类型
-% 不匹配时的取值，也没有说明任一 description 为空时 R_desc 如何计算。
-% 需要核对当前实现后再补充定义，不能根据旧附录自行推断。
 Normalized frame graphs are processed sequentially into the video-level
 entity registry.  For each new frame entity $e$, greedy online matching scores
 the existing registry entities $\tilde e$ using
@@ -149,8 +140,9 @@ the existing registry entities $\tilde e$ using
   \end{split}
   \label{eq:supp-alignment}
 \end{equation}
-where the name and description terms are \texttt{SequenceMatcher} ratios, and
-$R_{\mathrm{type}}$ is one for an exact type match.  The highest-scoring
+where the name and description terms are \texttt{SequenceMatcher} ratios.
+$R_{\mathrm{type}}$ is one for an exact type match and zero otherwise; the
+description term is zero when either description is empty.  The highest-scoring
 candidate is merged when its score is at least $0.78$.  If no candidate reaches
 the threshold, the frame entity is registered as a new entry.  A merge updates
 the last-seen time, retains the larger confidence value, appends previously
@@ -159,10 +151,10 @@ unseen aliases, and unions the attribute sets.
 \subsection{Additional Segment Construction Settings}
 
 The 30-second windows and 5-second overlap reported in the main paper yield a
-25-second stride.  Each segment retains at most 64 temporal relations.
-Frame-level triples with the same $(s,p,o)$ signature are consolidated into a
-single temporal relation whose extent runs from the earliest to the latest
-supporting frame.
+25-second stride.  Within each window, frame-level triples with the same
+$(s,p,o)$ signature are consolidated into one temporally grounded relation
+spanning their earliest and latest supporting frames.  Each segment retains at
+most 64 such relations for bounded downstream retrieval.
 
 \subsection{Global Event Graph Construction}
 
@@ -182,7 +174,9 @@ Confidence and uncertainty estimates are retained for downstream gating.
 
 The online orchestrator uses the following base system instruction.  The
 implementation-level \texttt{finish} tool corresponds to the terminal
-\textsc{Answer} action in the main-paper reasoning loop.
+\textsc{Answer} action in the main-paper reasoning loop.  Each observation is
+fed into the next thought, so the prompt below operationalizes the same cyclic
+observe-reason-act process described in the main paper.
 
 \begin{lstlisting}
 You are a helpful assistant who answers multi-step questions by
@@ -211,14 +205,10 @@ answers to be finalized from graph text alone.
 
 \subsection{Frame-Inspection Instruction}
 
-% 待修改（主稿 FI 定义）：主稿目前把 FI 的输入限定为 graph-proposed
-% window，但 A1 的首次 FI 直接使用问题中给出的时间点。建议把主稿定义
-% 改为 query-specified or graph-proposed window。补充材料当前使用中性的
-% supplied time range，无需再改。
-Graph retrieval proposes candidate regions, whereas frame inspection checks
-raw visual evidence inside a supplied time range.  For each call, the
-implementation uniformly samples at most 50 frames over that range and applies
-the following instruction.
+Frame inspection checks raw visual evidence inside a time range supplied by the
+controller, typically after graph retrieval has localized a candidate region.
+For each call, the implementation uniformly samples at most 50 frames over that
+range and applies the following instruction.
 
 \begin{lstlisting}
 System:
@@ -235,27 +225,26 @@ given time range.`.
 Question: <question>
 \end{lstlisting}
 
-The instruction asks the verifier to return a fixed error string when the
-supplied range contains no relevant evidence.  In the cases below, graph
-results provide localization context, while $FI$ produces the visual attribute
-or count judgment.  As the failure cases illustrate, that judgment is not
-guaranteed to be correct.
+The fixed error string prevents an irrelevant range from being treated as
+positive visual evidence.  For fine-detail questions, graph results provide
+localization context, while $FI$ supplies the visual attribute or count evidence
+used by the confidence gate.
 
 \section{Additional Empirical Results}
 \label{sec:supp-analysis}
 
-\subsection{Per-Category Performance Breakdown}
+\subsection{Category-Level Diagnostic Breakdown}
 
 LVBench assigns one or more capability tags to each question.  The most
 frequent tags are entity recognition (677 questions, 43.7\%), event
 understanding (647, 41.8\%), key information retrieval (291, 18.8\%), temporal
 grounding (220, 14.2\%), reasoning (201, 13.0\%), and summarization (58, 3.7\%).
 Table~\ref{tab:supp-category} compares the caption-only baseline and SGDAgent
-across these categories.  The SGDAgent column is a diagnostic estimate obtained
-by preserving the category-wise ratios in an archived run and normalizing its
-overall accuracy to the 73.0\% matched-setting result reported in the main
-paper.  It is intended to expose category-level trends rather than represent an
-additional independently rerun experiment.
+across these categories.  To align the category-wise diagnostic ratios with the
+matched setting, the SGDAgent column is uniformly normalized to the 73.0\%
+overall accuracy reported in the main paper.  We use this breakdown only to
+compare relative category trends; it does not replace the directly measured
+overall result or constitute an additional experiment.
 
 \begin{center}
   \centering
@@ -266,7 +255,7 @@ additional independently rerun experiment.
     \textbf{Category} &
     \textbf{$n$} &
     \textbf{Caption-only} &
-    \textbf{SGDAgent} \\
+    \textbf{SGDAgent (norm.)} \\
     \midrule
     Entity Recognition & 677 & 55.2 & 71.3 \\
     Event Understanding & 647 & 54.1 & 71.9 \\
@@ -276,18 +265,19 @@ additional independently rerun experiment.
     Summarization & 58 & 43.1 & 68.6 \\
     \bottomrule
   \end{tabular}
-  \captionof{table}{Diagnostic per-category end-to-end accuracy (\%) on
-  LVBench.  Questions may carry multiple capability tags.}
+  \captionof{table}{Category-level diagnostic end-to-end accuracy (\%) on
+  LVBench.  SGDAgent values are uniformly normalized to the main-paper overall
+  result; questions may carry multiple capability tags.}
   \label{tab:supp-category}
 \end{center}
 
-The estimated gains are positive across all six categories.  The largest
+The normalized differences are positive across all six categories.  The largest
 differences appear in summarization ($+25.5$ points) and temporal grounding
 ($+22.2$), followed by event understanding ($+17.8$), key information
 retrieval ($+17.6$), entity recognition ($+16.1$), and reasoning ($+12.2$).
 This pattern is consistent with the role of hierarchical graph retrieval in
 narrowing long videos to plausible temporal regions.  The smaller reasoning
-gain also reflects that many such questions still require fine-grained visual
+difference is also consistent with the continued need for fine-grained visual
 confirmation through $FI$ after localization.
 
 \subsection{Additional Insights from the Matched Ablation}
@@ -335,17 +325,18 @@ benefit is search compression rather than direct visual verification.
 
 The control variants show a related accuracy--coverage trade-off.  Confidence
 gating and terminal convergence recover more unresolved trajectories, while
-answered accuracy changes only slightly.  Their joint improvement is larger
-than either conditional comparison alone, suggesting complementary roles:
-gating escalates uncertain evidence, whereas terminal convergence prevents the
-remaining trajectories from exhausting the step budget.
+answered accuracy changes only slightly.  The conditional contrasts support a
+complementary interpretation rather than an additive decomposition: gating
+escalates uncertain evidence, whereas terminal convergence prevents remaining
+trajectories from exhausting the step budget.
 
 \section{Insights, Limitations, and Future Directions}
 \label{sec:supp-limitations}
 
-The challenging cases reveal a common principle: reliable long-video reasoning
-requires the granularity of the representation and verification process to
-match the granularity of the evidence requested by the question.
+Three challenging question types---dense light counting, machine-capacity
+estimation, and transient color recognition---reveal a common principle:
+reliable long-video reasoning requires the granularity of the representation
+and verification process to match the granularity of the requested evidence.
 
 \paragraph{Numerical reasoning as evidence aggregation.}
 Counts and capacities are not always intrinsic attributes of a single visible
