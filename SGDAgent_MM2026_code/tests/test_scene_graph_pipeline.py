@@ -1,8 +1,10 @@
 import json
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sgd.scene_graph.global_builder import build_global_event_graph, group_candidate_regions
 from sgd.scene_graph.schema import (
@@ -15,6 +17,7 @@ from sgd.scene_graph.stage1_builder import (
     _align_entity,
     _build_prompt,
     _normalize_frame_parse,
+    _parse_single_frame_with_vlm,
     build_stage1_scene_graph,
 )
 
@@ -57,6 +60,40 @@ class SceneGraphPipelineTest(unittest.TestCase):
         self.assertIn("video_entity_registry", prompt)
         self.assertIn("auxiliary retry context", prompt)
 
+    def test_frame_vlm_path_builds_prompt_and_propagates_transport_failure(self):
+        fake_utils = types.ModuleType("sgd.utils")
+        fake_call = Mock(
+            return_value={
+                "content": json.dumps(
+                    {
+                        "entities": [
+                            {
+                                "local_id": "e1", "name": "person", "type": "person",
+                                "attributes": [], "desc_text": "adult", "confidence": 0.9,
+                            }
+                        ],
+                        "relations": [],
+                    }
+                )
+            }
+        )
+        fake_utils.call_openai_model_with_tools = fake_call
+        with patch.dict(sys.modules, {"sgd.utils": fake_utils}):
+            entities, _ = _parse_single_frame_with_vlm(
+                "/tmp/frame.jpg",
+                query_hint="who enters",
+                previous_graphs=[{"frame_id": "f_1"}],
+                entity_bank=[],
+            )
+            self.assertEqual(entities[0]["name"], "person")
+            prompt = fake_call.call_args.kwargs["messages"][1]["content"]
+            self.assertIn("who enters", prompt)
+            self.assertIn("preceding_frame_graphs", prompt)
+
+            fake_call.return_value = None
+            with self.assertRaisesRegex(RuntimeError, "Frame-graph VLM call failed"):
+                _parse_single_frame_with_vlm("/tmp/frame.jpg")
+
     def test_candidate_region_thresholds(self):
         segments = [
             {
@@ -77,6 +114,24 @@ class SceneGraphPipelineTest(unittest.TestCase):
         ]
         groups = group_candidate_regions(segments, 12.0, 0.18, 0.22)
         self.assertEqual([[s["segment_id"] for s in group] for group in groups], [["s1", "s2"], ["s3"]])
+
+    def test_ubiquitous_generic_entity_does_not_merge_unrelated_regions(self):
+        segments = [
+            {
+                "segment_id": f"s{index}",
+                "t_start": index * 10,
+                "t_end": index * 10 + 10,
+                "active_entities": [
+                    {"entity_id": "e_person", "canonical_name": "person"}
+                ],
+                "temporal_relations": [
+                    {"s": "e_person", "p": f"action_{index}", "o": f"e{index}"}
+                ],
+            }
+            for index in range(4)
+        ]
+        groups = group_candidate_regions(segments, 12.0, 0.18, 0.22)
+        self.assertEqual(len(groups), 4)
 
     def test_empty_frame_parse_retries_with_caption_context(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -2,6 +2,7 @@ import unittest
 import sys
 import types
 import json
+import inspect
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -37,6 +38,7 @@ try:
         segment_graph_query_tool,
     )
     import sgd.build_database as build_database
+    import sgd.frame_caption as frame_caption
     import sgd.utils as model_utils
     from sgd.func_call_shema import as_json_schema
     from sgd.sgd_core import PolicyState, QuestionPolicy, SGDCoreAgent
@@ -84,6 +86,10 @@ class AgentPolicyTest(unittest.TestCase):
                 "caption_backoff_tool",
             ],
         )
+        self.assertEqual(
+            inspect.signature(global_graph_query_tool).parameters["top_k_regions"].default,
+            5,
+        )
 
     def test_database_metadata_links_all_graph_levels(self):
         class FakeVectorDB:
@@ -129,6 +135,19 @@ class AgentPolicyTest(unittest.TestCase):
             self.assertEqual(metadata["stage2_segment_graph_path"], stage2)
             self.assertEqual(metadata["global_event_graph_path"], global_graph)
 
+    def test_stage1_build_failure_is_not_silently_ignored(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(
+            build_database.config, "SCENE_GRAPH_STAGE1_ENABLED", True
+        ), patch.object(
+            build_database.config, "SCENE_GRAPH_STAGE1_FORCE_REBUILD", True
+        ), patch.object(
+            build_database, "ensure_stage1_scene_graph", side_effect=RuntimeError("VLM unavailable")
+        ):
+            captions_path = Path(tmp) / "captions.json"
+            captions_path.write_text("{}")
+            with self.assertRaisesRegex(RuntimeError, "VLM unavailable"):
+                build_database._ensure_stage1_graph_file(str(captions_path))
+
     def test_model_payload_respects_role_settings(self):
         class FakeResponse:
             status_code = 200
@@ -156,6 +175,24 @@ class AgentPolicyTest(unittest.TestCase):
         self.assertEqual(payloads[0]["temperature"], 0.0)
         self.assertEqual(payloads[1]["max_completion_tokens"], 400)
         self.assertNotIn("temperature", payloads[1])
+
+    def test_caption_contract_is_valid_json_and_fails_clearly(self):
+        template = frame_caption.CAPTION_PROMPT.split("Output template:\n", 1)[1]
+        rendered = template.replace("CLIP_START_TIME", "00:00:00").replace(
+            "CLIP_END_TIME", "00:00:09"
+        )
+        parsed = json.loads(rendered)
+        self.assertIn("clip_description", parsed)
+        self.assertIsInstance(parsed["subject_registry"], dict)
+
+        with tempfile.TemporaryDirectory() as tmp, patch.object(
+            frame_caption, "call_openai_model_with_tools", return_value=None
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Caption VLM extraction failed"):
+                frame_caption._caption_clip(
+                    ("0_9", {"files": [], "transcript": "No transcript."}),
+                    tmp,
+                )
 
 
 if __name__ == "__main__":

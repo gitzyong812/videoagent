@@ -44,11 +44,13 @@ All model roles can be changed without editing source code:
 | `SGD_FRAME_GRAPH_MODEL` | `gpt-4.1` | Frame-level graph extraction |
 | `SGD_SEGMENT_GRAPH_MODEL` | `gpt-4.1` | Segment actions and temporal relations |
 | `SGD_GLOBAL_GRAPH_MODEL` | `gpt-4.1` | Global event and causal abstraction |
-| `SGD_FRAME_INSPECT_MODEL` | `gpt-4.1-mini` | Raw-frame visual verification |
+| `SGD_FRAME_INSPECT_MODEL` | `o3` | Raw-frame visual verification |
 | `SGD_EMBEDDING_MODEL` | `text-embedding-3-large` | Caption and graph semantic retrieval |
 | `SGD_BUILD_WORKERS` | `4` | Caption/embedding build workers |
 
-The strict segment and global builders require their configured VLMs. Invalid model output is retried and then reported as a build error rather than silently replaced by heuristic relations.
+The default reasoning, frame-graph, and frame-inspection roles match the reported paper configuration; the remaining roles are configurable. Frame transport failures and invalid segment/global outputs are reported as build errors rather than silently replaced by heuristic relations.
+
+The paper-aligned defaults decode at 2 FPS, sample frame-graph candidates every 5 seconds with at most 120 keyframes, use 30-second segments with 5-second overlap, and group global candidates with the reported 12-second, 0.18, and 0.22 thresholds. `GR`, `SR`, and `FR` return at most 5, 6, and 8 candidates, and `FI` samples at most 50 frames. Ubiquitous generic labels such as `person` are ignored only as standalone global continuity cues to prevent degenerate all-video regions.
 
 ## Usage
 
@@ -76,6 +78,14 @@ frames/
 ```
 
 The global query returns time-bounded candidate regions and segment evidence links. These can be passed as `scope` to segment retrieval. Segment ranges can likewise scope frame retrieval before raw-frame inspection.
+
+## Network-free tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+These tests use mocked model and embedding responses. They validate the three graph levels, VLM prompt boundaries, cross-level evidence links, graph-tool scoring and scope filtering, routing, confidence gates, and terminal convergence without API calls.
 
 ## Source layout
 

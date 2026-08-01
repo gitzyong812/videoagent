@@ -3,11 +3,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$ROOT_DIR/SGDAgent_MM2026_code"
 OUT_DIR="${1:-$ROOT_DIR/dist}"
 STAMP="$(date +%Y%m%d)"
 ARCHIVE_PATH="$OUT_DIR/SGDAgent_submission_${STAMP}.tar.gz"
 
 mkdir -p "$OUT_DIR"
+
+if [[ ! -d "$SOURCE_DIR" ]]; then
+  echo "Missing supplementary source directory: $SOURCE_DIR" >&2
+  exit 1
+fi
 
 tar \
   --exclude='.git' \
@@ -34,7 +40,7 @@ tar \
   --exclude='.env' \
   --exclude='.env.*' \
   -czf "$ARCHIVE_PATH" \
-  -C "$ROOT_DIR" \
+  -C "$SOURCE_DIR" \
   .
 
 echo "Created sanitized archive: $ARCHIVE_PATH"

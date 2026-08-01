@@ -35,18 +35,17 @@ TRANSCRIPT_PLACEHOLDER
 
 Output template:
 {
-  "clip_start_time": CLIP_START_TIME,
-  "clip_end_time": CLIP_END_TIME,
+  "clip_start_time": "CLIP_START_TIME",
+  "clip_end_time": "CLIP_END_TIME",
   "subject_registry": {
-    <subject_i>: {
-      "name": <fill with short identity if name is unknown>,
-      "appearance": <list of appearance descriptions>,
-      "identity": <list of identity descriptions>,
-      "first_seen": <timestamp>
-    },
-    ...
+    "subject_1": {
+      "name": "short identity",
+      "appearance": ["appearance description"],
+      "identity": ["identity description"],
+      "first_seen": "timestamp"
+    }
   },
-  "clip_description": <smooth and detailed natural narration of the video clip>
+  "clip_description": "smooth and detailed natural narration of the video clip"
 }
 """
 
@@ -227,6 +226,7 @@ def _caption_clip(task: Tuple[str, Dict], caption_ckpt_folder) -> Tuple[str, dic
             return timestamp, json.load(f)
 
     tries = 3
+    last_error = "empty response"
     while tries:
         tries -= 1
         response = call_openai_model_with_tools(
@@ -243,14 +243,19 @@ def _caption_clip(task: Tuple[str, Dict], caption_ckpt_folder) -> Tuple[str, dic
         try:
             assert isinstance(resp, str), f"Response must be a JSON string instead of {type(resp)}:{resp}."
             parsed = json.loads(resp)
+            if not isinstance(parsed.get("clip_description"), str):
+                raise TypeError("`clip_description` must be a string")
+            if not isinstance(parsed.get("subject_registry"), dict):
+                raise TypeError("`subject_registry` must be an object")
             parsed["clip_description"] += f"\n\nTranscript during this video clip: {transcript}." # add transcript to description
             resp = json.dumps(parsed)
             with open(os.path.join(caption_ckpt_folder, f"{timestamp}.json"), "w") as f:
                 f.write(resp)
             return timestamp, parsed
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError, AssertionError) as exc:
+            last_error = str(exc)
             continue
-    return timestamp, {}  # give up
+    raise RuntimeError(f"Caption VLM extraction failed for clip {timestamp}: {last_error}")
 
 
 # --------------------------------------------------------------------------- #
@@ -268,6 +273,7 @@ def merge_subject_registries(registries: List[dict]) -> dict:
     )
 
     tries = 3
+    last_error = "empty response"
     while tries:
         tries -= 1
         response = call_openai_model_with_tools(
@@ -281,10 +287,14 @@ def merge_subject_registries(registries: List[dict]) -> dict:
         if resp is None:
             continue
         try:
-            return json.loads(resp)
-        except json.JSONDecodeError:
+            merged = json.loads(resp)
+            if not isinstance(merged, dict):
+                raise TypeError("merged subject registry must be an object")
+            return merged
+        except (json.JSONDecodeError, TypeError) as exc:
+            last_error = str(exc)
             continue
-    return {}  # fallback
+    raise RuntimeError(f"Subject-registry merge failed: {last_error}")
 
 
 # --------------------------------------------------------------------------- #

@@ -1852,10 +1852,3 @@ Question: QUESTION_PLACEHOLDER"""
                 return
         if trace_logger is not None:
             trace_logger.log_trace_end(status="max_iterations_reached")
-
-
-def single_run_wrapper(info) -> dict:
-    qid, video_db_path, video_caption_path, question = info
-    agent = SGDCoreAgent(video_db_path, video_caption_path, question)
-    msgs = agent.run()
-    return {qid: msgs}

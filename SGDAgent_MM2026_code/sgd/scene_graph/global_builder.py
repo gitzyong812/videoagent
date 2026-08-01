@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections import Counter
 import json
+import math
 import os
 from typing import Any
 
@@ -43,6 +45,34 @@ def _predicates(segment: dict[str, Any]) -> set[str]:
     }
 
 
+def _ubiquitous_generic_entity_ids(segments: list[dict[str, Any]]) -> set[str]:
+    if not segments:
+        return set()
+    generic_names = {
+        "person", "people", "man", "woman", "someone", "somebody",
+        "object", "item", "thing",
+    }
+    counts = Counter(
+        entity_id
+        for segment in segments
+        for entity_id in _entity_ids(segment)
+    )
+    names = {
+        str(entity.get("entity_id")): str(
+            entity.get("canonical_name", entity.get("name", ""))
+        ).strip().lower()
+        for segment in segments
+        for entity in segment.get("active_entities", [])
+        if entity.get("entity_id")
+    }
+    min_occurrences = max(3, math.ceil(len(segments) * 0.4))
+    return {
+        entity_id
+        for entity_id, count in counts.items()
+        if count >= min_occurrences and names.get(entity_id) in generic_names
+    }
+
+
 def group_candidate_regions(
     segments: list[dict[str, Any]],
     max_gap_sec: float,
@@ -52,13 +82,16 @@ def group_candidate_regions(
     ordered = sorted(segments, key=lambda item: float(item.get("t_start", 0.0)))
     if not ordered:
         return []
+    ignored_entity_ids = _ubiquitous_generic_entity_ids(ordered)
     groups: list[list[dict[str, Any]]] = [[ordered[0]]]
     for segment in ordered[1:]:
         previous = groups[-1][-1]
         gap = float(segment.get("t_start", 0.0)) - float(previous.get("t_end", 0.0))
         relation_overlap = _jaccard(_relation_signatures(previous), _relation_signatures(segment))
         predicate_overlap = _jaccard(_predicates(previous), _predicates(segment))
-        shares_entity = bool(_entity_ids(previous) & _entity_ids(segment))
+        shares_entity = bool(
+            (_entity_ids(previous) & _entity_ids(segment)) - ignored_entity_ids
+        )
         should_merge = gap <= max_gap_sec and (
             relation_overlap >= relation_overlap_threshold
             or predicate_overlap >= predicate_overlap_threshold
@@ -193,7 +226,7 @@ def _call_global_vlm(
             return_json=True,
         )
         parsed = _extract_json_obj((response or {}).get("content", ""))
-        if parsed is not None and isinstance(parsed.get("relations", []), list):
+        if parsed is not None and isinstance(parsed.get("relations"), list) and parsed["relations"]:
             return parsed
     raise RuntimeError(f"Global VLM extraction failed for candidate region {region_id}.")
 
@@ -332,6 +365,10 @@ def build_global_event_graph(
             entity_bank=entity_bank,
             relation_offset=len(graph["relations"]),
         )
+        if not relations:
+            raise RuntimeError(
+                f"Global VLM returned no valid grounded relations for candidate region {region_id}."
+            )
         graph["regions"].append(
             {
                 "region_id": region_id,

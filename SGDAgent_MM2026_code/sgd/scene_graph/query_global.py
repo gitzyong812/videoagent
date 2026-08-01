@@ -67,7 +67,7 @@ def query_global_event_graph(
     query: str,
     scope: list[tuple] | None = None,
     time_reference: str | None = None,
-    top_k_regions: int = 4,
+    top_k_regions: int = 5,
     max_relations: int = 16,
 ) -> dict[str, Any]:
     query_tokens = _tokenize(query)
@@ -178,7 +178,7 @@ def query_global_event_graph_by_path(
     query: str,
     scope: list[tuple] | None = None,
     time_reference: str | None = None,
-    top_k_regions: int = 4,
+    top_k_regions: int = 5,
     max_relations: int = 16,
 ) -> dict[str, Any]:
     graph = safe_load_global_event_graph(graph_path)

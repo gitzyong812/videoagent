@@ -412,7 +412,7 @@ def _parse_single_frame_with_vlm(
 
     msgs = call_openai_model_with_tools(
         messages=_build_prompt(
-            query_hint=query_hint,
+            question_hint=query_hint,
             previous_graphs=previous_graphs,
             entity_bank=entity_bank,
             caption_context=caption_context,
@@ -425,7 +425,7 @@ def _parse_single_frame_with_vlm(
         max_tokens=800,
     )
     if msgs is None:
-        return [], []
+        raise RuntimeError(f"Frame-graph VLM call failed for {image_path}.")
     raw_obj = _extract_json_obj(msgs.get("content", ""))
     if not raw_obj:
         return [], []

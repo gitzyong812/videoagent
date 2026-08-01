@@ -135,65 +135,12 @@ def frame_inspect_tool(
         raise ValueError("No response from the model")
     return msgs["content"]
 
-def clip_search_tool(
-        database: A[NanoVectorDB, D("The database object that supports querying with embeddings.")],
-        event_description: A[str, D("A textual description of the event to search for.")],
-        top_k: A[int, D("The maximum number of top results to retrieve. Just use the default value.")] = 16
-) -> str:
-    """
-    Searches for events in a video clip database based on a given event description and retrieves the top-k most relevant video clip captions.
-
-    Returns:
-        str: A formatted string containing the concatenated captions of the searched video clip scripts.
-
-    Notes:
-        - This function utilizes the OpenAI Embedding Service to generate embeddings for the input text.
-        - Use default values for `top_k` to limit the number of results returned.
-    """
-    assert isinstance(database, NanoVectorDB), "Database must be an instance of NanoVectorDB"
-    query_emb = AzureOpenAIEmbeddingService.get_embeddings(
-        endpoints=config.AOAI_EMBEDDING_RESOURCE_LIST,
-        model_name=config.AOAI_EMBEDDING_LARGE_MODEL_NAME,
-        input_text=[event_description],
-        api_key=config.OPENAI_API_KEY,
-    )[0]['embedding']
-    results = database.query(
-        query_emb,
-        top_k=top_k,
-    )
-    captions = [
-        (data['time_start_secs'], data['caption'])
-        for i, data in enumerate(results)
-    ]
-    captions = sorted(captions, key=lambda x: x[0])
-    captions = "\n".join([cap[1] for cap in captions])
-    return f"Here is the searched video clip scripts:\n\n" + captions
-
-
 def caption_backoff_tool(
     database: A[NanoVectorDB, D("The database object that supports caption embedding retrieval.")],
     query: A[str, D("The question or surface-form event description to search in the caption index.")],
     top_k: A[int, D("Maximum number of caption matches to return.")] = 16,
 ) -> str:
     """Search the embedding-based caption index as a backoff retrieval channel."""
-    return clip_search_tool(database=database, event_description=query, top_k=top_k)
-
-
-def global_browse_tool(
-        database: A[NanoVectorDB, D("The database object that supports querying with embeddings.")],
-        query: A[str, D("A textual description which will be used to search for relevant video clips in the database.")],
-) -> str:
-    """
-    Analyzes a video database to answer a detailed question by first searching for relevant video clips and then generating a comprehensive answer based on their captions.
-
-    Args:
-        database (NanoVectorDB): The database object that supports querying with embeddings.
-        query (str): A textual description or question to search for in the video.
-
-    Returns:
-        str: A JSON string containing the subject registry and the model's answer to the query based on the most relevant video clips.
-    """
-    # search related clips
     assert isinstance(database, NanoVectorDB), "Database must be an instance of NanoVectorDB"
     query_emb = AzureOpenAIEmbeddingService.get_embeddings(
         endpoints=config.AOAI_EMBEDDING_RESOURCE_LIST,
@@ -201,52 +148,14 @@ def global_browse_tool(
         input_text=[query],
         api_key=config.OPENAI_API_KEY,
     )[0]['embedding']
-    results = database.query(
-        query_emb,
-        top_k=config.GLOBAL_BROWSE_TOPK,
-    )
+    results = database.query(query_emb, top_k=top_k)
     captions = [
         (data['time_start_secs'], data['caption'])
-        for i, data in enumerate(results)
+        for data in results
     ]
     captions = sorted(captions, key=lambda x: x[0])
     captions = "\n".join([cap[1] for cap in captions])
-
-    clip_captions = f"Here is the searched video clip scripts:\n\n" + captions
-
-    # ask the question
-
-    input_msgs = [
-        {
-            "role": "system",
-            "content": "You are a knowledgeable assistant specializing in analyzing video content and providing detailed, insightful answers."
-        },
-        {
-            "role": "user",
-            "content": (
-                "Below are descriptions of video clips, each with its corresponding timestamp. "
-                "Carefully review the sequence of events, the details and movements of objects, and the actions and poses of people. "
-                "Based on these observations, provide a thorough and specific answer to the following question, referencing key events and timestamps as appropriate.\n"
-                "Question: {question}\n\n{clip_captions}"
-            ),
-        },
-    ]
-
-    input_msgs[1]['content'] = input_msgs[1]['content'].format(question=query, clip_captions=clip_captions)
-
-    msgs = call_openai_model_with_tools(
-        messages=input_msgs,
-        endpoints=config.AOAI_TOOL_VLM_ENDPOINT_LIST,
-        model_name=config.AOAI_TOOL_VLM_MODEL_NAME,
-        api_key=config.OPENAI_API_KEY,
-        temperature=0,
-        max_tokens=512,
-    )
-    if msgs is None:
-        raise ValueError("No response from the model")
-
-    subject_registry = database.get_additional_data()['subject_registry']
-    return json.dumps({'subject_registry': subject_registry, 'query_related_event': msgs["content"]})
+    return "Here is the searched video clip scripts:\n\n" + captions
 
 
 def frame_graph_query_tool(
@@ -324,7 +233,7 @@ def global_graph_query_tool(
     query: A[str, D("Question or keyword query for global event graph retrieval.")],
     scope: A[Optional[List[Tuple]], D("Optional time ranges that hard-filter global candidate regions.")] = None,
     time_reference: A[Optional[str], D("Optional explicit question time reference used in ranking.")] = None,
-    top_k_regions: A[int, D("Top-k matched global regions to return.")] = 4,
+    top_k_regions: A[int, D("Top-k matched global regions to return.")] = 5,
     max_relations: A[int, D("Maximum high-order relations to include.")] = 16,
 ) -> str:
     """Retrieve global event, state-evolution, temporal, and causal evidence."""
@@ -463,16 +372,12 @@ def _ensure_stage1_graph_file(
     if reused_path is not None:
         return reused_path
     graph_path = _default_stage1_graph_path(video_caption_json_path)
-    try:
-        ensure_stage1_scene_graph(
-            video_caption_json_path=video_caption_json_path,
-            output_path=graph_path,
-            force_rebuild=force_rebuild,
-            frame_dir_override=frame_dir_override,
-        )
-    except Exception as exc:
-        print(f"[SCENE_GRAPH] Stage1 build failed: {exc}")
-        return None
+    ensure_stage1_scene_graph(
+        video_caption_json_path=video_caption_json_path,
+        output_path=graph_path,
+        force_rebuild=force_rebuild,
+        frame_dir_override=frame_dir_override,
+    )
     return graph_path
 
 
