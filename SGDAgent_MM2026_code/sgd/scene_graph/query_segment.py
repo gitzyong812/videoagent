@@ -154,6 +154,11 @@ def _compute_controller_signals(
         # action guidance
         "recommend_frame_inspect": recommend_frame_inspect,
         "localize_only": localize_only,
+        "recommended_next_action": (
+            "caption_backoff_tool"
+            if weak_match
+            else ("frame_inspect_tool" if recommend_frame_inspect else "frame_graph_query_tool")
+        ),
         # raw scores for transparency
         "top_segment_score": round(top_score, 4),
         "top_segment_lexical": round(top_lexical, 4),
@@ -447,6 +452,7 @@ def query_stage2_segment_graph(
     graph: dict[str, Any],
     query: str,
     time_reference: str | None = None,
+    scope: list[tuple] | None = None,
     top_k_segments: int = 6,
     max_triples: int = 24,
     min_soft_score: float = 0.35,
@@ -454,7 +460,10 @@ def query_stage2_segment_graph(
     fallback_relative_floor: float = 0.25,
     fallback_top_k: int | None = None,
 ) -> dict[str, Any]:
+    from sgd.scene_graph.query_global import normalize_scope, span_in_scope
+
     query_tokens = _tokenize(query)
+    scope_seconds = normalize_scope(scope)
     segments = graph.get("segments", [])
     segment_bounds = [
         (
@@ -478,6 +487,10 @@ def query_stage2_segment_graph(
         _query_embedding = _get_query_embedding(query)
 
     for seg in segments:
+        seg_start = float(seg.get("t_start", 0.0))
+        seg_end = float(seg.get("t_end", seg_start))
+        if not span_in_scope(seg_start, seg_end, scope_seconds):
+            continue
         lexical_score = 0.0
         soft_score = 0.0
         matched_entities = []
@@ -679,6 +692,7 @@ def query_stage2_segment_graph(
     )
     return {
         "query": query,
+        "scope": scope,
         "time_reference": time_reference,
         "graph_version": graph.get("version"),
         "video_id": graph.get("video_id"),
@@ -702,6 +716,7 @@ def query_stage2_segment_graph_by_path(
     graph_path: str,
     query: str,
     time_reference: str | None = None,
+    scope: list[tuple] | None = None,
     top_k_segments: int = 6,
     max_triples: int = 24,
 ) -> dict[str, Any]:
@@ -712,6 +727,7 @@ def query_stage2_segment_graph_by_path(
         graph=graph,
         query=query,
         time_reference=time_reference,
+        scope=scope,
         top_k_segments=top_k_segments,
         max_triples=max_triples,
     )

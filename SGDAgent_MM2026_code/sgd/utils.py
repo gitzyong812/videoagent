@@ -5,6 +5,7 @@ import copy
 import json
 import os
 import random
+import re
 import time
 from io import BytesIO
 from mimetypes import guess_type
@@ -166,8 +167,12 @@ def call_openai_model_with_tools(
     payload = {  
         "model": model,
         "messages": copy.deepcopy(messages),  
-        # "reasoning_effort": reasoning_effort,
     }  
+    if re.match(r"^o\d", model):
+        payload["max_completion_tokens"] = max_tokens
+    else:
+        payload["max_tokens"] = max_tokens
+        payload["temperature"] = temperature
     if return_json:
         payload["response_format"] = {"type": "json_object"}
   
@@ -314,4 +319,3 @@ def extract_answer(message: dict) -> str | None:
         return content.strip()
     
     return None
-

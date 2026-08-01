@@ -10,24 +10,17 @@ from typing import Any
 import sgd.config as config
 from sgd.scene_graph.schema import (empty_stage1_graph, safe_load_stage1_graph,
                                     validate_stage1_graph)
-from sgd.utils import call_openai_model_with_tools
 
 
-# ── G1-lite: entity noise filtering ──────────────────────────────────────────
-# Entities whose canonical_name (lowercased) is in ENTITY_BLACKLIST are dropped.
-# Entities whose type is not in ALLOWED_ENTITY_TYPES are forced to "object".
 ENTITY_BLACKLIST: set[str] = {
-    # video / subtitle artifacts
     "video", "clip", "scene", "frame", "shot", "footage", "camera",
     "cinematic", "view", "angle", "sequence", "image", "photo", "picture",
-    "thumbnail", "screen", "narrator", "voiceover", "subtitle", "caption",
-    "text", "logo", "watermark", "timestamp", "overlay",
-    # verbs / adjectives mis-extracted as entities
+    "thumbnail", "narrator", "voiceover", "subtitle", "caption",
+    "timestamp", "overlay", "background", "foreground",
     "begins", "starts", "ends", "shows", "appears", "continues", "features",
     "moving", "walking", "talking", "standing", "sitting", "running",
     "playing", "looking", "wearing", "holding", "showing", "speaking",
-    # over-generic terms
-    "background", "foreground", "area", "side", "part", "moment",
+    "area", "side", "part", "moment",
     "something", "thing", "stuff", "nothing", "everything", "place",
     "content", "section", "segment", "portion", "event", "action",
     "activity", "transition", "setting", "environment",
@@ -178,40 +171,25 @@ def _find_caption_for_time(caption_segments: list[dict[str, Any]], t_sec: float)
     return nearest["caption"]
 
 
-def _fallback_parse_from_caption(
-    caption_text: str,
-    max_entities: int = 4,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    tokens = re.findall(r"[a-zA-Z][a-zA-Z0-9_-]{1,}", (caption_text or "").lower())
-    stopwords = {
-        "the", "a", "an", "and", "or", "to", "of", "in", "on", "at", "for",
-        "with", "from", "is", "are", "was", "were", "be", "this", "that",
-        "it", "as", "by", "into", "over", "after", "before", "then", "while",
-    }
-    uniq = []
-    for tok in tokens:
-        if tok in stopwords:
-            continue
-        if _is_blacklisted_entity(tok):
-            continue
-        if tok not in uniq:
-            uniq.append(tok)
-        if len(uniq) >= max_entities:
-            break
-
-    entities = []
-    for idx, tok in enumerate(uniq, start=1):
-        entities.append(
-            {
-                "local_id": f"c{idx}",
-                "name": tok,
-                "type": "object",
-                "attributes": [],
-                "desc_text": caption_text[:120],
-                "confidence": 0.2,
-            }
-        )
-    return entities, []
+def _neighbor_caption_context(
+    caption_segments: list[dict[str, Any]],
+    t_sec: float,
+) -> str:
+    if not caption_segments:
+        return ""
+    nearest_idx = min(
+        range(len(caption_segments)),
+        key=lambda idx: min(
+            abs(t_sec - caption_segments[idx]["start"]),
+            abs(t_sec - caption_segments[idx]["end"]),
+        ),
+    )
+    selected = caption_segments[max(0, nearest_idx - 1) : nearest_idx + 2]
+    return "\n".join(
+        f"[{item['start']:.1f}-{item['end']:.1f}] {item['caption']}"
+        for item in selected
+        if item.get("caption")
+    )
 
 
 def _extract_json_obj(text: str) -> dict[str, Any] | None:
@@ -367,7 +345,12 @@ def _align_entity(
     return entity_id
 
 
-def _build_prompt(question_hint: str = "") -> list[dict[str, str]]:
+def _build_prompt(
+    question_hint: str = "",
+    previous_graphs: list[dict[str, Any]] | None = None,
+    entity_bank: list[dict[str, Any]] | None = None,
+    caption_context: str = "",
+) -> list[dict[str, str]]:
     user_msg = (
         "Extract a compact frame-level scene graph from this image. "
         "Return strict JSON with schema: "
@@ -378,18 +361,62 @@ def _build_prompt(question_hint: str = "") -> list[dict[str, str]]:
     )
     if question_hint:
         user_msg += f" Focus on details relevant to this query hint: {question_hint}"
+    context = {
+        "preceding_frame_graphs": [
+            {
+                "frame_id": frame.get("frame_id"),
+                "t_sec": frame.get("t_sec"),
+                "entities": frame.get("entities", []),
+                "relations": frame.get("relations", []),
+            }
+            for frame in (previous_graphs or [])
+        ],
+        "video_entity_registry": [
+            {
+                "entity_id": ent.get("entity_id"),
+                "canonical_name": ent.get("canonical_name"),
+                "type": ent.get("type"),
+                "attributes": ent.get("attributes", []),
+                "desc_text": ent.get("desc_text", ""),
+            }
+            for ent in (entity_bank or [])
+        ],
+    }
+    user_msg += (
+        " Use the following context only for cross-frame identity consistency; "
+        "still extract only what is visible in the current image:\n"
+        + json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+    )
+    if caption_context:
+        user_msg += (
+            "\nThe first visual parse was empty. Use these neighboring captions only as "
+            f"auxiliary retry context, and do not invent invisible entities:\n{caption_context}"
+        )
     return [
         {"role": "system", "content": "You produce strict JSON only."},
         {"role": "user", "content": user_msg},
     ]
 
 
-def _parse_single_frame_with_vlm(image_path: str, query_hint: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _parse_single_frame_with_vlm(
+    image_path: str,
+    query_hint: str = "",
+    previous_graphs: list[dict[str, Any]] | None = None,
+    entity_bank: list[dict[str, Any]] | None = None,
+    caption_context: str = "",
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if not config.SCENE_GRAPH_STAGE1_USE_VLM:
         return [], []
 
+    from sgd.utils import call_openai_model_with_tools
+
     msgs = call_openai_model_with_tools(
-        messages=_build_prompt(query_hint),
+        messages=_build_prompt(
+            query_hint=query_hint,
+            previous_graphs=previous_graphs,
+            entity_bank=entity_bank,
+            caption_context=caption_context,
+        ),
         endpoints=config.SCENE_GRAPH_STAGE1_VLM_ENDPOINT_LIST,
         model_name=config.SCENE_GRAPH_STAGE1_VLM_MODEL_NAME,
         api_key=config.OPENAI_API_KEY,
@@ -448,13 +475,19 @@ def build_stage1_scene_graph(
     total_relations = 0
     vlm_success_frames = 0
     vlm_empty_frames = 0
-    fallback_used_frames = 0
+    caption_retry_frames = 0
     merge_threshold = float(getattr(config, "SCENE_GRAPH_STAGE1_ENTITY_MATCH_THRESHOLD", 0.78))
     allowed_preds = set(getattr(config, "SCENE_GRAPH_STAGE1_ALLOWED_PREDICATES", []))
 
     for item in keyframes:
         caption_text = _find_caption_for_time(caption_segments, item["t_sec"])
-        frame_entities, frame_relations = _parse_single_frame_with_vlm(item["path"], query_hint=query_hint)
+        previous_graphs = graph["frames"][-2:]
+        frame_entities, frame_relations = _parse_single_frame_with_vlm(
+            item["path"],
+            query_hint=query_hint,
+            previous_graphs=previous_graphs,
+            entity_bank=entity_bank,
+        )
         if bool(getattr(config, "SCENE_GRAPH_STAGE1_USE_VLM", True)):
             if frame_entities:
                 vlm_success_frames += 1
@@ -462,14 +495,19 @@ def build_stage1_scene_graph(
                 vlm_empty_frames += 1
         if (
             not frame_entities
-            and bool(getattr(config, "SCENE_GRAPH_STAGE1_CAPTION_FALLBACK", True))
+            and bool(getattr(config, "SCENE_GRAPH_STAGE1_CAPTION_RETRY", True))
             and caption_text
         ):
-            frame_entities, frame_relations = _fallback_parse_from_caption(
-                caption_text=caption_text,
-                max_entities=int(getattr(config, "SCENE_GRAPH_STAGE1_FALLBACK_MAX_ENTITIES", 4)),
+            frame_entities, frame_relations = _parse_single_frame_with_vlm(
+                item["path"],
+                query_hint=query_hint,
+                previous_graphs=previous_graphs,
+                entity_bank=entity_bank,
+                caption_context=_neighbor_caption_context(caption_segments, item["t_sec"]),
             )
-            fallback_used_frames += 1
+            caption_retry_frames += 1
+            if frame_entities:
+                vlm_success_frames += 1
 
         local_to_global: dict[str, str] = {}
         name_to_global: dict[str, str] = {}
@@ -534,7 +572,7 @@ def build_stage1_scene_graph(
     graph["stats"]["num_relations"] = total_relations
     graph["stats"]["vlm_success_frames"] = vlm_success_frames
     graph["stats"]["vlm_empty_frames"] = vlm_empty_frames
-    graph["stats"]["fallback_used_frames"] = fallback_used_frames
+    graph["stats"]["caption_retry_frames"] = caption_retry_frames
 
     ok, reason = validate_stage1_graph(graph)
     if not ok:

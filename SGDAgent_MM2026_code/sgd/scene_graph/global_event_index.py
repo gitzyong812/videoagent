@@ -1,23 +1,8 @@
-"""Global Event Index (GEI) — lightweight video-level context for prompt injection.
+"""Legacy compact timeline formatter kept for artifact compatibility.
 
-Unlike Stage 3's global_graph_query_tool (a separate tool with 2800+ lines and
-its own retrieval/cascade pipeline), the GEI is NOT a tool.  It pre-processes
-the Stage 2 segment graph into a compact text summary that is injected into
-the system prompt, giving the orchestrator LLM a birds-eye view of the video
-timeline *before* it calls any tools.
-
-Design rationale (lessons from Stage 3):
-  1. Zero extra LLM calls — the global context is always available.
-  2. Zero new tools — the orchestrator tool list stays identical.
-  3. No cascade competition — segment_graph_query_tool remains the single
-     source of segment-level evidence.
-  4. Bounded token budget — the summary is capped to stay within a configurable
-     character limit so it never floods the context window.
-
-Key insight from Stage 3 eval: 120 events from 122 segments = zero compression.
-The GEI must compress aggressively (120 segments → 8-12 scene blocks) and
-surface discriminative keywords that help the agent match question terms to
-time regions.
+The paper-aligned global graph is constructed by ``global_builder`` and queried
+through ``query_global``. New runs do not inject this legacy summary into the
+agent prompt.
 """
 
 from __future__ import annotations

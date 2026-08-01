@@ -4,23 +4,24 @@ import os
 VIDEO_DATABASE_FOLDER = "./video_database/"
 VIDEO_FPS = 2 # frames per second
 CLIP_SECS = 10 # seconds
+BUILD_WORKERS = max(1, int(os.environ.get("SGD_BUILD_WORKERS", "4")))
 
 # ------------------ model configuration ------------------ #
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", None) # will overwrite Azure OpenAI setting
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
 AOAI_CAPTION_VLM_ENDPOINT_LIST = [""]
-AOAI_CAPTION_VLM_MODEL_NAME = "gpt-4.1-mini"
+AOAI_CAPTION_VLM_MODEL_NAME = os.environ.get("SGD_CAPTION_MODEL", "gpt-4.1-mini")
 
 AOAI_ORCHESTRATOR_LLM_ENDPOINT_LIST = [""]
-AOAI_ORCHESTRATOR_LLM_MODEL_NAME = "o3"
+AOAI_ORCHESTRATOR_LLM_MODEL_NAME = os.environ.get("SGD_ORCHESTRATOR_MODEL", "o4-mini")
 
 AOAI_TOOL_VLM_ENDPOINT_LIST = [""]
-AOAI_TOOL_VLM_MODEL_NAME = "gpt-4.1-mini"
+AOAI_TOOL_VLM_MODEL_NAME = os.environ.get("SGD_FRAME_INSPECT_MODEL", "gpt-4.1-mini")
 AOAI_TOOL_VLM_MAX_FRAME_NUM = 50
 
 AOAI_EMBEDDING_RESOURCE_LIST = [""]
-AOAI_EMBEDDING_LARGE_MODEL_NAME = "text-embedding-3-large"
+AOAI_EMBEDDING_LARGE_MODEL_NAME = os.environ.get("SGD_EMBEDDING_MODEL", "text-embedding-3-large")
 AOAI_EMBEDDING_LARGE_DIM = 3072
 
 # ------------------ agent and tool setting ------------------ #
@@ -28,6 +29,7 @@ GLOBAL_BROWSE_TOPK = 300
 OVERWRITE_CLIP_SEARCH_TOPK = 0 # 0 means no overwrite and let agent decide
 SCENE_GRAPH_TOPK_FRAMES = 8
 SCENE_GRAPH_TOPK_SEGMENTS = 6
+SCENE_GRAPH_TOPK_GLOBAL_REGIONS = 4
 SCENE_GRAPH_MAX_TRIPLES = 24
 
 # ------------------ runtime policy gates ------------------ #
@@ -55,14 +57,13 @@ TOOL_CALL_RETRY_BASE_DELAY_SEC = 2.0
 SCENE_GRAPH_STAGE1_ENABLED = True
 SCENE_GRAPH_STAGE1_USE_VLM = True
 SCENE_GRAPH_STAGE1_VLM_ENDPOINT_LIST = AOAI_TOOL_VLM_ENDPOINT_LIST
-SCENE_GRAPH_STAGE1_VLM_MODEL_NAME = "gpt-4.1"
+SCENE_GRAPH_STAGE1_VLM_MODEL_NAME = os.environ.get("SGD_FRAME_GRAPH_MODEL", "gpt-4.1")
 SCENE_GRAPH_STAGE1_FORCE_REBUILD = False
 SCENE_GRAPH_STAGE1_FILE_NAME = "scene_graph_stage1.json"
 SCENE_GRAPH_STAGE1_SAMPLE_SECS = 5
 SCENE_GRAPH_STAGE1_MAX_KEYFRAMES = 120
 SCENE_GRAPH_STAGE1_ENTITY_MATCH_THRESHOLD = 0.78
-SCENE_GRAPH_STAGE1_CAPTION_FALLBACK = True
-SCENE_GRAPH_STAGE1_FALLBACK_MAX_ENTITIES = 4
+SCENE_GRAPH_STAGE1_CAPTION_RETRY = True
 SCENE_GRAPH_STAGE1_ALLOWED_PREDICATES = [
     "left_of",
     "right_of",
@@ -82,23 +83,11 @@ SCENE_GRAPH_STAGE1_ALLOWED_PREDICATES = [
     "pointing_to",
     "touching",
     "inside",
-]
-# ---- stage12-boost-v1: ablation flags (entity alignment) ---- #
-SCENE_GRAPH_STAGE1_USE_SYNONYM_MAP = True           # synonym bonus in entity matching
-SCENE_GRAPH_STAGE1_POST_MERGE = True                # post-build entity merge pass
-SCENE_GRAPH_STAGE1_POST_MERGE_THRESHOLD = 0.70      # lower threshold for post-merge
-SCENE_GRAPH_STAGE1_USE_EXTENDED_PREDICATES = True    # enable extended predicate vocabulary
-SCENE_GRAPH_STAGE1_EXTENDED_PREDICATES = [
-    # communicative
     "talking_to", "listening_to", "interacting_with",
-    # functional
     "driving", "riding", "eating", "reading",
     "watching", "carrying", "playing_with",
-    # causal / temporal
     "caused_by", "leads_to", "follows", "part_of",
 ]
-SCENE_GRAPH_STAGE1_ENHANCED_FALLBACK = True         # SVO extraction from captions
-SCENE_GRAPH_STAGE1_NEIGHBOR_PROPAGATION = True       # propagate entities from neighbor frame
 
 # ------------------ stage2 scene graph (segment-level) ------------------ #
 SCENE_GRAPH_STAGE2_ENABLED = True
@@ -109,12 +98,22 @@ SCENE_GRAPH_STAGE2_OVERLAP_SECS = 5
 SCENE_GRAPH_STAGE2_MAX_RELATIONS_PER_SEGMENT = 64
 SCENE_GRAPH_STAGE2_EMBED_SEGMENTS = True  # embed segment text for semantic retrieval fallback
 SCENE_GRAPH_STAGE2_EMBED_BATCH_SIZE = 64  # segments per embedding API call
-# ---- stage12-boost-v1: segment enrichment flags ---- #
-SCENE_GRAPH_STAGE2_INCLUDE_CAPTION_SNIPPETS = True   # carry caption text into segments
-SCENE_GRAPH_STAGE2_MAX_CAPTION_SNIPPETS = 4          # max caption snippets per segment
+SCENE_GRAPH_STAGE2_INCLUDE_CAPTION_SNIPPETS = True
+SCENE_GRAPH_STAGE2_MAX_CAPTION_SNIPPETS = 4
+SCENE_GRAPH_STAGE2_USE_VLM = True
+SCENE_GRAPH_STAGE2_VLM_ENDPOINT_LIST = AOAI_TOOL_VLM_ENDPOINT_LIST
+SCENE_GRAPH_STAGE2_VLM_MODEL_NAME = os.environ.get("SGD_SEGMENT_GRAPH_MODEL", "gpt-4.1")
+SCENE_GRAPH_STAGE2_VLM_MAX_TOKENS = 1600
+SCENE_GRAPH_STAGE2_VLM_RETRIES = 3
 
-# ------------------ global event index (prompt-injected, no extra tool) ---- #
-GEI_ENABLED = True  # inject video timeline into prompt from Stage 2 graph
-GEI_MAX_EVENTS = 12  # target scene count; aggressive compression from ~120 segments
-GEI_MAX_CHARS = 2400  # hard cap on the text summary length
-GEI_MERGE_GAP_SEC = 5.0  # merge adjacent segments sharing entities within this gap
+# ------------------ global event graph (global-level) ------------------ #
+SCENE_GRAPH_GLOBAL_ENABLED = True
+SCENE_GRAPH_GLOBAL_FORCE_REBUILD = False
+SCENE_GRAPH_GLOBAL_FILE_NAME = "scene_graph_global.json"
+SCENE_GRAPH_GLOBAL_VLM_ENDPOINT_LIST = AOAI_TOOL_VLM_ENDPOINT_LIST
+SCENE_GRAPH_GLOBAL_VLM_MODEL_NAME = os.environ.get("SGD_GLOBAL_GRAPH_MODEL", "gpt-4.1")
+SCENE_GRAPH_GLOBAL_VLM_MAX_TOKENS = 1800
+SCENE_GRAPH_GLOBAL_VLM_RETRIES = 3
+SCENE_GRAPH_GLOBAL_MAX_GAP_SEC = 12.0
+SCENE_GRAPH_GLOBAL_RELATION_OVERLAP_THRESHOLD = 0.18
+SCENE_GRAPH_GLOBAL_PREDICATE_OVERLAP_THRESHOLD = 0.22

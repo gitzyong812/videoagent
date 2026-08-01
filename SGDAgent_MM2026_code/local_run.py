@@ -43,11 +43,18 @@ def _find_existing_raw_video(video_id: str) -> str | None:
 def main():
     parser = argparse.ArgumentParser(description="Run SGDCoreAgent on a video.")
     parser.add_argument("video_path", help="A local video path.")
-    parser.add_argument("question", help="The question to ask about the video.")
+    parser.add_argument("question", nargs="?", help="The question to ask about the video.")
+    parser.add_argument(
+        "--build-only",
+        action="store_true",
+        help="Build the caption and three-level graph index without running QA.",
+    )
     args = parser.parse_args()
 
     video_path_input = args.video_path
     question = args.question
+    if not args.build_only and not question:
+        parser.error("question is required unless --build-only is used")
     if not os.path.isfile(video_path_input):
         parser.error(f"video_path must be an existing local file: {video_path_input}")
 
@@ -88,6 +95,19 @@ def main():
     print("Initializing SGDCoreAgent...")
     agent = SGDCoreAgent(video_db_path, caption_file, config.MAX_ITERATIONS)
     print("Agent initialized.")
+
+    if args.build_only:
+        metadata = agent.video_db.get_additional_data()
+        print("Index build complete.")
+        for key in (
+            "stage1_scene_graph_path",
+            "stage2_segment_graph_path",
+            "global_event_graph_path",
+        ):
+            if metadata.get(key):
+                print(f"{key}: {metadata[key]}")
+        print(f"video_database_path: {video_db_path}")
+        return
 
     # Run with question
     print(f"Running agent with question: '{question}'")

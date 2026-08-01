@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 from typing import Annotated as A
+from typing import List, Optional, Tuple
 
 import numpy as np
 from nano_vectordb import NanoVectorDB
@@ -13,6 +14,8 @@ import sgd.config as config
 from sgd.func_call_shema import doc as D
 from sgd.scene_graph import (ensure_stage1_scene_graph,
                              ensure_stage2_segment_graph,
+                             ensure_global_event_graph,
+                             query_global_event_graph_by_path,
                              query_stage1_graph_by_path,
                              query_stage2_segment_graph_by_path)
 from sgd.utils import AzureOpenAIEmbeddingService, call_openai_model_with_tools
@@ -167,6 +170,15 @@ def clip_search_tool(
     return f"Here is the searched video clip scripts:\n\n" + captions
 
 
+def caption_backoff_tool(
+    database: A[NanoVectorDB, D("The database object that supports caption embedding retrieval.")],
+    query: A[str, D("The question or surface-form event description to search in the caption index.")],
+    top_k: A[int, D("Maximum number of caption matches to return.")] = 16,
+) -> str:
+    """Search the embedding-based caption index as a backoff retrieval channel."""
+    return clip_search_tool(database=database, event_description=query, top_k=top_k)
+
+
 def global_browse_tool(
         database: A[NanoVectorDB, D("The database object that supports querying with embeddings.")],
         query: A[str, D("A textual description which will be used to search for relevant video clips in the database.")],
@@ -240,7 +252,8 @@ def global_browse_tool(
 def frame_graph_query_tool(
         database: A[NanoVectorDB, D("The database containing scene graph metadata.")],
         query: A[str, D("Question or keyword query for frame-level graph retrieval.")],
-        time_reference: A[str | None, D("Optional explicit time reference used to bias graph ranking.")] = None,
+        time_reference: A[Optional[str], D("Optional explicit time reference used to bias graph ranking.")] = None,
+        scope: A[Optional[List[Tuple]], D("Optional parent-level time ranges that hard-filter frame candidates.")] = None,
         top_k_frames: A[int, D("Top-k matched frames to return.")] = 8,
         max_triples: A[int, D("Maximum matched triples to include in the response.")] = 24,
 ) -> str:
@@ -264,6 +277,7 @@ def frame_graph_query_tool(
         graph_path=graph_path,
         query=query,
         time_reference=time_reference,
+        scope=scope,
         top_k_frames=top_k_frames,
         max_triples=max_triples,
     )
@@ -273,7 +287,8 @@ def frame_graph_query_tool(
 def segment_graph_query_tool(
         database: A[NanoVectorDB, D("The database containing scene graph metadata.")],
         query: A[str, D("Question or keyword query for segment-level graph retrieval.")],
-        time_reference: A[str | None, D("Optional explicit time reference used to bias graph ranking.")] = None,
+        time_reference: A[Optional[str], D("Optional explicit time reference used to bias graph ranking.")] = None,
+        scope: A[Optional[List[Tuple]], D("Optional global-level time ranges that hard-filter segment candidates.")] = None,
         top_k_segments: A[int, D("Top-k matched segments to return.")] = 6,
         max_triples: A[int, D("Maximum matched temporal triples to include in the response.")] = 24,
 ) -> str:
@@ -297,8 +312,38 @@ def segment_graph_query_tool(
         graph_path=graph_path,
         query=query,
         time_reference=time_reference,
+        scope=scope,
         top_k_segments=top_k_segments,
         max_triples=max_triples,
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+def global_graph_query_tool(
+    database: A[NanoVectorDB, D("The database containing global event graph metadata.")],
+    query: A[str, D("Question or keyword query for global event graph retrieval.")],
+    scope: A[Optional[List[Tuple]], D("Optional time ranges that hard-filter global candidate regions.")] = None,
+    time_reference: A[Optional[str], D("Optional explicit question time reference used in ranking.")] = None,
+    top_k_regions: A[int, D("Top-k matched global regions to return.")] = 4,
+    max_relations: A[int, D("Maximum high-order relations to include.")] = 16,
+) -> str:
+    """Retrieve global event, state-evolution, temporal, and causal evidence."""
+    assert isinstance(database, NanoVectorDB), "Database must be an instance of NanoVectorDB"
+    graph_path = database.get_additional_data().get("global_event_graph_path")
+    if not graph_path or not os.path.exists(graph_path):
+        return json.dumps(
+            {
+                "error": "Global event graph is unavailable for this video.",
+                "hint": "Enable SCENE_GRAPH_GLOBAL_ENABLED and rebuild the index.",
+            }
+        )
+    result = query_global_event_graph_by_path(
+        graph_path=graph_path,
+        query=query,
+        scope=scope,
+        time_reference=time_reference,
+        top_k_regions=top_k_regions,
+        max_relations=max_relations,
     )
     return json.dumps(result, ensure_ascii=False)
 
@@ -336,6 +381,13 @@ def _default_stage2_graph_path(stage1_graph_path: str) -> str:
     return os.path.abspath(os.path.join(
         os.path.dirname(stage1_graph_path),
         getattr(config, "SCENE_GRAPH_STAGE2_FILE_NAME", "scene_graph_stage2_segment.json"),
+    ))
+
+
+def _default_global_graph_path(stage2_graph_path: str) -> str:
+    return os.path.abspath(os.path.join(
+        os.path.dirname(stage2_graph_path),
+        getattr(config, "SCENE_GRAPH_GLOBAL_FILE_NAME", "scene_graph_global.json"),
     ))
 
 
@@ -436,15 +488,35 @@ def _ensure_stage2_graph_file(stage1_graph_path: str, existing_path: str | None 
     if reused_path is not None:
         return reused_path
     graph_path = _default_stage2_graph_path(stage1_graph_path)
-    try:
-        ensure_stage2_segment_graph(
-            stage1_graph_path=stage1_graph_path,
-            output_path=graph_path,
-            force_rebuild=force_rebuild,
-        )
-    except Exception as exc:
-        print(f"[SCENE_GRAPH] Stage2 build failed: {exc}")
-        return None
+    ensure_stage2_segment_graph(
+        stage1_graph_path=stage1_graph_path,
+        output_path=graph_path,
+        force_rebuild=force_rebuild,
+    )
+    return graph_path
+
+
+def _ensure_global_graph_file(
+    stage1_graph_path: str,
+    stage2_graph_path: str,
+    existing_path: str | None = None,
+) -> str | None:
+    if not getattr(config, "SCENE_GRAPH_GLOBAL_ENABLED", True):
+        return existing_path
+    force_rebuild = bool(getattr(config, "SCENE_GRAPH_GLOBAL_FORCE_REBUILD", False))
+    if existing_path and not force_rebuild and os.path.exists(existing_path):
+        print(f"[SCENE_GRAPH] Reusing existing global graph: {existing_path}")
+        return os.path.abspath(existing_path)
+    graph_path = _default_global_graph_path(stage2_graph_path)
+    if os.path.exists(graph_path) and not force_rebuild:
+        print(f"[SCENE_GRAPH] Reusing existing global graph: {graph_path}")
+        return graph_path
+    ensure_global_event_graph(
+        stage1_graph_path=stage1_graph_path,
+        stage2_graph_path=stage2_graph_path,
+        output_path=graph_path,
+        force_rebuild=force_rebuild,
+    )
     return graph_path
 
 def init_single_video_db(
@@ -572,6 +644,13 @@ def init_single_video_db(
             )
             if segment_graph_path:
                 additional_data["stage2_segment_graph_path"] = segment_graph_path
+                global_graph_path = _ensure_global_graph_file(
+                    stage1_graph_path=graph_path,
+                    stage2_graph_path=segment_graph_path,
+                    existing_path=additional_data.get("global_event_graph_path"),
+                )
+                if global_graph_path:
+                    additional_data["global_event_graph_path"] = global_graph_path
     elif additional_data.get("stage1_scene_graph_path"):
         segment_graph_path = _ensure_stage2_graph_file(
             stage1_graph_path=additional_data["stage1_scene_graph_path"],
@@ -579,6 +658,13 @@ def init_single_video_db(
         )
         if segment_graph_path:
             additional_data["stage2_segment_graph_path"] = segment_graph_path
+            global_graph_path = _ensure_global_graph_file(
+                stage1_graph_path=additional_data["stage1_scene_graph_path"],
+                stage2_graph_path=segment_graph_path,
+                existing_path=additional_data.get("global_event_graph_path"),
+            )
+            if global_graph_path:
+                additional_data["global_event_graph_path"] = global_graph_path
     vdb.store_additional_data(**additional_data)
     vdb.save()
     return vdb
@@ -609,7 +695,7 @@ def preprocess_captions(caption_json_path):
         batch = scripts[i:i+batch_size]
         batched_scripts.append(batch)
     cap2emb_list = []
-    with multiprocessing.Pool(os.cpu_count() // 2) as pool:
+    with multiprocessing.Pool(int(getattr(config, "BUILD_WORKERS", 4))) as pool:
         with tqdm(total=len(scripts), desc="Embedding captions...") as pbar:
             for result in pool.imap_unordered(
                 single_batch_embedding_task,

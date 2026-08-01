@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import Any, Final, TypedDict, TypeVar
+from typing import Any, Final, TypedDict, TypeVar, get_type_hints
 
 try:
     from typing import Required
@@ -60,15 +60,19 @@ def get_parameter_model(func: Callable) -> pydantic.BaseModel:
     Return a Pydantic model for the parameters of the given function.
     """
     field_definitions: dict[str, tuple[Any, Any]] = {}
+    resolved_hints = get_type_hints(func, include_extras=True)
     for name, obj in inspect.signature(func).parameters.items():
-        if obj.annotation == inspect.Parameter.empty:
+        if name == "database":
+            continue
+        annotation = resolved_hints.get(name, obj.annotation)
+        if annotation == inspect.Parameter.empty:
             raise ValueError(
                 f"`{func.__name__}` parameter `{name!s}` has no annotation, please provide an notation to be able to generate the function specification."
             )
         if obj.default == inspect.Parameter.empty:
-            field_definitions[name] = (obj.annotation, pydantic.Field(...))
+            field_definitions[name] = (annotation, pydantic.Field(...))
         else:
-            field_definitions[name] = (obj.annotation, obj.default)
+            field_definitions[name] = (annotation, obj.default)
     _model_name = ""  # Empty model name
     return pydantic.create_model(_model_name, **field_definitions)  # type: ignore
 
@@ -92,7 +96,9 @@ def get_returns_model(func: Callable) -> pydantic.BaseModel:
     """
     Return a Pydantic model for the returns of the given function.
     """
-    return_annotation = inspect.signature(func).return_annotation
+    return_annotation = get_type_hints(func, include_extras=True).get(
+        "return", inspect.signature(func).return_annotation
+    )
     if return_annotation == inspect.Signature.empty:
         raise ValueError(
             f"`{func.__name__}` has no return annotation, please provide an annotation to be able to generate the function specification."

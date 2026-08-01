@@ -229,14 +229,15 @@ def _caption_clip(task: Tuple[str, Dict], caption_ckpt_folder) -> Tuple[str, dic
     tries = 3
     while tries:
         tries -= 1
-        resp = call_openai_model_with_tools(
+        response = call_openai_model_with_tools(
             send_messages,
             endpoints=config.AOAI_CAPTION_VLM_ENDPOINT_LIST,
             model_name=config.AOAI_CAPTION_VLM_MODEL_NAME,
             return_json=True,
             image_paths=files,
             api_key=config.OPENAI_API_KEY,
-        )["content"]
+        )
+        resp = (response or {}).get("content")
         if resp is None:
             continue
         try:
@@ -269,13 +270,14 @@ def merge_subject_registries(registries: List[dict]) -> dict:
     tries = 3
     while tries:
         tries -= 1
-        resp = call_openai_model_with_tools(
+        response = call_openai_model_with_tools(
             send_messages,
             endpoints=config.AOAI_CAPTION_VLM_ENDPOINT_LIST,
             model_name=config.AOAI_CAPTION_VLM_MODEL_NAME,
             return_json=True,
             api_key=config.OPENAI_API_KEY,
-        )["content"]
+        )
+        resp = (response or {}).get("content")
         if resp is None:
             continue
         try:
@@ -304,7 +306,7 @@ def process_video(
         caption_ckpt_folder=caption_ckpt_folder,
     )
     # ---------------- Parallel captioning --------------- #
-    with mp.Pool(16) as pool:
+    with mp.Pool(int(getattr(config, "BUILD_WORKERS", 4))) as pool:
         results = list(
             tqdm(
                 pool.imap_unordered(caption_clip, clips),

@@ -222,13 +222,17 @@ def query_stage1_graph(
     graph: dict[str, Any],
     query: str,
     time_reference: str | None = None,
+    scope: list[tuple] | None = None,
     top_k_frames: int = 8,
     max_triples: int = 24,
     min_soft_score: float = 0.35,
     min_fallback_score: float = 0.45,
     fallback_relative_floor: float = 0.35,
 ) -> dict[str, Any]:
+    from sgd.scene_graph.query_global import normalize_scope, span_in_scope
+
     query_tokens = _tokenize(query)
+    scope_seconds = normalize_scope(scope)
     entities_by_id = {ent["entity_id"]: ent for ent in graph.get("entities", [])}
     frame_times = [float(frame.get("t_sec", 0.0)) for frame in graph.get("frames", [])]
     max_t_sec = max(frame_times) if frame_times else 0.0
@@ -240,6 +244,9 @@ def query_stage1_graph(
     fallback_candidates = []
     all_soft_candidates = []
     for frame in graph.get("frames", []):
+        frame_time = float(frame.get("t_sec", 0.0))
+        if not span_in_scope(frame_time, frame_time, scope_seconds):
+            continue
         lexical_score = 0.0
         soft_score = 0.0
         match_entities = []
@@ -363,8 +370,14 @@ def query_stage1_graph(
             )
     flat_rel = sorted(flat_rel, key=lambda x: x["confidence"], reverse=True)[:max_triples]
 
+    top = ranked_frames[0] if ranked_frames else {}
+    fallback_used = bool(
+        ranked_frames and all(float(f.get("lexical_score", 0.0)) <= 0 for f in ranked_frames)
+    )
+    weak_match = not ranked_frames or fallback_used or float(top.get("score", 0.0)) < 0.5
     return {
         "query": query,
+        "scope": scope,
         "time_reference": time_reference,
         "graph_version": graph.get("version"),
         "video_id": graph.get("video_id"),
@@ -375,7 +388,13 @@ def query_stage1_graph(
         },
         "matched_frames": ranked_frames,
         "top_triples": flat_rel,
-        "fallback_used": bool(ranked_frames and all(float(f.get("lexical_score", 0.0)) <= 0 for f in ranked_frames)),
+        "fallback_used": fallback_used,
+        "controller_signals": {
+            "weak_match": weak_match,
+            "localize_only": weak_match,
+            "recommend_frame_inspect": True,
+            "recommended_next_action": "caption_backoff_tool" if weak_match else "frame_inspect_tool",
+        },
     }
 
 
@@ -383,6 +402,7 @@ def query_stage1_graph_by_path(
     graph_path: str,
     query: str,
     time_reference: str | None = None,
+    scope: list[tuple] | None = None,
     top_k_frames: int = 8,
     max_triples: int = 24,
 ) -> dict[str, Any]:
@@ -393,6 +413,7 @@ def query_stage1_graph_by_path(
         graph=graph,
         query=query,
         time_reference=time_reference,
+        scope=scope,
         top_k_frames=top_k_frames,
         max_triples=max_triples,
     )

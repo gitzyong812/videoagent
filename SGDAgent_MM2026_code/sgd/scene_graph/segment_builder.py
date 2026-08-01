@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import math
 import os
@@ -9,8 +11,6 @@ from sgd.scene_graph.schema import (empty_stage2_segment_graph,
                                     safe_load_stage1_graph,
                                     safe_load_stage2_segment_graph,
                                     validate_stage2_segment_graph)
-# AzureOpenAIEmbeddingService is imported lazily in _embed_segments() to avoid
-# pulling in heavy deps (cv2 etc.) at module load time.
 
 
 def _ensure_parent_dir(path: str) -> None:
@@ -62,6 +62,185 @@ def _build_segment_embed_text(seg: dict[str, Any]) -> str:
         if p:
             parts.append(p)
     return " ".join(parts)
+
+
+def _extract_json_obj(text: str) -> dict[str, Any] | None:
+    value = (text or "").strip()
+    if not value:
+        return None
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        start, end = value.find("{"), value.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            parsed = json.loads(value[start : end + 1])
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            return None
+
+
+def _segment_vlm_messages(
+    seg_start: float,
+    seg_end: float,
+    seg_frames: list[dict[str, Any]],
+    entity_bank: dict[str, dict[str, Any]],
+    caption_snippets: list[str],
+) -> list[dict[str, str]]:
+    active_ids = {
+        str(ent.get("entity_id", ""))
+        for frame in seg_frames
+        for ent in frame.get("entities", [])
+        if ent.get("entity_id")
+    }
+    context = {
+        "window": {"t_start": seg_start, "t_end": seg_end},
+        "entity_registry": [entity_bank[eid] for eid in sorted(active_ids) if eid in entity_bank],
+        "frame_graphs": [
+            {
+                "frame_id": frame.get("frame_id"),
+                "t_sec": frame.get("t_sec"),
+                "entities": frame.get("entities", []),
+                "relations": frame.get("relations", []),
+            }
+            for frame in seg_frames
+        ],
+        "caption_snippets": caption_snippets,
+    }
+    schema = {
+        "relations": [
+            {
+                "s": "ent_000001",
+                "p": "interacting_with",
+                "o": "ent_000002",
+                "relation_type": "action",
+                "t_start": seg_start,
+                "t_end": seg_end,
+                "support_frame_ids": ["f_000001"],
+                "confidence": 0.0,
+            }
+        ]
+    }
+    return [
+        {"role": "system", "content": "You extract segment-level video relations and return strict JSON only."},
+        {
+            "role": "user",
+            "content": (
+                "Analyze the video frames and frame-level graphs in this window. Extract entity "
+                "trajectories, actions, interactions, state changes, and temporal relations. Reuse "
+                "only entity IDs and frame IDs present in the supplied context. Use snake_case "
+                "predicates and ground every relation with a time interval and supporting frames. "
+                f"Return JSON matching this schema: {json.dumps(schema, separators=(',', ':'))}\n"
+                f"Context: {json.dumps(context, ensure_ascii=False, separators=(',', ':'))}"
+            ),
+        },
+    ]
+
+
+def _call_segment_vlm(
+    seg_start: float,
+    seg_end: float,
+    seg_frames: list[dict[str, Any]],
+    entity_bank: dict[str, dict[str, Any]],
+    caption_snippets: list[str],
+) -> dict[str, Any]:
+    if not bool(getattr(config, "SCENE_GRAPH_STAGE2_USE_VLM", True)):
+        raise RuntimeError("Strict segment construction requires SCENE_GRAPH_STAGE2_USE_VLM=True.")
+
+    from sgd.utils import call_openai_model_with_tools
+
+    image_paths = [str(frame.get("path")) for frame in seg_frames if frame.get("path")]
+    attempts = max(1, int(getattr(config, "SCENE_GRAPH_STAGE2_VLM_RETRIES", 3)))
+    last_error = "empty response"
+    for _ in range(attempts):
+        response = call_openai_model_with_tools(
+            messages=_segment_vlm_messages(
+                seg_start=seg_start,
+                seg_end=seg_end,
+                seg_frames=seg_frames,
+                entity_bank=entity_bank,
+                caption_snippets=caption_snippets,
+            ),
+            endpoints=config.SCENE_GRAPH_STAGE2_VLM_ENDPOINT_LIST,
+            model_name=config.SCENE_GRAPH_STAGE2_VLM_MODEL_NAME,
+            api_key=config.OPENAI_API_KEY,
+            image_paths=image_paths,
+            temperature=0.0,
+            max_tokens=int(getattr(config, "SCENE_GRAPH_STAGE2_VLM_MAX_TOKENS", 1600)),
+            return_json=True,
+        )
+        parsed = _extract_json_obj((response or {}).get("content", ""))
+        if parsed is not None and isinstance(parsed.get("relations", []), list):
+            return parsed
+        last_error = "response did not contain a valid `relations` list"
+    raise RuntimeError(
+        f"Segment VLM extraction failed for {seg_start:.1f}-{seg_end:.1f}s: {last_error}."
+    )
+
+
+def _normalize_vlm_relations(
+    raw_relations: list[dict[str, Any]],
+    seg_start: float,
+    seg_end: float,
+    seg_frames: list[dict[str, Any]],
+    entity_bank: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    valid_frame_ids = {
+        str(frame.get("frame_id"))
+        for frame in seg_frames
+        if frame.get("frame_id")
+    }
+    name_to_id = {
+        str(ent.get("canonical_name", "")).strip().lower(): eid
+        for eid, ent in entity_bank.items()
+        if ent.get("canonical_name")
+    }
+    normalized: list[dict[str, Any]] = []
+    for rel in raw_relations:
+        if not isinstance(rel, dict):
+            continue
+        s_raw = str(rel.get("s", "")).strip()
+        o_raw = str(rel.get("o", "")).strip()
+        s = s_raw if s_raw in entity_bank else name_to_id.get(s_raw.lower(), "")
+        o = o_raw if o_raw in entity_bank else name_to_id.get(o_raw.lower(), "")
+        predicate = str(rel.get("p", "")).strip().lower().replace(" ", "_")
+        if not s or not o or not predicate:
+            continue
+        try:
+            t_start = max(seg_start, float(rel.get("t_start", seg_start)))
+            t_end = min(seg_end, float(rel.get("t_end", seg_end)))
+        except (TypeError, ValueError):
+            t_start, t_end = seg_start, seg_end
+        if t_end < t_start:
+            t_start, t_end = t_end, t_start
+        try:
+            confidence = min(1.0, max(0.0, float(rel.get("confidence", 0.5))))
+        except (TypeError, ValueError):
+            confidence = 0.5
+        support_ids = [
+            str(frame_id)
+            for frame_id in rel.get("support_frame_ids", [])
+            if str(frame_id) in valid_frame_ids
+        ]
+        if not support_ids:
+            support_ids = sorted(valid_frame_ids)
+        normalized.append(
+            {
+                "s": s,
+                "p": predicate,
+                "o": o,
+                "relation_type": str(rel.get("relation_type", "action")).strip().lower() or "action",
+                "t_start": round(t_start, 3),
+                "t_end": round(t_end, 3),
+                "confidence": confidence,
+                "support_frame_ids": support_ids,
+                "count": 1,
+                "source": "vlm",
+            }
+        )
+    return normalized
 
 
 def _embed_segments(segments: list[dict[str, Any]]) -> None:
@@ -204,6 +383,7 @@ def build_stage2_segment_graph(
                         "confidence": float(rel.get("confidence", 0.0)),
                         "support_frame_ids": [frame_id] if frame_id else [],
                         "count": 1,
+                        "source": "frame",
                     }
                 else:
                     relation_acc[key]["t_start"] = min(float(relation_acc[key]["t_start"]), frame_t)
@@ -216,6 +396,48 @@ def build_stage2_segment_graph(
                         relation_acc[key]["support_frame_ids"].append(frame_id)
                     relation_acc[key]["count"] += 1
 
+        caption_snippets: list[str] = []
+        if bool(getattr(config, "SCENE_GRAPH_STAGE2_INCLUDE_CAPTION_SNIPPETS", True)):
+            for frame in seg_frames:
+                caption = str(frame.get("caption_context", "")).strip()
+                if caption and caption not in caption_snippets:
+                    caption_snippets.append(caption)
+            caption_snippets = caption_snippets[
+                : int(getattr(config, "SCENE_GRAPH_STAGE2_MAX_CAPTION_SNIPPETS", 4))
+            ]
+
+        vlm_output = _call_segment_vlm(
+            seg_start=seg_start,
+            seg_end=seg_end,
+            seg_frames=seg_frames,
+            entity_bank=entity_bank,
+            caption_snippets=caption_snippets,
+        )
+        vlm_relations = _normalize_vlm_relations(
+            raw_relations=vlm_output.get("relations", []),
+            seg_start=seg_start,
+            seg_end=seg_end,
+            seg_frames=seg_frames,
+            entity_bank=entity_bank,
+        )
+        for relation in vlm_relations:
+            key = (relation["s"], relation["p"], relation["o"])
+            if key not in relation_acc:
+                relation_acc[key] = relation
+                continue
+            existing = relation_acc[key]
+            existing["t_start"] = min(float(existing["t_start"]), float(relation["t_start"]))
+            existing["t_end"] = max(float(existing["t_end"]), float(relation["t_end"]))
+            existing["confidence"] = max(
+                float(existing.get("confidence", 0.0)),
+                float(relation.get("confidence", 0.0)),
+            )
+            existing["relation_type"] = relation.get("relation_type", existing.get("relation_type", "action"))
+            existing["source"] = "frame+vlm"
+            for frame_id in relation.get("support_frame_ids", []):
+                if frame_id not in existing["support_frame_ids"]:
+                    existing["support_frame_ids"].append(frame_id)
+
         active_entities = sorted(
             entity_acc.values(),
             key=lambda x: (x["frame_count"], x["confidence"]),
@@ -223,7 +445,11 @@ def build_stage2_segment_graph(
         )
         temporal_relations = sorted(
             relation_acc.values(),
-            key=lambda x: (x["count"], x["confidence"]),
+            key=lambda x: (
+                1 if "vlm" in str(x.get("source", "")) else 0,
+                x["count"],
+                x["confidence"],
+            ),
             reverse=True,
         )[:max_relations_per_segment]
 
@@ -238,6 +464,7 @@ def build_stage2_segment_graph(
                 "active_entities": active_entities,
                 "temporal_relations": temporal_relations,
                 "support_frame_ids": support_frame_ids,
+                "caption_snippets": caption_snippets,
                 "summary": _build_segment_summary(active_entities, temporal_relations),
                 "overlap_link": {},
             }

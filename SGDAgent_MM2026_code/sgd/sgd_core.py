@@ -13,12 +13,11 @@ from typing import Any
 from typing import Literal as L
 
 import sgd.config as config
-from sgd.build_database import (clip_search_tool, frame_graph_query_tool,
-                                frame_inspect_tool, global_browse_tool,
+from sgd.build_database import (caption_backoff_tool, frame_graph_query_tool,
+                                frame_inspect_tool, global_graph_query_tool,
                                 init_single_video_db, segment_graph_query_tool)
 from sgd.func_call_shema import as_json_schema
 from sgd.func_call_shema import doc as D
-from sgd.scene_graph.global_event_index import build_global_event_index_from_path
 from sgd.utils import call_openai_model_with_tools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -118,6 +117,8 @@ class PolicyState:
     finish_rejections: int = 0
     fi_records: list[dict[str, Any]] = field(default_factory=list)
     clip_records: list[dict[str, Any]] = field(default_factory=list)
+    last_graph_requires_followup: bool = False
+    last_graph_recommended_action: str = ""
 
 class StopException(Exception):
     """
@@ -133,11 +134,11 @@ def finish(answer: A[str, D("Answer to the user's question.")]) -> None:
 class SGDCoreAgent:
     def __init__(self, video_db_path, video_caption_path, max_iterations, video_file_root: str | None = None):
         self.tools = [
+            global_graph_query_tool,
             segment_graph_query_tool,
             frame_graph_query_tool,
             frame_inspect_tool,
-            clip_search_tool,
-            global_browse_tool,
+            caption_backoff_tool,
             finish,
         ]
         self.name_to_function_map = {tool.__name__: tool for tool in self.tools}
@@ -220,8 +221,8 @@ Only pass arguments that come verbatim from the user or from earlier function ou
 
 Here are tools you can use to reveal your reasoning process whenever the provided information is insufficient.
 
-• To get a global information about events and main subjects in the video, use `global_browse_tool`.
-• To search without a specific timestamp, use `clip_search_tool`.
+• For plot-level, causal, or video-spanning questions, start with `global_graph_query_tool`.
+• To search caption wording when graph retrieval is weak, use `caption_backoff_tool`.
 • To retrieve structured segment-level temporal evidence, use `segment_graph_query_tool`.
 • To retrieve structured frame-level evidence (entities and relations), use `frame_graph_query_tool`.
 • If the retrieved material lacks precise, question-relevant detail (e.g., an unknown name), call `frame_inspect_tool` with a list of time ranges (list[tuple[HH:MM:SS, HH:MM:SS]]).
@@ -236,11 +237,11 @@ Every result from `segment_graph_query_tool` includes a `controller_signals` fie
 • `localize_only: true` → The graph result tells you WHERE to look, not WHAT the answer is. Use the returned time range as a starting point only. You MUST call `frame_inspect_tool` to visually confirm the answer before calling `finish`. Do NOT call `finish` based on graph text alone.
 • `question_is_fine_detail: true` → The question asks for something the graph cannot reliably answer (color, count, appearance, on-screen text, exact identity). Graph = location hint only. Always follow up with `frame_inspect_tool`.
 • `coarse_window: true` → The matched segment spans ~30 seconds. This is too wide for precise visual verification. Do NOT limit your `frame_inspect_tool` call to only that segment's time range — inspect multiple sub-windows or a broader range.
-• `no_temporal_hit: true` → The graph had no direct keyword match; results are speculative. Re-anchor with `clip_search_tool` or `global_browse_tool` before proceeding.
+• `no_temporal_hit: true` → The graph had no direct keyword match; results are speculative. Re-anchor with `caption_backoff_tool` before proceeding.
 • `recommend_frame_inspect: true` → You must call `frame_inspect_tool` before calling `finish`.
 • `weak_match: true` → Low-confidence match. Treat as a rough hint; verify independently.
 
-You can first use `global_browse_tool` to a global information about this video, then invoke multiple times of these tools to prgressively find the answer.
+Use the hierarchy progressively when appropriate: global graph → segment graph → frame graph → frame inspection.
 
 Based on your observations and tool outputs, provide a concise answer that directly addresses the question. \n
 
@@ -253,38 +254,7 @@ Question: QUESTION_PLACEHOLDER"""
         video_length = add_data['video_length']
         messages[-1]['content'] = messages[-1]['content'].replace("VIDEO_LENGTH", str(video_length))
 
-        # Inject Global Event Index if Stage 2 graph is available
-        gei_text = self._build_gei_text(add_data)
-        if gei_text:
-            # Insert the GEI between the tool instructions and the question
-            messages[-1]['content'] = messages[-1]['content'].replace(
-                "Question: QUESTION_PLACEHOLDER",
-                f"{gei_text}\n\nQuestion: QUESTION_PLACEHOLDER",
-            )
         return messages
-
-    def _build_gei_text(self, add_data: dict) -> str:
-        """Build Global Event Index text from Stage 2 graph if available."""
-        if not bool(getattr(config, "GEI_ENABLED", True)):
-            return ""
-        stage2_path = add_data.get("stage2_segment_graph_path")
-        if not stage2_path or not os.path.exists(stage2_path):
-            return ""
-        try:
-            gei = build_global_event_index_from_path(stage2_path)
-            prompt_text = gei.get("prompt_text", "")
-            if prompt_text:
-                return (
-                    f"\n{prompt_text}\n\n"
-                    "HOW TO USE THIS TIMELINE:\n"
-                    "1. Match question keywords to scene entries above to identify the most likely time region.\n"
-                    "2. Call `segment_graph_query_tool` targeting that region — the timeline is a navigation aid, NOT evidence.\n"
-                    "3. Never answer from the timeline alone; always verify with `segment_graph_query_tool` or `frame_inspect_tool`.\n"
-                    "4. If the question mentions a specific entity, check RECURRING ENTITIES to find when it appears."
-                )
-        except Exception as exc:
-            print(f"[GEI] Failed to build Global Event Index: {exc}")
-        return ""
 
     # ------------------------------------------------------------------ #
     # Helper methods
@@ -474,6 +444,22 @@ Question: QUESTION_PLACEHOLDER"""
             "temporal_event": bool(re.search(r"\bbefore\b|\bafter\b|\bwhen\b|\bwhat happens\b|\bnext\b|\bthen\b", q)),
         }
 
+    def _initial_tool_name(self, question: str) -> str:
+        q = (question or "").lower()
+        flags = self._question_token_flags(question)
+        if flags["count"] or flags["color"] or flags["text"] or flags["appearance"]:
+            return "frame_inspect_tool"
+        if re.search(r"\bwhy\b|\bcause\b|\bcausal\b|\bplot\b|\bstory\b|\boverall\b|\bthroughout\b", q):
+            return "global_graph_query_tool"
+        if re.search(r"\bwhen\b|\bbefore\b|\bafter\b|\bwhich part\b|\bwhat happens next\b", q):
+            return "segment_graph_query_tool"
+        if re.search(r"\bwhere\b|\bholding\b|\bwearing\b|\bleft of\b|\bright of\b|\bobject\b", q):
+            return "frame_graph_query_tool"
+        return "global_graph_query_tool"
+
+    def _tool_choice_for_name(self, name: str) -> dict[str, Any]:
+        return {"type": "function", "function": {"name": name}}
+
     def _build_question_policy(self, question: str, question_context: dict[str, Any] | None) -> QuestionPolicy:
         context = self._normalize_question_context(question_context)
         qtypes = tuple(q.lower() for q in context["question_type"])
@@ -569,7 +555,7 @@ Question: QUESTION_PLACEHOLDER"""
             )
         elif policy.requires_time_valid_terminal:
             lines.append(
-                "Your terminal evidence must stay inside the explicit time reference, via `clip_search_tool` or `frame_inspect_tool`."
+                "Your terminal evidence must stay inside the explicit time reference, via `caption_backoff_tool` or `frame_inspect_tool`."
             )
         return "\n".join(f"- {line}" for line in lines if line)
 
@@ -762,6 +748,13 @@ Question: QUESTION_PLACEHOLDER"""
         if state.finish_rejections >= max_rej:
             return True, ""
 
+        if state.last_graph_requires_followup:
+            next_action = state.last_graph_recommended_action or "caption_backoff_tool or frame_inspect_tool"
+            return (
+                False,
+                f"The latest graph result is localization-only or weak. Call `{next_action}` before `finish`.",
+            )
+
         time_valid_clip = any(record.get("time_valid") for record in state.clip_records)
         qualifying_fi = self._qualifying_fi_records(policy, state)
         if policy.requires_targeted_fi:
@@ -781,7 +774,7 @@ Question: QUESTION_PLACEHOLDER"""
         if policy.requires_time_valid_terminal and not (qualifying_fi or time_valid_clip):
             return (
                 False,
-                "The final answer still lacks time-valid terminal evidence inside the explicit time reference. Use `clip_search_tool` or `frame_inspect_tool` inside that span before `finish`.",
+                "The final answer still lacks time-valid terminal evidence inside the explicit time reference. Use `caption_backoff_tool` or `frame_inspect_tool` inside that span before `finish`.",
             )
         return True, ""
 
@@ -821,7 +814,9 @@ Question: QUESTION_PLACEHOLDER"""
                 "top_lexical": 0.0,
             }
 
-        if tool_name == "segment_graph_query_tool":
+        if tool_name == "global_graph_query_tool":
+            matched = parsed.get("matched_regions", []) or []
+        elif tool_name == "segment_graph_query_tool":
             matched = parsed.get("matched_segments", []) or []
         elif tool_name == "frame_graph_query_tool":
             matched = parsed.get("matched_frames", []) or []
@@ -851,7 +846,7 @@ Question: QUESTION_PLACEHOLDER"""
 
         if policy is not None and policy.time_reference:
             target_ranges = self._policy_target_ranges(policy)
-            if tool_name == "segment_graph_query_tool":
+            if tool_name in {"global_graph_query_tool", "segment_graph_query_tool"}:
                 seg_start = float(top.get("t_start", 0.0) or 0.0)
                 seg_end = float(top.get("t_end", seg_start) or seg_start)
                 time_valid, overlap = self._span_overlaps_reference(seg_start, seg_end, target_ranges)
@@ -893,17 +888,19 @@ Question: QUESTION_PLACEHOLDER"""
 
     def _graph_reject_guidance(self, tool_name: str, analysis: dict[str, Any], policy: QuestionPolicy | None) -> str:
         detail = analysis.get("reason") or "weak graph evidence"
-        if tool_name == "segment_graph_query_tool":
+        if tool_name == "global_graph_query_tool":
+            base = "Reject the global graph hit as a terminal anchor."
+        elif tool_name == "segment_graph_query_tool":
             base = "Reject the segment graph hit as a terminal anchor."
         else:
             base = "Reject the frame graph hit as a terminal anchor."
         if policy is not None and policy.requires_targeted_fi:
             return (
                 f"{base} Reason: {detail}. Use graph only for coarse localization, then switch to "
-                f"`clip_search_tool` or a narrower targeted `frame_inspect_tool` for the {policy.targeted_label}."
+                f"`caption_backoff_tool` or a narrower targeted `frame_inspect_tool` for the {policy.targeted_label}."
             )
         return (
-            f"{base} Reason: {detail}. Fall back to `clip_search_tool` or `frame_inspect_tool` inside the target time span before answering."
+            f"{base} Reason: {detail}. Fall back to `caption_backoff_tool` or `frame_inspect_tool` inside the target time span before answering."
         )
 
     def _record_clip_search(
@@ -992,7 +989,7 @@ Question: QUESTION_PLACEHOLDER"""
                 "or finish only if the existing narrow targeted confirmations are already sufficient."
             )
         return (
-            "Recent actions did not improve evidence quality. Stop broad graph paraphrases and use the strongest time-valid `clip_search_tool` or `frame_inspect_tool` evidence to converge."
+            "Recent actions did not improve evidence quality. Stop broad graph paraphrases and use the strongest time-valid `caption_backoff_tool` or `frame_inspect_tool` evidence to converge."
         )
 
     def _narrow_window_guidance(self, policy: QuestionPolicy) -> str:
@@ -1029,7 +1026,7 @@ Question: QUESTION_PLACEHOLDER"""
         return json.dumps(logged_args, ensure_ascii=False, default=str)
 
     def _is_retryable_tool_error(self, tool_name: str, err: Exception) -> bool:
-        if tool_name not in {"frame_inspect_tool", "global_browse_tool", "clip_search_tool"}:
+        if tool_name not in {"frame_inspect_tool", "caption_backoff_tool"}:
             return False
         low = str(err).lower()
         retry_keywords = (
@@ -1050,7 +1047,7 @@ Question: QUESTION_PLACEHOLDER"""
 
     def _call_tool_with_retries(self, tool_name: str, target_func, args: dict[str, Any]):
         attempts = 1
-        if tool_name in {"frame_inspect_tool", "global_browse_tool", "clip_search_tool"}:
+        if tool_name in {"frame_inspect_tool", "caption_backoff_tool"}:
             attempts = int(getattr(config, "TOOL_CALL_RETRY_ATTEMPTS", 1))
         delay = float(getattr(config, "TOOL_CALL_RETRY_BASE_DELAY_SEC", 2.0))
 
@@ -1162,7 +1159,8 @@ Question: QUESTION_PLACEHOLDER"""
                 return
             args["answer"] = strict_answer
 
-        if name in {"segment_graph_query_tool", "frame_graph_query_tool"} and policy_state is not None:
+        graph_tools = {"global_graph_query_tool", "segment_graph_query_tool", "frame_graph_query_tool"}
+        if name in graph_tools and policy_state is not None:
             if policy_state.graph_backoff_active:
                 err = (
                     f"Policy gate rejected `{name}` because the last graph hit was weak ({policy_state.graph_backoff_reason or 'no stronger graph anchor yet'})."
@@ -1223,7 +1221,7 @@ Question: QUESTION_PLACEHOLDER"""
             and question_policy is not None
             and question_policy.time_reference
             and "time_reference" in sig.parameters
-            and name in {"segment_graph_query_tool", "frame_graph_query_tool"}
+            and name in graph_tools
         ):
             if bool(getattr(config, "POLICY_STRICT_GRAPH_TIME_REFERENCE", True)):
                 args["time_reference"] = question_policy.time_reference
@@ -1238,6 +1236,8 @@ Question: QUESTION_PLACEHOLDER"""
             args["top_k_frames"] = config.SCENE_GRAPH_TOPK_FRAMES
         if "top_k_segments" in args and getattr(config, "SCENE_GRAPH_TOPK_SEGMENTS", 0) > 0:
             args["top_k_segments"] = config.SCENE_GRAPH_TOPK_SEGMENTS
+        if "top_k_regions" in args and getattr(config, "SCENE_GRAPH_TOPK_GLOBAL_REGIONS", 0) > 0:
+            args["top_k_regions"] = config.SCENE_GRAPH_TOPK_GLOBAL_REGIONS
         if "max_triples" in args and getattr(config, "SCENE_GRAPH_MAX_TRIPLES", 0) > 0:
             args["max_triples"] = config.SCENE_GRAPH_MAX_TRIPLES
 
@@ -1251,8 +1251,16 @@ Question: QUESTION_PLACEHOLDER"""
             improved = False
             _cs_guidance_fired = False
             if policy_state is not None and question_policy is not None:
-                if name in {"segment_graph_query_tool", "frame_graph_query_tool"}:
+                if name in graph_tools:
                     analysis = self._graph_result_analysis(name, result, question_policy)
+                    parsed_graph = self._parse_tool_json(result) or {}
+                    controller = parsed_graph.get("controller_signals", {}) or {}
+                    policy_state.last_graph_requires_followup = bool(
+                        controller.get("weak_match") or controller.get("localize_only")
+                    )
+                    policy_state.last_graph_recommended_action = str(
+                        controller.get("recommended_next_action", "")
+                    )
                     improved = (
                         not analysis.get("reject")
                         and float(analysis.get("quality", float("-inf"))) > policy_state.best_graph_quality
@@ -1312,14 +1320,17 @@ Question: QUESTION_PLACEHOLDER"""
                                 msgs,
                                 "Controller signal: weak graph match. "
                                 "Treat returned segments as rough hints. "
-                                "Verify with `clip_search_tool` or `frame_inspect_tool` before answering.",
+                                "Verify with `caption_backoff_tool` or `frame_inspect_tool` before answering.",
                             )
-                elif name == "clip_search_tool":
+                elif name == "caption_backoff_tool":
                     improved = self._record_clip_search(policy_state, question_policy, str(result))
+                    policy_state.last_graph_requires_followup = False
                     if question_policy.requires_targeted_fi:
                         self._append_guidance_once(msgs, self._narrow_window_guidance(question_policy))
                 elif name == "frame_inspect_tool":
                     improved = self._record_frame_inspect(policy_state, question_policy, args, str(result))
+                    if "Error: Cannot find corresponding result" not in str(result):
+                        policy_state.last_graph_requires_followup = False
                     last_record = policy_state.fi_records[-1] if policy_state.fi_records else None
                     if (
                         last_record is not None
@@ -1334,8 +1345,6 @@ Question: QUESTION_PLACEHOLDER"""
                         )
                     ):
                         self._append_guidance_once(msgs, self._narrow_window_guidance(question_policy))
-                elif name == "global_browse_tool":
-                    policy_state.graph_backoff_active = False
                 self._note_progress(policy_state, name, improved)
                 window = int(getattr(config, "POLICY_STAGNATION_WINDOW", 3))
                 if (
@@ -1539,7 +1548,12 @@ Question: QUESTION_PLACEHOLDER"""
                         }
                     )
 
-                tool_choice = self._finish_tool_choice() if i == self.max_iterations - 1 else "auto"
+                if i == self.max_iterations - 1:
+                    tool_choice = self._finish_tool_choice()
+                elif i == 0:
+                    tool_choice = self._tool_choice_for_name(self._initial_tool_name(question))
+                else:
+                    tool_choice = "auto"
                 response = self._call_orchestrator_with_retries(
                     msgs=msgs,
                     step_idx=i + 1,
@@ -1726,7 +1740,12 @@ Question: QUESTION_PLACEHOLDER"""
                 msgs.append(final_usr_msg)
                 # Don't yield user messages to the UI
 
-            tool_choice = self._finish_tool_choice() if i == self.max_iterations - 1 else "auto"
+            if i == self.max_iterations - 1:
+                tool_choice = self._finish_tool_choice()
+            elif i == 0:
+                tool_choice = self._tool_choice_for_name(self._initial_tool_name(question))
+            else:
+                tool_choice = "auto"
             response = self._call_orchestrator_with_retries(
                 msgs=msgs,
                 step_idx=i + 1,

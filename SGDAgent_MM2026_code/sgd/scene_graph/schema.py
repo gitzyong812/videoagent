@@ -7,6 +7,7 @@ from typing import Any
 
 STAGE1_GRAPH_VERSION = "stage1_v1"
 STAGE2_SEGMENT_GRAPH_VERSION = "stage2_segment_v1"
+GLOBAL_EVENT_GRAPH_VERSION = "global_event_v1"
 
 
 def utc_now_iso() -> str:
@@ -132,5 +133,90 @@ def safe_load_stage2_segment_graph(path: str) -> dict[str, Any] | None:
         if not ok:
             return None
         return graph
+    except Exception:
+        return None
+
+
+def empty_global_event_graph(video_id: str, config_snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "version": GLOBAL_EVENT_GRAPH_VERSION,
+        "video_id": video_id,
+        "created_at": utc_now_iso(),
+        "config": config_snapshot,
+        "entities": [],
+        "regions": [],
+        "relations": [],
+        "contains_links": [],
+        "stats": {
+            "num_entities": 0,
+            "num_regions": 0,
+            "num_relations": 0,
+            "num_contains_links": 0,
+        },
+    }
+
+
+def validate_global_event_graph(graph: dict[str, Any]) -> tuple[bool, str]:
+    if not isinstance(graph, dict):
+        return False, "Graph must be a dict."
+    required = {
+        "version", "video_id", "entities", "regions", "relations",
+        "contains_links", "stats",
+    }
+    missing = required - set(graph)
+    if missing:
+        return False, f"Missing top-level keys: {sorted(missing)}"
+    if graph.get("version") != GLOBAL_EVENT_GRAPH_VERSION:
+        return False, f"Unsupported version: {graph.get('version')}"
+
+    region_ids: set[str] = set()
+    for region in graph.get("regions", []):
+        if not isinstance(region, dict):
+            return False, "Each region must be a dict."
+        for key in ("region_id", "t_start", "t_end", "support_segment_ids"):
+            if key not in region:
+                return False, f"Region missing key `{key}`."
+        if float(region["t_end"]) < float(region["t_start"]):
+            return False, "Region has invalid time span."
+        if not isinstance(region["support_segment_ids"], list):
+            return False, "Region `support_segment_ids` must be a list."
+        region_ids.add(str(region["region_id"]))
+
+    relation_ids: set[str] = set()
+    allowed_types = {"event", "state_evolution", "temporal", "causal"}
+    for relation in graph.get("relations", []):
+        if not isinstance(relation, dict):
+            return False, "Each global relation must be a dict."
+        for key in (
+            "relation_id", "region_id", "relation_type", "predicate",
+            "participant_entity_ids", "description", "t_start", "t_end",
+            "support_segment_ids", "confidence", "uncertainty",
+        ):
+            if key not in relation:
+                return False, f"Global relation missing key `{key}`."
+        if relation["relation_type"] not in allowed_types:
+            return False, f"Unsupported global relation type: {relation['relation_type']}"
+        if str(relation["region_id"]) not in region_ids:
+            return False, "Global relation references an unknown region."
+        if float(relation["t_end"]) < float(relation["t_start"]):
+            return False, "Global relation has invalid time span."
+        relation_ids.add(str(relation["relation_id"]))
+
+    for link in graph.get("contains_links", []):
+        if not isinstance(link, dict):
+            return False, "Each contains link must be a dict."
+        if str(link.get("relation_id", "")) not in relation_ids:
+            return False, "Contains link references an unknown relation."
+        if not link.get("segment_id"):
+            return False, "Contains link is missing segment_id."
+    return True, "ok"
+
+
+def safe_load_global_event_graph(path: str) -> dict[str, Any] | None:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            graph = json.load(f)
+        ok, _ = validate_global_event_graph(graph)
+        return graph if ok else None
     except Exception:
         return None
