@@ -164,7 +164,7 @@ class SceneGraphPipelineTest(unittest.TestCase):
             self.assertEqual(graph["stats"]["caption_retry_frames"], 1)
             self.assertEqual(graph["stats"]["num_entities"], 1)
 
-    def test_mocked_three_level_build(self):
+    def test_mock_transport_three_level_build(self):
         with tempfile.TemporaryDirectory() as tmp:
             video_root = Path(tmp) / "sample"
             frames_dir = video_root / "frames"
@@ -183,68 +183,74 @@ class SceneGraphPipelineTest(unittest.TestCase):
                     }
                 )
             )
-            stage1_path = captions_dir / "scene_graph_stage1.json"
-            frame_parse = (
-                [
-                    {
-                        "local_id": "e1", "name": "person", "type": "person",
-                        "attributes": [], "desc_text": "same person", "confidence": 0.9,
-                    },
-                    {
-                        "local_id": "e2", "name": "bag", "type": "object",
-                        "attributes": [], "desc_text": "a bag", "confidence": 0.8,
-                    },
-                ],
-                [{"s": "e1", "p": "carrying", "o": "e2", "confidence": 0.8}],
-            )
-            with patch(
-                "sgd.scene_graph.stage1_builder._parse_single_frame_with_vlm",
-                return_value=frame_parse,
-            ):
-                build_stage1_scene_graph(str(captions_path), str(stage1_path), frame_dir_override=str(frames_dir))
-            stage1 = safe_load_stage1_graph(str(stage1_path))
-            self.assertIsNotNone(stage1)
-            person_id = stage1["entities"][0]["entity_id"]
-            bag_id = stage1["entities"][1]["entity_id"]
-
-            stage2_path = captions_dir / "scene_graph_stage2_segment.json"
-            segment_result = {
-                "relations": [
-                    {
-                        "s": person_id, "p": "enters_with", "o": bag_id,
-                        "relation_type": "action", "t_start": 0, "t_end": 10,
-                        "support_frame_ids": [stage1["frames"][0]["frame_id"]],
-                        "confidence": 0.9,
+            def fake_model_call(*, messages, **kwargs):
+                system_prompt = messages[0]["content"]
+                if "segment-level" in system_prompt:
+                    payload = {
+                        "relations": [
+                            {
+                                "s": "ent_000001", "p": "enters_with", "o": "ent_000002",
+                                "relation_type": "action", "t_start": 0, "t_end": 10,
+                                "support_frame_ids": ["f_000000"], "confidence": 0.9,
+                            }
+                        ]
                     }
-                ]
-            }
-            with patch("sgd.scene_graph.segment_builder._call_segment_vlm", return_value=segment_result), patch(
+                elif "global video event graph" in system_prompt:
+                    payload = {
+                        "relations": [
+                            {
+                                "relation_type": "event", "predicate": "enters_room",
+                                "participant_entity_ids": ["ent_000001", "ent_000002"],
+                                "description": "The person enters while carrying the bag.",
+                                "t_start": 0, "t_end": 10,
+                                "support_segment_ids": ["seg_0001"],
+                                "confidence": 0.9, "uncertainty": 0.1,
+                            }
+                        ]
+                    }
+                elif "strict JSON" in system_prompt:
+                    payload = {
+                        "entities": [
+                            {
+                                "local_id": "e1", "name": "person", "type": "person",
+                                "attributes": [], "desc_text": "same person", "confidence": 0.9,
+                            },
+                            {
+                                "local_id": "e2", "name": "bag", "type": "object",
+                                "attributes": [], "desc_text": "a bag", "confidence": 0.8,
+                            },
+                        ],
+                        "relations": [
+                            {"s": "e1", "p": "carrying", "o": "e2", "confidence": 0.8}
+                        ],
+                    }
+                else:
+                    raise AssertionError(f"Unexpected model role: {system_prompt}")
+                return {"role": "assistant", "content": json.dumps(payload), "tool_calls": []}
+
+            stage1_path = captions_dir / "scene_graph_stage1.json"
+            with patch(
+                "sgd.utils.call_openai_model_with_tools", side_effect=fake_model_call
+            ) as mocked_transport, patch(
                 "sgd.scene_graph.segment_builder.config.SCENE_GRAPH_STAGE2_EMBED_SEGMENTS", False
             ):
-                build_stage2_segment_graph(str(stage1_path), str(stage2_path))
-            stage2 = safe_load_stage2_segment_graph(str(stage2_path))
-            self.assertIsNotNone(stage2)
-            self.assertTrue(stage2["segments"][0]["caption_snippets"])
+                build_stage1_scene_graph(str(captions_path), str(stage1_path), frame_dir_override=str(frames_dir))
+                stage1 = safe_load_stage1_graph(str(stage1_path))
+                self.assertIsNotNone(stage1)
 
-            global_path = captions_dir / "scene_graph_global.json"
-            global_result = {
-                "relations": [
-                    {
-                        "relation_type": "event", "predicate": "enters_room",
-                        "participant_entity_ids": [person_id, bag_id],
-                        "description": "The person enters while carrying the bag.",
-                        "t_start": 0, "t_end": 10,
-                        "support_segment_ids": [stage2["segments"][0]["segment_id"]],
-                        "confidence": 0.9, "uncertainty": 0.1,
-                    }
-                ]
-            }
-            with patch("sgd.scene_graph.global_builder._call_global_vlm", return_value=global_result):
+                stage2_path = captions_dir / "scene_graph_stage2_segment.json"
+                build_stage2_segment_graph(str(stage1_path), str(stage2_path))
+                stage2 = safe_load_stage2_segment_graph(str(stage2_path))
+                self.assertIsNotNone(stage2)
+                self.assertTrue(stage2["segments"][0]["caption_snippets"])
+
+                global_path = captions_dir / "scene_graph_global.json"
                 build_global_event_graph(str(stage1_path), str(stage2_path), str(global_path))
-            global_graph = safe_load_global_event_graph(str(global_path))
-            self.assertIsNotNone(global_graph)
-            self.assertEqual(global_graph["relations"][0]["relation_type"], "event")
-            self.assertTrue(global_graph["contains_links"])
+                global_graph = safe_load_global_event_graph(str(global_path))
+                self.assertIsNotNone(global_graph)
+                self.assertEqual(global_graph["relations"][0]["relation_type"], "event")
+                self.assertTrue(global_graph["contains_links"])
+                self.assertGreaterEqual(mocked_transport.call_count, 5)
 
 
 if __name__ == "__main__":

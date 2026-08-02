@@ -274,11 +274,6 @@ def convert_hhmmss_to_seconds(hhmmss):
     hours, minutes, seconds = map(int, parts)
     return hours * 3600 + minutes * 60 + seconds
 
-def is_covered(d,N):
-    i=sorted((int(a),int(b))for a,b in(map(lambda x:x.split('_'),d)));c=0
-    return all(s==c and not (c:=e) for s,e in i) and c==N
-
-
 def _default_stage1_graph_path(video_caption_json_path: str) -> str:
     return os.path.abspath(os.path.join(
         os.path.dirname(video_caption_json_path),
@@ -306,12 +301,7 @@ def _stage1_graph_candidates(video_caption_json_path: str, existing_path: str | 
         candidates.append(os.path.abspath(existing_path))
 
     captions_dir = os.path.dirname(video_caption_json_path)
-    candidates.extend(
-        [
-            _default_stage1_graph_path(video_caption_json_path),
-            os.path.abspath(os.path.join(captions_dir, "scene_graph_stage1.eval.json")),
-        ]
-    )
+    candidates.append(_default_stage1_graph_path(video_caption_json_path))
 
     deduped = []
     seen = set()
@@ -329,12 +319,7 @@ def _stage2_graph_candidates(stage1_graph_path: str, existing_path: str | None =
         candidates.append(os.path.abspath(existing_path))
 
     graph_dir = os.path.dirname(stage1_graph_path)
-    candidates.extend(
-        [
-            _default_stage2_graph_path(stage1_graph_path),
-            os.path.abspath(os.path.join(graph_dir, "scene_graph_stage2.eval.json")),
-        ]
-    )
+    candidates.append(_default_stage2_graph_path(stage1_graph_path))
 
     deduped = []
     seen = set()
@@ -431,14 +416,6 @@ def init_single_video_db(
     video_file_root_override: str | None = None,
 ):
     vdb = NanoVectorDB(emb_dim, storage_file=output_video_db_path)
-    # with open(video_caption_json_path, "r") as f:
-    #     captions = json.load(f)
-    # subject_registry = captions.pop('subject_registry', captions.pop('character_registry', None))            
-    # video_length = max([float(k.split("_")[1]) for k in captions.keys()])
-    # if not is_covered(captions.keys(), video_length):
-    #     error_msg = (f"Fail to build video database for video {video_caption_json_path.split("/")[-3]}. Get None video clip captions for some clips in the video.")
-    #     raise ValueError(error_msg)
-    # video_length = convert_seconds_to_hhmmss(video_length)
     if os.path.exists(output_video_db_path):
         print(f"Database {output_video_db_path} already exists.")
         additional_data = vdb.get_additional_data() or {}

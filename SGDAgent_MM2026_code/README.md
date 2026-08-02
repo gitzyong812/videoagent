@@ -2,7 +2,7 @@
 
 This supplementary repository contains the core implementation of SGDAgent for structured long-form video understanding. It covers the offline three-level scene-graph index and the online graph-driven reasoning loop described in the paper.
 
-## Included components
+## Core components
 
 - Caption index for lexical backoff retrieval.
 - Frame-level scene graphs with typed entities, spatial/state relations, and a shared video entity registry.
@@ -10,7 +10,7 @@ This supplementary repository contains the core implementation of SGDAgent for s
 - A persistent global event graph with event, state-evolution, temporal, and causal relations linked to supporting segments.
 - The `GR`, `SR`, `FR`, `FI`, `CB`, and `finish` tool chain with query-type routing, confidence gating, and terminal convergence.
 
-Dataset downloaders, benchmark-specific evaluation runners, and internal experiment logging are intentionally omitted. The supplied code focuses on the method needed to inspect and reproduce the core pipeline.
+The supplied code focuses on the method needed to inspect and reproduce the core pipeline.
 
 ## Requirements
 
@@ -79,13 +79,6 @@ frames/
 
 The global query returns time-bounded candidate regions and segment evidence links. These can be passed as `scope` to segment retrieval. Segment ranges can likewise scope frame retrieval before raw-frame inspection.
 
-## Network-free tests
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-These tests use mocked model and embedding responses. They validate the three graph levels, VLM prompt boundaries, cross-level evidence links, graph-tool scoring and scope filtering, routing, confidence gates, and terminal convergence without API calls.
 
 ## Source layout
 
@@ -99,5 +92,4 @@ sgd/scene_graph/segment_builder.py Segment VLM construction
 sgd/scene_graph/global_builder.py  Global event graph construction
 sgd/scene_graph/query*.py          Level-specific graph retrieval
 sgd/scene_graph/schema.py          Graph schemas and validation
-tests/                             Network-free unit and smoke tests
 ```

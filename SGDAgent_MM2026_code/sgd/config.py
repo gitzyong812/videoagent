@@ -44,8 +44,8 @@ POLICY_FI_OUTPUT_SIMILARITY_THRESHOLD = 0.55
 POLICY_REPEATED_FI_MIN_OVERLAP_RATIO = 0.5
 POLICY_MAX_FINISH_REJECTIONS = 3
 
-SINGLE_CHOICE_QA = True  # Design for benchmark test. If True, the agent will only return options for single-choice questions.
-MAX_ITERATIONS = 20  # Used by benchmark/VQA runs; 20 helps a few hard multi-step cases, but finalization logic remains primary.
+SINGLE_CHOICE_QA = True
+MAX_ITERATIONS = 20
 ORCHESTRATOR_RETRY_ATTEMPTS = 5
 ORCHESTRATOR_RETRY_BASE_DELAY_SEC = 1.0
 PARALLEL_RUN_RETRY_ATTEMPTS = 2
