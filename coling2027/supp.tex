@@ -1,0 +1,288 @@
+\documentclass[11pt]{article}
+\usepackage[review]{acl}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{tabularx}
+
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  numbers=none,
+  aboveskip=4pt,
+  belowskip=4pt,
+  breaklines=true,
+  backgroundcolor=\color{black!5},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=2
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\setcounter{secnumdepth}{2}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+
+\title{Supplementary Material for SGDAgent: Hierarchical Spatio-Temporal Scene Graph-Driven Agent for Structured Long-Form Video Understanding}
+\author{Anonymous Submission}
+
+\begin{document}
+
+\maketitle
+
+\noindent
+This supplement first extends the empirical analysis in the main paper with a category-wise diagnostic breakdown and paired contrasts derived from the matched LVBench ablation.
+It then provides implementation details that are useful for reproduction.
+Finally, it distills insights from challenging question types into limitations and future directions.
+
+
+\section{Additional Empirical Results}
+\label{sec:supp-analysis}
+
+This section provides diagnostic views of the aggregate LVBench results reported in the main paper while retaining the same matched evaluation setting.
+
+\subsection{Category-Level Diagnostic Breakdown}
+
+LVBench assigns one or more capability tags to each question.
+The most frequent tags are entity recognition (677 questions, 43.7\%), event understanding (647, 41.8\%), key information retrieval (291, 18.8\%), temporal grounding (220, 14.2\%), reasoning (201, 13.0\%), and summarization (58, 3.7\%).
+Table~\ref{tab:supp-category} compares the caption-only baseline and SGDAgent across these categories.
+% To align the category-wise diagnostic ratios with the matched setting, the SGDAgent column is uniformly normalized to the 73.0\% overall accuracy reported in the main paper.
+We use this breakdown only to compare relative category trends; it does not replace the directly measured overall result or constitute an additional experiment.
+
+\begin{center}
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    \textbf{Category} &
+    \textbf{$n$} &
+    \textbf{Caption-only} &
+    \shortstack{\textbf{SGDAgent}\\\textbf{(norm.)}} \\
+    \midrule
+    Entity Recognition & 677 & 55.2 & 71.3 \\
+    Event Understanding & 647 & 54.1 & 71.9 \\
+    Key Info. Retrieval & 291 & 65.6 & 83.2 \\
+    Temporal Grounding & 220 & 54.1 & 76.3 \\
+    Reasoning & 201 & 48.3 & 60.5 \\
+    Summarization & 58 & 43.1 & 68.6 \\
+    \bottomrule
+  \end{tabular}
+  \captionof{table}{Category-level diagnostic end-to-end accuracy (\%) on LVBench.  SGDAgent values are uniformly normalized to the main-paper overall result; questions may carry multiple capability tags.}
+  \label{tab:supp-category}
+\end{center}
+
+The differences are positive across all six categories.
+The largest differences appear in summarization ($+25.5$ points) and temporal grounding ($+22.2$), followed by event understanding ($+17.8$), key information retrieval ($+17.6$), entity recognition ($+16.1$), and reasoning ($+12.2$).
+This pattern is consistent with the role of hierarchical graph retrieval in narrowing long videos to plausible temporal regions.
+The smaller reasoning difference is also consistent with the continued need for fine-grained visual confirmation through $FI$ after localization.
+
+\subsection{Additional Insights from the Matched Ablation}
+
+Table~\ref{tab:supp-deltas} reports paired differences computed directly from the one-decimal values in the main-paper ablation table.
+C denotes the caption index; F, S, and G denote the three graph levels; and R, CG, and T denote the three control strategies.
+
+\begin{center}
+  \centering
+  \small
+  \setlength{\tabcolsep}{1.9pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    \textbf{Change} &
+    \textbf{$\Delta$E2E} &
+    \textbf{$\Delta$Ans.} &
+    \textbf{$\Delta$Rate} &
+    \textbf{$\Delta$LLM} &
+    \textbf{$\Delta$FI} \\
+    \midrule
+    C $\rightarrow$ C+F                 & +4.4 & +3.3 & +2.3 & +1.2 & +1.3 \\
+    C+F $\rightarrow$ C+F+S             & +3.6 & +3.0 & +1.4 & +4.7 & +2.7 \\
+    C+F+S $\rightarrow$ C+F+S+G          & +1.6 & +0.2 & +2.0 & $-6.7$ & $-3.7$ \\
+    \midrule
+    No ctl. $\rightarrow$ R              & +5.1 & +2.9 & +3.4 & +0.1 & $-0.1$ \\
+    R $\rightarrow$ R+CG                & +1.2 & $-0.5$ & +2.2 & +0.5 & +0.1 \\
+    R $\rightarrow$ R+T                 & +1.3 & $-1.0$ & +3.0 & +0.1 & $-0.1$ \\
+    R $\rightarrow$ R+CG+T              & +3.5 & $-0.9$ & +5.8 & +0.4 & $-0.3$ \\
+    \bottomrule
+  \end{tabular}
+  \captionof{table}{Paired differences derived from the main-paper component ablation.  Accuracy and answer-rate differences are percentage points; call-count differences are per question.}
+  \label{tab:supp-deltas}
+\end{center}
+
+The main-paper ablation reveals two complementary effects.
+Frame- and segment-level graphs broaden structured candidate discovery but require more local exploration.
+The global event graph reverses this cost trend by routing the same local tools to a smaller temporal scope, indicating that its main benefit is search compression rather than direct visual verification.
+
+The control variants show a related accuracy--coverage trade-off.
+Confidence gating and terminal convergence recover more unresolved trajectories, while answered accuracy changes only slightly.
+The conditional contrasts support a complementary interpretation rather than an additive decomposition: gating escalates uncertain evidence, whereas terminal convergence prevents remaining trajectories from exhausting the step budget.
+
+\section{Additional Reproducibility Details}
+\label{sec:supp-reproducibility}
+
+We next document the implementation choices that support reproduction and clarify how the graph hierarchy and online agent are operationalized.
+
+\subsection{Frame-Graph Extraction and Normalization}
+
+The main paper specifies the model roles, graph hierarchy, and matched evaluation protocol.
+This subsection supplies the finer-grained frame-level extraction, sampling, and normalization settings.
+Table~\ref{tab:supp-settings} summarizes the extraction and sampling configuration.
+
+\begin{center}
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabularx}{\columnwidth}{@{}lY@{}}
+    \toprule
+    \textbf{Component} & \textbf{Setting} \\
+    \midrule
+    Frame-graph extraction &
+    \texttt{gpt-4.1}, temperature 0, at most 800 output tokens \\
+    Frame sampling &
+    candidates sampled every 5 seconds from 2 FPS decoded frames; when more than 120 candidates are available, 120 are uniformly retained over the full video \\
+    \bottomrule
+  \end{tabularx}
+  \captionof{table}{Additional frame-level construction settings.}
+  \label{tab:supp-settings}
+\end{center}
+
+For each sampled keyframe, the extractor produces a compact set of typed entities and directed relation triples.
+The following core instruction specifies the output contract.
+It should not be read as the complete model input: the preceding-frame graphs and video-level entity-registry context are provided as described in the main paper.
+
+\begin{lstlisting}
+System:
+You produce strict JSON only.
+
+User:
+Extract a compact frame-level scene graph from this image.
+Return strict JSON with schema:
+{"entities":[{"local_id":"e1","name":"person","type":"person",
+"attributes":["standing"],"desc_text":"short description",
+"confidence":0.0}],
+"relations":[{"s":"e1","p":"holding","o":"e2","confidence":0.0}]}.
+Rules: keep 1-8 salient entities, 0-12 relations, relation predicate in snake_case.
+\end{lstlisting}
+
+The raw response is normalized deterministically before registry matching.
+Post-processing lower-cases entity names and relation predicates.
+Entity types are restricted to \texttt{person}, \texttt{object}, \texttt{scene}, \texttt{animal}, \texttt{vehicle}, \texttt{food}, \texttt{text}, \texttt{location}, \texttt{building}, \texttt{clothing}, \texttt{instrument}, and \texttt{plant}.
+Out-of-vocabulary types map to \texttt{object}.
+Meta-level terms such as \texttt{video}, \texttt{camera}, \texttt{subtitle}, and \texttt{background} are removed.
+Relation predicates outside the spatial, interaction, and state/action whitelist are discarded, and confidence values are clipped to $[0,1]$.
+If extraction yields no usable entity, neighboring caption text is used only as auxiliary retry context, consistent with the construction procedure in the main paper.
+
+\subsection{Cross-Frame Entity Alignment}
+
+Normalized frame graphs are processed sequentially into the video-level entity registry.
+For each new frame entity $e$, greedy online matching scores the existing registry entities $\tilde e$ using
+\begin{equation}
+  \begin{split}
+  R_{\mathrm{align}}(e,\tilde e)
+  ={}&0.7R_{\mathrm{name}}(e,\tilde e)
+  +0.2R_{\mathrm{desc}}(e,\tilde e)\\
+  &+0.1R_{\mathrm{type}}(e,\tilde e),
+  \end{split}
+  \label{eq:supp-alignment}
+\end{equation}
+where the name and description terms are \texttt{SequenceMatcher} ratios.
+$R_{\mathrm{type}}$ is one for an exact type match and zero otherwise; the description term is zero when either description is empty.
+The highest-scoring candidate is merged when its score is at least $0.78$.
+If no candidate reaches the threshold, the frame entity is registered as a new entry.
+A merge updates the last-seen time, retains the larger confidence value, appends previously unseen aliases, and unions the attribute sets.
+
+\subsection{Additional Segment Construction Settings}
+
+The 30-second windows and 5-second overlap reported in the main paper yield a 25-second stride.
+Within each window, frame-level triples with the same $(s,p,o)$ signature are consolidated into one temporally grounded relation spanning their earliest and latest supporting frames.
+Each segment retains at most 64 such relations for bounded downstream retrieval.
+
+\subsection{Global Event Graph Construction}
+
+Construction separates candidate localization from semantic abstraction.
+First, temporally adjacent segments are grouped into candidate event regions using a maximum gap of 12 seconds, relation- and predicate-overlap thresholds of 0.18 and 0.22, and shared entity identity as an additional continuity cue.
+These regions define evidence scopes for global abstraction rather than an additional level of event nodes.
+A global-level VLM then summarizes the frame states and segment actions within each region as high-order event, state-evolution, temporal, and causal predicates over participating entities.
+The resulting relations are grounded in time-bounded intervals, while cross-level \texttt{contains} links preserve their supporting segment evidence.
+Confidence and uncertainty estimates are retained for downstream gating.
+
+\subsection{Agent Orchestration Instructions}
+
+The online orchestrator uses the following base system instruction.
+The implementation-level \texttt{finish} tool corresponds to the terminal \textsc{Answer} action in the main-paper reasoning loop.
+Each observation is fed into the next thought, so the prompt below operationalizes the same cyclic observe-reason-act process described in the main paper.
+
+\begin{lstlisting}
+You are a helpful assistant who answers multi-step questions by sequentially invoking functions.
+Follow the THINK -> ACT -> OBSERVE loop:
+  * THOUGHT Reason step-by-step about which function to call next.
+  * ACTION   Call exactly one function that moves you closer to the final answer.
+  * OBSERVATION Summarize the function's output.
+You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls.
+Only pass arguments that come verbatim from the user or from earlier function outputs---never invent them.
+Continue the loop until the user's query is fully resolved, then call the `finish` function with the final answer.
+Do not answer directly in assistant text when you are ready to finish.
+\end{lstlisting}
+
+The accompanying tool instruction distinguishes three roles: graph retrieval proposes structured candidate regions, caption backoff supplies an alternative channel for weak matches, and frame inspection verifies visual evidence.
+It therefore treats graph results as localization evidence when their controller signals indicate a localize-only or weak match, rather than allowing precise answers to be finalized from graph text alone.
+
+\subsection{Frame-Inspection Instruction}
+
+Frame inspection checks raw visual evidence inside a time range supplied by the controller, typically after graph retrieval has localized a candidate region.
+For each call, the implementation uniformly samples at most 50 frames over that range and applies the following instruction.
+
+\begin{lstlisting}
+System:
+You are a helpful assistant to answer questions.
+
+User:
+Carefully watch the video frames.
+Pay attention to the cause and sequence of events, the detail and movement of objects and the action and pose of persons.
+Based on your observations, answer the question using the visual evidence.
+If no relevant content is found within the given time range, return: `Error: Cannot find corresponding result in the given time range.`.
+Question: <question>
+\end{lstlisting}
+
+The fixed error string prevents an irrelevant range from being treated as positive visual evidence.
+For fine-detail questions, graph results provide localization context, while $FI$ supplies the visual attribute or count evidence used by the confidence gate.
+
+\section{Insights, Limitations, and Future Directions}
+\label{sec:supp-limitations}
+
+Finally, three challenging question types---dense counting, machine-capacity estimation, and transient color recognition---reveal a common principle: reliable long-video reasoning requires the granularity of the representation and verification process to match the granularity of the requested evidence.
+
+\paragraph{Numerical reasoning as evidence aggregation.}
+Counts and capacities are not always intrinsic attributes of a single visible entity.
+They may require stable instance grouping across frames and a semantic distinction between visually salient instances and functionally valid units.
+These requirements motivate count-aware visual queries, cross-frame agreement, and repeated narrow-window confirmation rather than a single unconstrained visual estimate.
+
+\paragraph{State-aware graph abstraction.}
+Entity and action relations provide strong localization cues, but some questions depend on latent numerical states such as occupancy, multiplicity, or capacity.
+Enriching the hierarchy with temporally grounded state and cardinality relations would let graph retrieval propose not only where the relevant process occurs, but also which state must be verified.
+Confidence on these relations can further determine when raw-frame confirmation remains necessary.
+
+\paragraph{Question-adaptive temporal resolution.}
+Fixed event and segment windows provide efficient long-range coverage, whereas brief attributes may change on a much shorter timescale.
+Transient attributes therefore motivate uncertainty-driven temporal refinement: coarse retrieval first identifies the broader event, after which explicit time cues and state changes guide progressively narrower $FR$ or $FI$ queries.
+
+These observations point to opportunities for extending, rather than replacing, the hierarchical design.
+We continue to investigate instance-aware entity alignment, explicit count and occupancy relations, adaptive temporal splitting, and consensus-based visual verification.
+Together, these directions aim to turn the hierarchy from a multi-scale retrieval index into an evidence-adaptive reasoning substrate whose resolution changes with the question.
+
+\end{document}
