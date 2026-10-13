@@ -197,14 +197,14 @@ Schema validation and confidence filtering remove malformed or weak records. Sup
 \subsection{Scene Graph-Driven Agent}
 \label{sec:agent}
 
-\subsubsection{Adaptive agentic reasoning loop.}
+\subsubsection{Adaptive agentic reasoning loop}
 Figure~\ref{fig:mechanism} and Algorithm~\ref{alg:search} summarize the agent's observe-reason-act loop~\cite{react2022} over the prebuilt video index.
 At step~$t$, state~$H$ contains the question, retrieved candidates, accumulated evidence, and controller signals.
 Query-type routing selects the initial tool, after which the LLM selects actions $a_t \in \mathcal{T}$ from the evolving state, and the selected tool updates~$H$.
 Confidence gating accepts a proposed answer when its support is sufficient and prioritizes $FI$ when visual confirmation is needed.
 If the step budget~$B$ is exhausted, terminal readout returns the best-supported option from the trajectory.
 
-\subsubsection{Tool chain.}
+\subsubsection{Tool chain}
 The agent acts over the tool chain $\mathcal{T}=\{GR,\,\allowbreak SR,\,\allowbreak FR,\,\allowbreak FI,\,\allowbreak CB,\,\allowbreak \mathrm{Answer}\}$.
 $GR$, $SR$, and $FR$ query the global event graph, segment-level graphs, and frame-level graphs to propose candidates at progressively finer granularity.
 The frame-inspection tool $FI$ verifies candidates against raw frames, while caption backoff $CB$ provides a complementary text channel.
@@ -284,7 +284,7 @@ Caption backoff provides another route to candidate discovery, while frame inspe
 \end{algorithm}
 
 
-\subsubsection{Agent control strategies.}
+\subsubsection{Agent control strategies}
 Query-type routing (R) uses ordered question-text rules for the first tool: visual-detail cues select $FI$, causal or plot cues select $GR$, temporal-localization cues select $SR$, and object-relation cues select $FR$; the default is $GR$.
 For $t>1$, \texttt{QueryTypeRoute} passes through the LLM's action, selected from observations and controller guidance.
 Confidence gating (CG) blocks answers based only on weak or localization-only evidence and appends feedback to $H$ for another retrieval or inspection step.
