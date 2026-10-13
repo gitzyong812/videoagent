@@ -96,7 +96,7 @@ SGDAgent makes temporal scale explicit in both the index and retrieval interface
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.95\textwidth]{figures/Graph.png}
+  \includegraphics[width=0.99\textwidth]{figures/Graph.png}
 
   \caption{Overview of the hierarchical spatio-temporal scene graph representation and its bottom-up construction.
   Panel (a) shows the long video input, panel (b) the construction pipeline, and panel (c) the frame-level and segment-level graphs and the global event graph linked by temporal containment, with cross-level entities aligned through a shared registry.}
@@ -162,7 +162,7 @@ Cross-level \texttt{contains} links connect the global event graph to its suppor
 
 \begin{figure*}[!tb]
   \centering
-  \includegraphics[width=0.95\textwidth]{figures/workflow.png}
+  \includegraphics[width=0.98\textwidth]{figures/workflow.png}
   % \vspace{-0.1in}
   \caption{SGDAgent reasoning framework.
   Within the observe-reason-act loop, the agent adaptively selects graph retrieval at global, segment, or frame granularity, caption backoff, or frame inspection over the video index and raw frames.}
@@ -285,7 +285,7 @@ Caption backoff provides another route to candidate discovery, while frame inspe
 
 
 \subsubsection{Agent control strategies.}
-In the implementation, query-type routing (R) uses ordered question-text rules for the first tool: visual-detail cues select $FI$, causal or plot cues select $GR$, temporal-localization cues select $SR$, and object-relation cues select $FR$; the default is $GR$.
+Query-type routing (R) uses ordered question-text rules for the first tool: visual-detail cues select $FI$, causal or plot cues select $GR$, temporal-localization cues select $SR$, and object-relation cues select $FR$; the default is $GR$.
 For $t>1$, \texttt{QueryTypeRoute} passes through the LLM's action, selected from observations and controller guidance.
 Confidence gating (CG) blocks answers based only on weak or localization-only evidence and appends feedback to $H$ for another retrieval or inspection step.
 Controller signals describe match quality, region granularity, and the need for visual confirmation, distinguishing candidate localization from answer evidence.
@@ -337,13 +337,13 @@ Appendix~\ref{sec:routing-details} gives the rule boundaries and optional contex
     VideoSeek~\cite{videoseek}
       & GPT-5         & 68.4 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
-      & o4-mini (reasoning) / o3 (FI)        & 70.2 & -   & -   & -   \\
+      & o4-mini(reason) / o3(FI)        & 70.2 & -   & -   & -   \\
     DVD~\cite{deepvideo2025}
       & o3            & 74.2 & 71.6 & 67.3 & 76.6 \\
     \midrule
     \multicolumn{6}{l}{\textit{Ours}} \\
     SGDAgent
-      & o4-mini (reasoning) / o3 (FI)      & 73.0 & 71.2 & 65.1 & 74.0 \\
+      & o4-mini(reason) /o3(FI)      & 73.0 & 71.2 & 65.1 & 74.0 \\
     SGDAgent
       & o3            & \textbf{75.9} & \textbf{74.0} & \textbf{69.0} & \textbf{77.4} \\
     \bottomrule
@@ -441,9 +441,8 @@ LVBench, which contains 1{,}549 questions over 103 long videos, is additionally 
 
 \textbf{Implementation details.}
 By default, we use \texttt{o4-mini} as the reasoning model and \texttt{gpt-4.1} for frame-level graph extraction.
-Entity alignment weights name, description, and type similarity by 0.7, 0.2, and 0.1, respectively, with a merge threshold of 0.78.
-Segment-level graphs are constructed using 30-second sliding windows with 5-second overlap.
-Before global abstraction, segments are grouped into candidate event regions using a maximum temporal gap of 12~seconds, relation- and predicate-overlap thresholds of 0.18 and 0.22, and shared entities as an additional merge cue.
+Entity alignment weights name, description, and type similarity by 0.7, 0.2, and 0.1, respectively.
+Segment-level graphs are constructed using 30-second sliding windows. Before global abstraction, segments are grouped into candidate event regions using a maximum temporal gap of 12~seconds, and shared entities as an additional merge cue.
 Frame inspection uses at most 50~frames per call, while $GR$, $SR$, and $FR$ return up to 5, 6, and 8 candidates, respectively.
 Building the LVBench scene graph index takes about 7.94 hours with four workers, including about 121 seconds for global event graph construction.
 The video index is constructed once and reused across all questions.
@@ -510,7 +509,7 @@ This illustration complements the quantitative evidence from the matched ablatio
 SGDAgent co-designs a hierarchical scene-graph video index and level-specific retrieval for long-video reasoning.
 Shared identities and temporal links connect frame observations, local interactions, and global events to guide visual verification.
 Matched LVBench comparisons show complementary graph and caption evidence, reduced online search with the global level, and improved answer coverage through agent control.
-The four-benchmark evaluation further demonstrates competitive performance across long-video settings.
+The four-benchmark evaluation results further demonstrate competitive performance across long-video settings.
 This offers a structured interface between video abstraction, candidate retrieval, and visual verification.
 
 \section*{Limitations}
